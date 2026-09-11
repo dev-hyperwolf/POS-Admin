@@ -6,12 +6,16 @@
 <title>Verify — Concept A — Pack-Verify on the Tablet</title>
 <style>
 /* ============================================================================
-   Verify — Concept A — Pack-Verify on the Tablet
+   Verify — Concept A — Pack-Verify on the Tablet (Round 2 revision)
    Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); rail
-   shell copied from Hyperwolf Bounty.html; the box panel below (breadcrumb,
-   steppers, amber reason + Fix, green "Box packed") is the Concept D keeper,
-   reproduced verbatim and extended with the "Scan box" RFID step this round
-   adds. No build step, no external requests. All names/qty/times are EXAMPLE.
+   shell copied from Hyperwolf Bounty.html; box panel conventions from the
+   Concept D keeper (breadcrumb, steppers, amber reason + Fix, green "Box
+   packed"). Round-2 rules applied: RFID first (read is the primary action,
+   typed steppers only in a flagged hand-count exception row, no location
+   dropdowns, kit/box QR to open or close, station sign-in by badge) and
+   batch level everywhere (every line is a batch line with a monospace batch
+   chip; a SKU with two batches on hand is two LOUD rows). No build step, no
+   external requests. All names/qty/times/batches are EXAMPLE data.
    ========================================================================= */
 :root{
   --fontSans:"Inter",-apple-system,system-ui,sans-serif;
@@ -112,15 +116,18 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 .dtl-step.active{color:var(--ink);font-weight:700;}
 .dtl-step.active .dtl-dot{background:var(--accent);box-shadow:0 0 0 3px var(--accentSoft);}
 
-.banner{display:flex;align-items:flex-start;gap:10px;border-radius:var(--r12);padding:12px 16px;font-size:var(--f-body);margin:12px 18px 0;border:1px solid var(--hairline2);background:var(--surface2);}
-.banner.warn{background:var(--warnSoft);border-color:var(--warn);color:var(--warnText);}
-.banner .b-title{font-weight:700;margin-bottom:2px;}
-.banner .b-x{margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;}
 .example-banner{display:flex;align-items:center;gap:8px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 14px;font-size:var(--f-meta);font-weight:600;margin:12px 18px 0;}
 .modenote{display:flex;align-items:center;gap:10px;margin:8px 18px 0;font-size:var(--f-meta);color:var(--inkMute);flex-wrap:wrap;}
 .modepill{display:inline-flex;gap:2px;background:var(--surface3);border-radius:99px;padding:2px;}
 .modepill button{border:none;background:transparent;border-radius:99px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--inkDim);}
 .modepill button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+
+.signinbar{display:flex;align-items:center;gap:12px;margin:10px 18px 0;padding:9px 14px;border-radius:var(--r12);border:1px dashed var(--hairline3);background:var(--surface2);flex-wrap:wrap;}
+.signinbar.signed{border-style:solid;border-color:var(--good);background:var(--goodSoft);}
+.signin-avatar{width:30px;height:30px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--ink2);flex:0 0 auto;}
+.signinbar.signed .signin-avatar{background:var(--good);color:#fff;}
+.signin-txt{font-size:var(--f-meta);color:var(--inkDim);}
+.signin-txt b{color:var(--ink);}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--r10);font-size:var(--f-body);font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
 .btn-primary{background:var(--accent);color:var(--accentInk);}
@@ -173,55 +180,53 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 .box-scroller{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;}
 .box-panel{flex:0 0 100%;scroll-snap-align:start;padding:14px 20px 8px;min-width:100%;}
 .box-title{font-size:var(--f-title);font-weight:800;margin:0 0 10px;display:flex;align-items:center;gap:10px;}
-.prow{display:flex;align-items:center;gap:14px;padding:12px 8px;border-radius:var(--r12);margin-bottom:8px;border:1px solid var(--hairline);background:var(--surface);flex-wrap:wrap;}
-.prow .pname{flex:1 1 180px;min-width:140px;}
-.prow .pname b{font-size:var(--f-body);font-weight:700;display:block;}
-.prow .pname .sub{font-size:var(--f-meta);color:var(--inkMute);}
-.prow .stat3{display:flex;gap:14px;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);flex:0 0 auto;}
-.prow .stat3 div{text-align:center;}
-.prow .stat3 .k{font-size:10px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
+.qrbtn{background:none;border:1px dashed var(--hairline3);border-radius:99px;color:var(--inkMute);font-size:11px;cursor:pointer;padding:5px 10px;display:inline-flex;align-items:center;gap:5px;font-weight:600;}
+.qrbtn:hover{color:var(--ink);border-color:var(--inkMute);}
+.bchip{display:block;font-family:var(--fontMono);font-size:11px;color:var(--inkDim);margin-top:2px;font-weight:500;}
+.loud-tag{display:inline-block;margin-top:4px;border:1.5px solid var(--bad);background:var(--badSoft);border-radius:99px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--bad);}
+
 .stepper{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
 .stepbtn{width:44px;height:44px;border-radius:var(--r10);border:1px solid var(--hairline3);background:var(--surface3);font-size:22px;font-weight:700;cursor:pointer;color:var(--ink);}
 .stepbtn:hover{background:var(--hairline2);}
 .stepbtn:disabled{opacity:.35;cursor:not-allowed;}
 .stepval{width:52px;text-align:center;font-family:var(--fontMono);font-size:20px;font-weight:800;}
+.stepper-sm{display:inline-flex;align-items:center;gap:6px;}
+.stepbtn-sm{width:30px;height:30px;border-radius:8px;border:1px solid var(--hairline3);background:var(--surface3);font-size:16px;font-weight:700;cursor:pointer;color:var(--ink);}
+.stepbtn-sm:hover{background:var(--hairline2);}
+.stepval-sm{width:32px;text-align:center;font-family:var(--fontMono);font-size:14px;font-weight:800;}
 
-/* LOUD mixed-batch flag — always red, never quiet */
-.loud{flex-basis:100%;margin-top:8px;border:1.5px solid var(--bad);background:var(--badSoft);border-radius:var(--r10);padding:8px 10px;font-size:12px;color:var(--bad);}
-.loud b{text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;}
-.loud .batches{margin-top:4px;display:flex;flex-wrap:wrap;gap:10px;font-family:var(--fontMono);color:var(--bad);font-weight:700;}
-.loud .batches span small{display:block;font-family:var(--fontSans);font-weight:600;color:var(--bad);opacity:.85;}
-
-/* scan section */
-.scanbar{margin-top:16px;padding-top:14px;border-top:1px dashed var(--hairline3);}
+/* scan / read section */
+.scanbar{margin-top:0;padding-bottom:14px;border-bottom:1px dashed var(--hairline3);margin-bottom:12px;}
 .scanbar-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .scanbar-head h4{margin:0;font-size:var(--f-body);font-weight:700;flex:1 1 auto;}
 .scan-btn{height:48px;padding:0 20px;border-radius:var(--r12);border:1px solid var(--info);background:var(--infoSoft);color:var(--info);font-weight:800;font-size:var(--f-body);cursor:pointer;display:inline-flex;align-items:center;gap:9px;}
 .scan-btn:hover{filter:brightness(0.97);}
 .scan-btn:disabled{opacity:.5;cursor:not-allowed;}
 .scan-fallback{background:none;border:none;color:var(--inkMute);font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 2px;}
-.scanning{display:flex;align-items:center;gap:10px;padding:14px;color:var(--inkDim);font-size:var(--f-body);}
+.scanning{display:flex;align-items:center;gap:10px;padding:14px 0;color:var(--inkDim);font-size:var(--f-body);}
 .spinner{width:20px;height:20px;border-radius:50%;border:3px solid var(--hairline2);border-top-color:var(--info);animation:spin .8s linear infinite;flex:0 0 auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.manual-flag{display:flex;gap:8px;align-items:center;background:var(--warnSoft);color:var(--warnText);border:1px solid var(--warn);border-radius:var(--r10);padding:9px 12px;font-size:12.5px;margin-bottom:10px;}
+.manual-flag{display:flex;gap:8px;align-items:center;background:var(--warnSoft);color:var(--warnText);border:1px solid var(--warn);border-radius:var(--r10);padding:9px 12px;font-size:12.5px;margin-top:10px;}
 
-table.verifytbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;margin-top:8px;}
+table.verifytbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;margin-top:4px;}
 table.verifytbl th{text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:6px 8px;border-bottom:1px solid var(--hairline);}
-table.verifytbl th:first-child,table.verifytbl th:nth-child(2){text-align:left;}
-table.verifytbl td{padding:8px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
+table.verifytbl th:first-child,table.verifytbl th:nth-child(4),table.verifytbl th:nth-child(5){text-align:left;}
+table.verifytbl td{padding:9px 8px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
 table.verifytbl tr:last-child td{border-bottom:none;}
-.verifytbl .pn{font-weight:700;}
-.verifytbl .bn{font-family:var(--fontMono);font-size:11.5px;color:var(--inkDim);}
+.verifytbl .pn b{font-weight:700;font-size:var(--f-body);display:block;}
 .verifytbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
 .verifytbl tr.st-missing{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 .verifytbl tr.st-extra{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 .verifytbl tr.st-wrongbox{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
-.verifytbl tr.st-match td:first-child{color:var(--ink);}
+.verifytbl tr.st-wrongbatch{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+.verifytbl tr.excrow{background:var(--infoSoft);box-shadow:inset 3px 0 0 var(--info);}
 .statuspill{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
 .sp-match{background:var(--goodSoft);color:var(--good);}
 .sp-missing{background:var(--badSoft);color:var(--bad);}
 .sp-extra{background:var(--badSoft);color:var(--bad);}
 .sp-wrongbox{background:var(--warnSoft);color:var(--warnText);}
+.sp-wrongbatch{background:var(--warnSoft);color:var(--warnText);}
+.exc-badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:99px;background:var(--infoSoft);color:var(--info);font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
 .reasonwrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .reasonsel{height:30px;border-radius:7px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:11.5px;padding:0 6px;}
 .fixbtn{height:30px;padding:0 11px;border-radius:99px;border:1px solid var(--warn);background:var(--surface);color:var(--warnText);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;}
@@ -242,7 +247,7 @@ table.verifytbl tr:last-child td{border-bottom:none;}
 .modal{background:var(--surface);border-radius:var(--r20);width:100%;max-width:480px;max-height:86vh;overflow-y:auto;padding:22px;box-shadow:var(--shadowLg);}
 .modal h2{margin:0 0 4px;font-size:var(--f-title);}
 .slip{border:1px dashed var(--hairline3);border-radius:var(--r12);padding:14px;margin-top:12px;font-family:var(--fontMono);font-size:12px;background:var(--surface2);}
-.slip .sline{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dotted var(--hairline2);}
+.slip .sline{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dotted var(--hairline2);gap:10px;}
 .slip .sline.loudline{color:var(--bad);font-weight:700;}
 .qr{width:96px;height:96px;margin:12px auto 0;background:
   repeating-linear-gradient(0deg, var(--ink) 0 4px, transparent 4px 8px),
@@ -292,9 +297,10 @@ table.verifytbl tr:last-child td{border-bottom:none;}
 
     <div class="daytl" id="dayTimeline"></div>
     <div class="example-banner">Design mockup — every product, batch number, driver name and time on this screen is example data.</div>
+    <div class="signinbar" id="signinBar"></div>
     <div class="modenote">Verifying:
       <span class="modepill"><button class="active" id="modeBuild">Morning build</button><button id="modeRefill">2:15 PM refill (today)</button></span>
-      A box's plan is keyed by <b>box × SKU × batch</b> — the scan reads the same way, so "right SKU, wrong batch" is never invisible.
+      Every box starts with an RFID read, per batch. Typed steppers appear only on a flagged hand-count row — a dead tag or an untagged category — never as the default way to count.
     </div>
 
     <div class="packing" id="packing">
@@ -348,93 +354,108 @@ function renderDayTL(){
 renderDayTL();
 $('#modeBuild').addEventListener('click', function(){ setMode('build'); });
 $('#modeRefill').addEventListener('click', function(){ setMode('refill'); });
-var mode = 'refill';
-function setMode(m){ mode = m; $('#modeBuild').classList.toggle('active', m==='build'); $('#modeRefill').classList.toggle('active', m==='refill'); }
+function setMode(m){ $('#modeBuild').classList.toggle('active', m==='build'); $('#modeRefill').classList.toggle('active', m==='refill'); }
 setMode('refill');
 
-/* ---------- data: EXAMPLE ONLY. plan is keyed box × SKU × batch. ---------- */
+/* ---------- station sign-in — badge read is the primary path ---------- */
+var currentUser = null;
+function initials(name){ return name.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase(); }
+function renderSignin(){
+  var bar = $('#signinBar');
+  if (!currentUser){
+    bar.className = 'signinbar';
+    bar.innerHTML = '<div class="signin-avatar">—</div><div class="signin-txt">Not signed in at this station.</div>'+
+      '<button class="btn btn-primary btn-sm" id="badgeSignin" style="margin-left:auto;">📇 Scan staff badge to start packing</button>';
+    $('#badgeSignin').addEventListener('click', function(){
+      currentUser = 'Tomás G.';
+      toast('Signed in', 'Badge scanned — packing station signed in as Tomás G.');
+      renderSignin();
+    });
+  } else {
+    bar.className = 'signinbar signed';
+    bar.innerHTML = '<div class="signin-avatar">'+initials(currentUser)+'</div><div class="signin-txt">Packing station signed in as <b>'+currentUser+'</b></div>'+
+      '<button class="btn btn-ghost btn-sm" id="switchUser" style="margin-left:auto;">Switch (scan badge)</button>';
+    $('#switchUser').addEventListener('click', function(){ currentUser = null; renderSignin(); });
+  }
+  renderKit();
+}
+
+/* ---------- data: EXAMPLE ONLY. every line is a batch line. ---------- */
 var REASONS_MISSING = ['Recount this box','Search the bench','Mis-tag — flag receiving'];
 var REASONS_EXTRA = ['Misrouted from another kit','Stray unit — flag LP','Miscount at pack'];
 var uid = 0;
-function P(o){ o.id = 'p'+(++uid); o.reason = o.reason || null; return o; }
-function Box(name, products){ return { name:name, packed:false, scanState:'unscanned', products:products }; }
+function BL(o){ o.id = 'p'+(++uid); o.reason = o.reason || null; if (o.handCount) o.count = o.count || 0; return o; }
+function Box(name, lines){ return { name:name, packed:false, scanState:'unscanned', lines:lines }; }
 function Kit(driver, route, boxes){ return { id:'k'+(++uid), driver:driver, route:route, boxes:boxes }; }
 
 var REGIONS = [
   { name:'West LA', kits:[
     Kit('Marcus R.','Route 3', [
       Box('Flower Box 1', [
-        P({name:'Sunset OG 3.5g', plan:20, batches:[{no:'B-2291',qty:20,thc:24.8,pack:'08/22/26'}],
-          reads:[{no:'B-2291',qty:20}]}),
-        P({name:'Blue Dream 3.5g', plan:10, mixed:true,
-          batches:[{no:'B-1187',qty:6,thc:22.4,pack:'06/12/26'},{no:'B-2205',qty:4,thc:27.9,pack:'08/02/26'}],
-          reads:[{no:'B-1187',qty:6},{no:'B-2205',qty:4}]}),
-        P({name:'GMO 7g', plan:6, batches:[{no:'B-2299',qty:6,thc:31.2,pack:'08/28/26'}],
-          reads:[{no:'B-2299',qty:5},{no:'B-2299',qty:1,box:'Flower Box 2'}]})
-      ]),
-      Box('Flower Box 2', [
-        P({name:'Wedding Cake 1g', plan:24, batches:[{no:'B-2100',qty:24,thc:26.1,pack:'08/18/26'}], reads:[{no:'B-2100',qty:24}]}),
-        P({name:'Runtz 3.5g', plan:3, batches:[{no:'B-2044',qty:3,thc:23.0,pack:'07/30/26'}], reads:[{no:'B-2044',qty:3}]})
+        BL({sku:'Sunset OG 3.5g', no:'HW-2408-14', thc:24.8, pkg:'Aug 22', exp:'Feb 18', onHand:19, metrc:'1A4…9C2', expected:20, read:20}),
+        BL({sku:'Blue Dream 3.5g', no:'HW-2409-01', thc:24.1, pkg:'Aug 28', exp:'Feb 24', onHand:42, metrc:'1A40…7F3', expected:6, read:6, mixed:true}),
+        BL({sku:'Blue Dream 3.5g', no:'HW-2411-07', thc:31.6, pkg:'Sep 6', exp:'Mar 4', onHand:4, metrc:'1A40…9D1', expected:4, read:4, mixed:true}),
+        BL({sku:'GMO 7g', no:'HW-2410-05', thc:31.2, pkg:'Aug 28', exp:'Feb 24', onHand:13, metrc:'1A40…2E8', expected:6, read:5, elsewhereBox:'Flower Box 2', elsewhereQty:1}),
+        BL({sku:'Wedding Cake 1g', no:'HW-2407-09', thc:26.1, pkg:'Aug 18', exp:'Feb 14', onHand:23, metrc:'1A40…6B4', expected:24, read:24, readBatchNo:'HW-2405-02'})
       ]),
       Box('Pre-Roll Box 1', [
-        P({name:'Indica 5-pack', plan:14, batches:[{no:'B-1900',qty:14,thc:null,pack:'08/10/26'}], reads:[{no:'B-1900',qty:14}]}),
-        P({name:'Hybrid Singles', plan:0, batches:[], reads:[{no:'B-1955',qty:2}]})
+        BL({sku:'Indica 5-pack', no:'HW-2403-11', thc:null, pkg:'Aug 10', exp:'Feb 6', onHand:31, metrc:'1A40…3C7', expected:14, read:14}),
+        BL({sku:'Loose Pre-Roll Cones (bulk)', no:null, expected:40, handCount:true, tagReason:'Bulk cone stock carries no RFID tag — hand-counted every box.'})
       ]),
       Box('Vape Box 1', [
-        P({name:'Live Resin Cart 1g', plan:16, batches:[{no:'B-2077',qty:16,thc:82.4,pack:'08/05/26'}], reads:[{no:'B-2077',qty:16}]}),
-        P({name:'Rosin Cart 0.5g', plan:8, batches:[{no:'B-1500',qty:8,thc:78.1,pack:'07/12/26'}], reads:[{no:'B-1500',qty:6}]})
+        BL({sku:'Rosin Cart 0.5g', no:'HW-2401-08', thc:78.1, pkg:'Jul 12', exp:'Jan 8', onHand:60, metrc:'1A40…4A1', expected:8, read:6})
       ]),
       Box('Cooler', [
-        P({name:'THC Seltzer 4-pack', plan:12, batches:[{no:'B-1800',qty:12,thc:null,pack:'08/01/26'}], reads:[{no:'B-1800',qty:12}]}),
-        P({name:'Cold Brew 100mg', plan:0, batches:[], reads:[{no:'B-1900',qty:2}]})
-      ]),
-      Box('Edible Bin', [
-        P({name:'Gummies 100mg', plan:22, batches:[{no:'B-1700',qty:22,thc:null,pack:'07/22/26'}], reads:[{no:'B-1700',qty:22}]}),
-        P({name:'Chocolate Bar 100mg', plan:8, batches:[{no:'B-1650',qty:8,thc:null,pack:'07/15/26'}], reads:[{no:'B-1650',qty:8}]})
+        BL({sku:'THC Seltzer 4-pack', no:'HW-2402-19', thc:null, pkg:'Aug 1', exp:'Feb 1', onHand:40, metrc:'1A40…5F0', expected:12, read:14})
       ])
     ]),
     Kit('Priya K.','Route 5', [
-      Box('Flower Box 1', [ P({name:'Sunset OG 3.5g', plan:12, batches:[{no:'B-2291',qty:12,thc:24.8,pack:'08/22/26'}], reads:[{no:'B-2291',qty:12}]}) ]),
-      Box('Pre-Roll Box 1', [ P({name:'Sativa Singles', plan:10, batches:[{no:'B-1955',qty:10,thc:null,pack:'08/09/26'}], reads:[{no:'B-1955',qty:10}]}) ])
+      Box('Flower Box 1', [ BL({sku:'Sunset OG 3.5g', no:'HW-2408-14', thc:24.8, pkg:'Aug 22', exp:'Feb 18', onHand:19, metrc:'1A4…9C2', expected:12, read:12}) ]),
+      Box('Pre-Roll Box 1', [ BL({sku:'Sativa Singles', no:'HW-2403-20', thc:null, pkg:'Aug 9', exp:'Feb 5', onHand:32, metrc:'1A40…1B6', expected:10, read:10}) ])
     ])
   ]},
   { name:'Inland Empire', kits:[
     Kit('DeShawn T.','Route 1', [
-      Box('Flower Box 1', [ P({name:'OG Kush 3.5g', plan:18, batches:[{no:'B-2033',qty:18,thc:25.6,pack:'08/14/26'}], reads:[{no:'B-2033',qty:18}]}) ]),
-      Box('Vape Box 2', [ P({name:'Live Resin Cart 0.5g', plan:6, batches:[{no:'B-2077',qty:6,thc:82.4,pack:'08/05/26'}], reads:[{no:'B-2077',qty:4}]}) ])
+      Box('Flower Box 1', [ BL({sku:'OG Kush 3.5g', no:'HW-2406-11', thc:25.6, pkg:'Aug 14', exp:'Feb 10', onHand:27, metrc:'1A40…8E5', expected:18, read:18}) ]),
+      Box('Vape Box 2', [ BL({sku:'Live Resin Cart 0.5g', no:'HW-2401-02', thc:82.4, pkg:'Aug 5', exp:'Feb 1', onHand:36, metrc:'1A40…0A9', expected:6, read:4}) ])
     ])
   ]},
   { name:'Orange County', kits:[
     Kit('Tommy V.','Route 4', [
-      Box('Flower Box 1', [ P({name:'Wedding Cake 3.5g', plan:22, batches:[{no:'B-2100',qty:22,thc:26.1,pack:'08/18/26'}], reads:[{no:'B-2100',qty:22}]}) ])
+      Box('Flower Box 1', [ BL({sku:'Wedding Cake 3.5g', no:'HW-2407-09', thc:26.1, pkg:'Aug 18', exp:'Feb 14', onHand:23, metrc:'1A40…6B4', expected:22, read:22}) ])
     ])
   ]}
 ];
 
-/* ---------- derive verification status per product ---------- */
-function verify(p){
-  var totalRead = p.reads.reduce(function(s,r){ return s + r.qty; }, 0);
-  var hereRead = p.reads.filter(function(r){ return !r.box; }).reduce(function(s,r){ return s + r.qty; }, 0);
-  var elsewhere = p.reads.filter(function(r){ return r.box; });
-  if (p.plan === 0 && totalRead > 0) return 'extra';
-  if (elsewhere.length && hereRead < p.plan) return 'wrongbox';
-  if (hereRead < p.plan) return 'missing';
-  if (hereRead > p.plan) return 'extra';
+/* ---------- status per batch line ---------- */
+function isException(l, box){ return !!l.handCount || box.scanState === 'manual'; }
+function lineStatus(l, box){
+  var scanned = box.scanState === 'scanned' || box.scanState === 'manual';
+  if (isException(l, box)) return 'exception';
+  if (!scanned) return 'pending';
+  if (l.elsewhereBox && l.read < l.expected) return 'wrongbox';
+  if (l.readBatchNo) return 'wrongbatch';
+  if (l.read < l.expected) return 'missing';
+  if (l.read > l.expected) return 'extra';
   return 'match';
 }
-function resolved(p){
-  var st = verify(p);
+function resolved(l, box){
+  var st = lineStatus(l, box);
+  if (st === 'pending') return false;
   if (st === 'match') return true;
-  if (st === 'wrongbox') return !!p.moveConfirmed;
-  return !!p.reason;
+  if (st === 'exception'){ var cnt = (l.count!=null?l.count:0); return cnt === l.expected || !!l.reason; }
+  if (st === 'wrongbox') return !!l.moveConfirmed;
+  return !!l.reason;
 }
 function boxResolved(box){
-  if (box.scanState !== 'scanned') return false;
-  return box.products.every(resolved);
+  var scanned = box.scanState === 'scanned' || box.scanState === 'manual';
+  if (!scanned) return false;
+  return box.lines.every(function(l){ return resolved(l, box); });
 }
 function boxIssueCount(box){
-  if (box.scanState !== 'scanned') return 0;
-  return box.products.filter(function(p){ return !resolved(p); }).length;
+  var scanned = box.scanState === 'scanned' || box.scanState === 'manual';
+  if (!scanned) return 0;
+  return box.lines.filter(function(l){ return !resolved(l, box); }).length;
 }
 
 /* ---------- state ---------- */
@@ -445,6 +466,7 @@ function kitTotals(k){
   k.boxes.forEach(function(b){ if (b.packed) packed++; issues += boxIssueCount(b); });
   return { packed:packed, total:k.boxes.length, issues:issues };
 }
+function esc(s){ return String(s); }
 
 function renderRegions(){
   var html = '<div class="regions-head"><h2>Kits to verify</h2></div>';
@@ -452,9 +474,8 @@ function renderRegions(){
     html += '<div class="region-block"><div class="region-head">'+region.name+'<span class="cnt">'+region.kits.length+' kit'+(region.kits.length===1?'':'s')+'</span></div>';
     region.kits.forEach(function(k){
       var t = kitTotals(k);
-      var initials = k.driver.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
       html += '<button class="kit-chip'+(k.id===selectedKitId?' selected':'')+'" data-kit="'+k.id+'">'+
-        '<span class="kc-av">'+initials+'</span>'+
+        '<span class="kc-av">'+initials(k.driver)+'</span>'+
         '<span class="kc-mid"><span class="kc-name">'+k.driver+'</span><span class="kc-route">'+k.route+'</span>'+
         '<div class="kc-prog">'+t.packed+' / '+t.total+' boxes packed</div></span>'+
         (t.issues>0 ? '<span class="dot-red" title="'+t.issues+' item(s) need attention"></span>' : '')+
@@ -473,53 +494,55 @@ function selectKit(id, boxIdx){
 }
 function backToRegions(){ $('#packing').classList.remove('showing-kit'); }
 
-function esc(s){ return String(s); }
-
-function renderProductRow(p){
-  var loud = p.mixed ? '<div class="loud"><b>Mixed batch — loud, never quiet</b><div class="batches">'+
-    p.batches.map(function(b){ return '<span>'+b.no+' × '+b.qty+'<small>'+(b.thc!=null?('THC '+b.thc+'%'):'THC —')+' · packaged '+b.pack+'</small></span>'; }).join('')+
-    '</div></div>' : '';
-  return '<div class="prow" data-p="'+p.id+'">'+
-    '<div class="pname"><b>'+esc(p.name)+'</b><span class="sub">'+p.batches.map(function(b){return b.no;}).join(' + ')+'</span></div>'+
-    '<div class="stat3"><div><div class="k">Plan</div>'+p.plan+'</div></div>'+
-    loud+
-    '</div>';
+function bchip(l){
+  if (!l.no) return '<span class="bchip">no RFID tag on this line — hand-counted</span>';
+  var thc = l.thc!=null ? ('THC '+l.thc+'%') : 'THC —';
+  return '<span class="bchip">#'+l.no+' · '+thc+' · pkg '+l.pkg+' · exp '+l.exp+' · '+l.onHand+' d on hand · Metrc '+l.metrc+'</span>';
 }
 
-function statusLabel(st){
-  return st==='match'?'Match':st==='missing'?'Missing':st==='extra'?'Extra':'Wrong box';
+function renderLineRow(l, box){
+  var scanned = box.scanState === 'scanned' || box.scanState === 'manual';
+  var st = lineStatus(l, box);
+  var rowCls = st==='missing'?'st-missing':st==='extra'?'st-extra':st==='wrongbox'?'st-wrongbox':st==='wrongbatch'?'st-wrongbatch':st==='exception'?'excrow':'';
+  var nameCell = '<b>'+esc(l.sku)+'</b>'+bchip(l)+(l.mixed?'<span class="loud-tag">Mixed batch — loud</span>':'');
+  var readCell, statusCell, actionCell;
+  if (st === 'exception'){
+    var cnt = l.count!=null?l.count:0;
+    var matches = cnt === l.expected;
+    readCell = '<td class="num"><div class="stepper-sm"><button class="stepbtn-sm" data-dec="'+l.id+'">−</button><span class="stepval-sm">'+cnt+'</span><button class="stepbtn-sm" data-inc="'+l.id+'">+</button></div></td>';
+    statusCell = '<td><span class="exc-badge">'+(matches?'Hand-count OK':'Hand-counted')+'</span></td>';
+    actionCell = matches
+      ? '<td class="donereason">'+(l.tagReason||'Reader offline — hand-counted this line.')+'</td>'
+      : (l.reason ? '<td class="donereason">'+l.reason+'</td>'
+        : '<td><div class="reasonwrap"><select class="reasonsel" data-reason="'+l.id+'"><option value="">Record a reason…</option>'+REASONS_MISSING.concat(REASONS_EXTRA).map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('')+'</select></div></td>');
+  } else if (!scanned){
+    readCell = '<td class="num">—</td>';
+    statusCell = '<td><span class="statuspill" style="background:var(--neutralSoft);color:var(--neutral);">awaiting read</span></td>';
+    actionCell = '<td>—</td>';
+  } else if (st === 'match'){
+    readCell = '<td class="num">'+l.read+'</td>';
+    statusCell = '<td><span class="statuspill sp-match">Match</span></td>';
+    actionCell = '<td class="donereason">—</td>';
+  } else if (st === 'wrongbox'){
+    readCell = '<td class="num">'+l.read+' + '+l.elsewhereQty+' in '+l.elsewhereBox+'</td>';
+    statusCell = '<td><span class="statuspill sp-wrongbox">Wrong box</span></td>';
+    actionCell = '<td>'+(l.moveConfirmed ? '<span class="donereason">Confirmed: moved from '+l.elsewhereBox+'</span>' : '<button class="fixbtn" data-move="'+l.id+'">Confirm move from '+l.elsewhereBox+'</button>')+'</td>';
+  } else if (st === 'wrongbatch'){
+    readCell = '<td class="num">'+l.read+'</td>';
+    statusCell = '<td><span class="statuspill sp-wrongbatch">Wrong batch</span></td>';
+    actionCell = '<td>'+(l.reason ? '<span class="donereason">'+l.reason+'</span>'
+      : '<div class="reasonwrap"><span class="bchip" style="display:inline;margin:0;">read tag #'+l.readBatchNo+'</span><select class="reasonsel" data-reason="'+l.id+'"><option value="">Record a reason…</option><option>Wrong batch pulled at pack</option><option>Swap confirmed — relabel</option></select></div>')+'</td>';
+  } else {
+    readCell = '<td class="num">'+l.read+'</td>';
+    statusCell = '<td><span class="statuspill sp-'+st+'">'+(st==='missing'?'Missing':'Extra')+'</span></td>';
+    var opts = st==='missing' ? REASONS_MISSING : REASONS_EXTRA;
+    actionCell = '<td>'+(l.reason ? '<span class="donereason">'+l.reason+'</span>'
+      : '<div class="reasonwrap"><select class="reasonsel" data-reason="'+l.id+'"><option value="">Record a reason…</option>'+opts.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('')+'</select></div>')+'</td>';
+  }
+  return '<tr class="'+rowCls+'" data-p="'+l.id+'"><td class="pn">'+nameCell+'</td><td class="num">'+l.expected+'</td>'+readCell+statusCell+actionCell+'</tr>';
 }
-function renderVerifyTable(box){
-  var rows = box.products.map(function(p){
-    var st = verify(p);
-    var totalRead = p.reads.reduce(function(s,r){ return s + r.qty; }, 0);
-    var readDesc = p.reads.map(function(r){ return r.qty + (r.box? (' in '+r.box) : ''); }).join(' + ');
-    var action = '';
-    if (st === 'match') {
-      action = '<span class="donereason">—</span>';
-    } else if (st === 'wrongbox') {
-      var away = p.reads.filter(function(r){return r.box;})[0];
-      action = p.moveConfirmed
-        ? '<span class="donereason">Confirmed: moved from '+away.box+'</span>'
-        : '<button class="fixbtn" data-move="'+p.id+'">Confirm move from '+away.box+'</button>';
-    } else if (st === 'missing' || st === 'extra') {
-      var opts = st==='missing' ? REASONS_MISSING : REASONS_EXTRA;
-      action = p.reason
-        ? '<span class="donereason">'+p.reason+'</span>'
-        : '<div class="reasonwrap"><select class="reasonsel" data-reason="'+p.id+'"><option value="">Record a reason…</option>'+
-          opts.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('')+'</select></div>';
-    }
-    return '<tr class="st-'+st+'" data-p="'+p.id+'">'+
-      '<td class="pn">'+esc(p.name)+'</td>'+
-      '<td class="bn">'+p.batches.map(function(b){return b.no;}).join(' + ')+'</td>'+
-      '<td class="num">'+p.plan+'</td>'+
-      '<td class="num">'+readDesc+'</td>'+
-      '<td><span class="statuspill sp-'+st+'">'+statusLabel(st)+'</span></td>'+
-      '<td>'+action+'</td>'+
-      '</tr>';
-  }).join('');
-  return '<table class="verifytbl"><thead><tr><th>Product</th><th>Batch</th><th>Plan</th><th>Read</th><th>Status</th><th>Reason / fix</th></tr></thead><tbody>'+rows+'</tbody></table>';
-}
+
+function nowStr(){ var d=new Date(); var h=d.getHours()%12; if(h===0)h=12; return h+':'+String(d.getMinutes()).padStart(2,'0')+(d.getHours()<12?' AM':' PM')+' PT'; }
 
 function renderKit(){
   var k = findKit(selectedKitId);
@@ -532,37 +555,41 @@ function renderKit(){
   }).join('');
 
   var b = k.boxes[selectedBoxIdx];
-  var rowsHtml = b.products.map(renderProductRow).join('');
+  var scanned = b.scanState === 'scanned' || b.scanState === 'manual';
   var issues = boxIssueCount(b);
-  var canPack = b.scanState === 'scanned' && boxResolved(b);
+  var canPack = boxResolved(b);
+  var linesHtml = b.lines.map(function(l){ return renderLineRow(l, b); }).join('');
 
-  var scanSection;
-  if (b.scanState === 'unscanned') {
-    scanSection = '<div class="scanbar"><div class="scanbar-head"><h4>Scan box</h4></div>'+
-      '<button class="scan-btn" id="scanBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M20 8V5a1 1 0 00-1-1h-3M4 16v3a1 1 0 001 1h3M20 16v3a1 1 0 01-1 1h-3"/><path d="M2 12h20"/></svg>Scan box with handheld</button>'+
-      '<div><button class="scan-fallback" id="scanFallback">RFID reader not responding? Fall back to manual count</button></div></div>';
-  } else if (b.scanState === 'scanning') {
-    scanSection = '<div class="scanbar"><div class="scanning"><span class="spinner"></span>Reading tags in '+esc(b.name)+'…</div></div>';
-  } else if (b.scanState === 'manual') {
-    scanSection = '<div class="scanbar"><div class="manual-flag">Manual count in effect — RFID reader offline (logged '+nowStr()+'). Counts below are hand-entered, not scanned.</div>'+renderVerifyTable(b)+
-      (canPack ? '' : '<div class="pack-blocked">Resolve '+issues+' item'+(issues===1?'':'s')+' before this box can be marked packed.</div>')+
-      '<button class="pack-btn'+(b.packed?' done':'')+'" id="packBoxBtn" '+(canPack?'':'disabled')+'>'+(b.packed?'✓ Box packed':'Box packed')+'</button></div>';
+  var scanControl;
+  if (b.scanState === 'unscanned'){
+    scanControl = '<div class="scanbar"><div class="scanbar-head"><h4>Read box</h4></div>'+
+      '<button class="scan-btn" id="scanBtn" '+(currentUser?'':'disabled')+'><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M20 8V5a1 1 0 00-1-1h-3M4 16v3a1 1 0 001 1h3M20 16v3a1 1 0 01-1 1h-3"/><path d="M2 12h20"/></svg>Read box (RFID)</button>'+
+      (currentUser? '' : '<div style="font-size:12px;color:var(--inkMute);margin-top:6px;">Scan your staff badge above to start.</div>')+
+      '<div><button class="scan-fallback" id="scanFallback">RFID reader not responding? Hand-count this box instead</button></div></div>';
+  } else if (b.scanState === 'scanning'){
+    scanControl = '<div class="scanbar"><div class="scanning"><span class="spinner"></span>Reading tags in '+esc(b.name)+'…</div></div>';
   } else {
-    scanSection = '<div class="scanbar"><div class="scanbar-head"><h4>Batch verification — read vs plan</h4>'+
+    scanControl = '<div class="scanbar"><div class="scanbar-head"><h4>Batch verification — read vs expected</h4>'+
       '<span class="pill '+(issues>0?'pill-bad':'pill-good')+'">'+(issues>0? (issues+' issue'+(issues===1?'':'s')) : 'All matched')+'</span></div>'+
-      renderVerifyTable(b)+
-      (canPack ? '' : '<div class="pack-blocked">Resolve '+issues+' item'+(issues===1?'':'s')+' before this box can be marked packed.</div>')+
-      '<button class="pack-btn'+(b.packed?' done':'')+'" id="packBoxBtn" '+(canPack?'':'disabled')+'>'+(b.packed?'✓ Box packed':'Box packed')+'</button></div>';
+      (b.scanState==='manual' ? '<div class="manual-flag">Manual count in effect — RFID reader offline (logged '+nowStr()+'). Every line below is hand-counted, not scanned.</div>' : '')+
+      '</div>';
   }
 
   pane.innerHTML =
     '<div class="kit-head"><button class="btn btn-ghost btn-sm back-btn" id="backBtn">‹ Kits</button>'+
       '<div><div class="kh-name">'+k.driver+'</div><div class="kh-route">'+k.route+' · '+t.packed+'/'+t.total+' boxes packed'+(t.issues?(' · '+t.issues+' open item'+(t.issues===1?'':'s')):'')+'</div></div>'+
+      '<button class="qrbtn" id="kitQrBtn">▤ Kit QR</button>'+
       '<button class="btn btn-ghost btn-sm slip-btn" id="slipBtn">View printed pick slip</button>'+
     '</div>'+
     '<div class="pager-head">'+boxNamesHtml+'<button class="manage-boxtypes" id="manageBoxTypes">⚙ Manage box types</button></div>'+
     '<div class="arrows"><button class="arrowbtn" id="prevBox" '+(selectedBoxIdx===0?'disabled':'')+'>‹</button><button class="arrowbtn" id="nextBox" '+(selectedBoxIdx===k.boxes.length-1?'disabled':'')+'>›</button></div>'+
-    '<div class="box-scroller"><div class="box-panel"><h4 class="box-title">'+b.name+(b.packed?' — Packed':'')+'</h4>'+rowsHtml+scanSection+'</div></div>'+
+    '<div class="box-scroller"><div class="box-panel">'+
+      '<h4 class="box-title">'+b.name+(b.packed?' — Packed':'')+' <button class="qrbtn" id="boxQrBtn">▤ Box QR</button></h4>'+
+      scanControl+
+      '<table class="verifytbl"><thead><tr><th>Product &amp; batch</th><th>Expected</th><th>Read</th><th>Status</th><th>Reason / fix</th></tr></thead><tbody>'+linesHtml+'</tbody></table>'+
+      (canPack ? '' : '<div class="pack-blocked">Resolve '+issues+' item'+(issues===1?'':'s')+' before this box can be marked packed.</div>')+
+      '<button class="pack-btn'+(b.packed?' done':'')+'" id="packBoxBtn" '+(canPack?'':'disabled')+'>'+(b.packed?'✓ Box packed':'Box packed')+'</button>'+
+    '</div></div>'+
     '<div class="kitbar"><div class="sum">'+
       '<div class="sumitem"><div class="k">Boxes packed</div><div class="v">'+t.packed+'/'+t.total+'</div></div>'+
       (t.issues>0?'<div class="sumitem"><div class="k">Open items</div><div class="v" style="color:var(--warnText)">'+t.issues+'</div></div>':'')+
@@ -570,7 +597,6 @@ function renderKit(){
 
   wireKitPane(k, b);
 }
-function nowStr(){ var d=new Date(); var h=d.getHours()%12; if(h===0)h=12; return h+':'+String(d.getMinutes()).padStart(2,'0')+(d.getHours()<12?' AM':' PM')+' PT'; }
 
 function wireKitPane(k, b){
   var backBtn = $('#backBtn'); if (backBtn) backBtn.addEventListener('click', backToRegions);
@@ -579,32 +605,52 @@ function wireKitPane(k, b){
   $$('.pager-tab').forEach(function(el){ el.addEventListener('click', function(){ selectedBoxIdx = parseInt(el.getAttribute('data-i'),10); renderKit(); }); });
   var manageBtn = $('#manageBoxTypes'); if (manageBtn) manageBtn.addEventListener('click', function(){ toast('Manage box types','Box sets vary by kit and change over time — opens the box-type editor (not built in this mockup).'); });
   var slipBtn = $('#slipBtn'); if (slipBtn) slipBtn.addEventListener('click', function(){ openSlip(k, b); });
+  var kitQr = $('#kitQrBtn'); if (kitQr) kitQr.addEventListener('click', function(){ openQr('Kit QR', k.driver+' · '+k.route, 'Scanning this kit\'s tag opens its box panel on the tablet at any station, and closes it out at day end — same lines, same flags, whether opened by scan or by tap.'); });
+  var boxQr = $('#boxQrBtn'); if (boxQr) boxQr.addEventListener('click', function(){ openQr('Box QR — '+b.name, k.driver+' · '+k.route, 'Scanning this box\'s label opens this exact panel. The pick-slip QR below closes it by scan once it is packed.'); });
 
   var scanBtn = $('#scanBtn');
   if (scanBtn) scanBtn.addEventListener('click', function(){
+    if (!currentUser) return;
     b.scanState = 'scanning'; renderKit();
     setTimeout(function(){ b.scanState = 'scanned'; renderKit(); }, 900);
   });
   var fallback = $('#scanFallback');
-  if (fallback) fallback.addEventListener('click', function(){ b.scanState = 'manual'; toast('Manual count', 'RFID fallback logged for '+b.name+'. Enter counts by hand; nothing blocks indefinitely.'); renderKit(); });
+  if (fallback) fallback.addEventListener('click', function(){
+    b.lines.forEach(function(l){ if (!l.handCount && l.count==null) l.count = (l.read!=null?l.read:0); });
+    b.scanState = 'manual';
+    toast('Manual count', 'RFID fallback logged for '+b.name+'. Every line is now a flagged hand-count row.');
+    renderKit();
+  });
 
   $$('.reasonsel').forEach(function(sel){
     sel.addEventListener('change', function(){
       var pid = sel.getAttribute('data-reason');
-      var p = b.products.find(function(x){ return x.id===pid; });
-      if (!p || !sel.value) return;
-      p.reason = sel.value;
+      var l = b.lines.find(function(x){ return x.id===pid; });
+      if (!l || !sel.value) return;
+      l.reason = sel.value;
       renderKit();
     });
   });
   $$('[data-move]').forEach(function(btn){
     btn.addEventListener('click', function(){
       var pid = btn.getAttribute('data-move');
-      var p = b.products.find(function(x){ return x.id===pid; });
-      if (!p) return;
-      p.moveConfirmed = true;
-      toast('Move confirmed', p.name+' recorded as a location correction, not a shortfall.');
+      var l = b.lines.find(function(x){ return x.id===pid; });
+      if (!l) return;
+      l.moveConfirmed = true;
+      toast('Move confirmed', l.sku+' recorded as a location correction, not a shortfall.');
       renderKit();
+    });
+  });
+  $$('[data-inc]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var l = b.lines.find(function(x){ return x.id===btn.getAttribute('data-inc'); });
+      if (l){ l.count = (l.count!=null?l.count:0) + 1; renderKit(); }
+    });
+  });
+  $$('[data-dec]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var l = b.lines.find(function(x){ return x.id===btn.getAttribute('data-dec'); });
+      if (l){ l.count = Math.max(0, (l.count!=null?l.count:0) - 1); renderKit(); }
     });
   });
   var packBtn = $('#packBoxBtn');
@@ -616,10 +662,22 @@ function wireKitPane(k, b){
   });
 }
 
+function openQr(title, sub, note){
+  var overlay = document.createElement('div'); overlay.className = 'overlay';
+  overlay.innerHTML = '<div class="modal"><h2>'+title+'</h2><div class="crumb">'+sub+'</div>'+
+    '<div style="text-align:center;"><div class="qr" title="Scan to open or close"></div>'+
+    '<div style="font-size:11px;color:var(--inkMute);margin-top:6px;">'+note+'</div></div>'+
+    '<div class="modal-actions"><button class="btn btn-ghost" id="closeQr">Close</button></div></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
+  $('#closeQr', overlay).addEventListener('click', function(){ overlay.remove(); });
+}
+
 function openSlip(k, b){
-  var lines = b.products.map(function(p){
-    var mixed = p.mixed ? ' class="loudline"' : '';
-    return '<div class="sline"'+mixed+'><span>'+p.name+' × '+p.plan+'</span><span>'+p.batches.map(function(x){return x.no;}).join(' + ')+(p.mixed?' — MIXED BATCH, LOUD':'')+'</span></div>';
+  var lines = b.lines.map(function(l){
+    var mixed = l.mixed ? ' class="loudline"' : '';
+    var batchTxt = l.no ? ('#'+l.no+(l.mixed?' — MIXED BATCH, LOUD':'')) : 'hand-count, no RFID tag';
+    return '<div class="sline"'+mixed+'><span>'+l.sku+' × '+l.expected+'</span><span>'+batchTxt+'</span></div>';
   }).join('');
   var overlay = document.createElement('div'); overlay.className = 'overlay';
   overlay.innerHTML = '<div class="modal"><h2>Printed pick slip</h2><div class="crumb">'+k.driver+' · '+k.route+' · '+b.name+'</div>'+
@@ -643,6 +701,7 @@ function toast(title, body){
 }
 
 renderRegions();
+renderSignin();
 })();
 </script>
 </body>

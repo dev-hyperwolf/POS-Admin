@@ -6,16 +6,19 @@
 <title>Store — Concept B — New Arrivals to the Floor</title>
 <style>
 /* ============================================================================
-   Store — Concept B — New Arrivals to the Floor. The store's received ledger:
-   every arrival today in three kinds (new SKU, restock, new batch of a SKU
-   already carried), each with a plain-words disposition, never a bare skip.
-   One-tap "Put out now"; premium ages visibly the longer it sits in the safe.
-   The ledger shows who received it and who put it away — the attribution
-   rule added this round. Row/tone language borrows the keeper vocabulary
-   from Distribution Refill Concept B (Box Cards): tinted rows, never silent.
-   Tokens copied inline from pos/tokens.jsx; rail/header shape from Hyperwolf
-   Bounty.html. No build step, no external requests. Every name, product,
-   quantity and time below is EXAMPLE DATA.
+   Store — Concept B — New Arrivals to the Floor. The store's received ledger.
+   REVISION (2026-09-10, RFID first + Batch level everywhere): every line is a
+   batch line — chip is `#no · THC · pkg · exp · age on hand`, monospace. The
+   arrival kind (new SKU / restock / new batch) is decided PER BATCH — a SKU
+   arriving as two batches the same day shows two rows under one product
+   header, LOUD when they would share a shelf. "Put out now" no longer flips
+   a status directly: it opens a shelf-QR scan, then confirms by reading the
+   units at that shelf (read vs expected per batch), with a flagged hand-entry
+   exception row for a dead tag. No location dropdown anywhere — only the
+   hold-reason list (a reason, not a place) remains a <select>. Tokens copied
+   inline from pos/tokens.jsx; rail/header shape from Hyperwolf Bounty.html.
+   No build step, no external requests.
+   Every name, product, quantity and time below is EXAMPLE DATA.
    ========================================================================= */
 :root{
   --fontSans:"Inter",-apple-system,system-ui,sans-serif;
@@ -140,32 +143,37 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .fchip{height:30px;padding:0 13px;border-radius:99px;border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);font-size:var(--f-meta);font-weight:600;cursor:pointer;}
 .fchip.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
 
-/* arrival rows */
+/* arrival groups (product → 1-2 batch lines) */
 .arrival-list{display:flex;flex-direction:column;}
-.arow{display:flex;gap:14px;padding:14px 16px;border-bottom:1px solid var(--hairline);align-items:flex-start;flex-wrap:wrap;}
-.arow:last-child{border-bottom:none;}
-.arow.done{opacity:.72;}
+.agroup{padding:13px 16px;border-bottom:1px solid var(--hairline);display:flex;gap:12px;align-items:flex-start;}
+.agroup:last-child{border-bottom:none;}
 .cat-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex:0 0 auto;background:var(--cd,var(--neutral));}
-.arow-main{flex:1 1 260px;min-width:220px;}
-.arow-main .aname{font-size:var(--f-strong);font-weight:700;}
-.arow-main .ameta{font-size:var(--f-meta);color:var(--inkMute);margin-top:2px;}
+.agroup-body{flex:1;min-width:0;}
+.gname{font-size:var(--f-strong);font-weight:700;}
+.loudbanner{display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:800;color:var(--bad);background:var(--badSoft);border-radius:6px;padding:3px 7px;margin:5px 0;letter-spacing:.02em;width:fit-content;}
+.aline{display:flex;gap:12px;align-items:flex-start;padding:7px 0;border-top:1px dashed var(--hairline);flex-wrap:wrap;}
+.aline:first-of-type{border-top:none;}
+.aline.done{opacity:.68;}
+.aline-main{flex:1 1 260px;min-width:220px;}
 .kindpill{display:inline-flex;align-items:center;height:19px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-right:6px;}
 .kindpill.new{background:var(--accentSoft);color:var(--accentText);}
 .kindpill.restock{background:var(--infoSoft);color:var(--info);}
 .kindpill.newbatch{background:var(--warnSoft);color:var(--warnText);}
+.qty{color:var(--inkMute);font-weight:500;}
 
-.batchchip{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:var(--f-meta);color:var(--inkDim);background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r8);padding:5px 9px;margin-top:7px;}
-.batchchip b{font-family:var(--fontMono);color:var(--ink);}
+.bchip{display:inline-flex;align-items:center;gap:0;flex-wrap:wrap;font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r8);padding:5px 9px;margin-top:6px;}
+.bchip b{color:var(--ink);font-weight:700;}
 .existingnote{display:flex;align-items:center;gap:6px;font-size:var(--f-meta);color:var(--warnText);background:var(--warnSoft);border-radius:var(--r8);padding:5px 9px;margin-top:6px;width:fit-content;}
 .agechip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:800;margin-top:6px;letter-spacing:.02em;}
 .agechip.age0{background:var(--goodSoft);color:var(--good);}
 .agechip.age1{background:var(--warnSoft);color:var(--warnText);}
 .agechip.age2{background:var(--badSoft);color:var(--bad);}
-.attrline{font-size:var(--f-meta);color:var(--inkMute);margin-top:7px;}
+.attrline{font-size:var(--f-meta);color:var(--inkMute);margin-top:6px;}
 .attrline b{color:var(--ink2);font-weight:700;}
 .attrline.putaway b{color:var(--good);}
+.attrline.excline{color:var(--bad);font-weight:700;}
 
-.arow-action{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:170px;}
+.aline-action{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:170px;}
 .disp-onfloor{display:inline-flex;align-items:center;gap:6px;color:var(--good);font-weight:700;font-size:var(--f-body);}
 .holdreason{width:190px;height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:var(--f-meta);padding:0 8px;}
 .heldtext{font-size:var(--f-meta);color:var(--warnText);text-align:right;max-width:190px;}
@@ -179,6 +187,35 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .toast{position:fixed;right:18px;bottom:20px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;animation:fadeIn .16s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 
+/* shelf-scan + read-vs-expected confirm modal */
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:flex-start;justify-content:center;z-index:80;overflow-y:auto;padding:30px 16px;}
+.scan-sheet{background:var(--surface);color:var(--ink);width:100%;max-width:460px;border-radius:var(--r16);padding:20px 22px;box-shadow:var(--shadowLg);}
+.scan-sheet h3{margin:0 0 3px;font-size:17px;}
+.scan-sheet .ssub{font-size:11.5px;color:var(--inkMute);margin-bottom:14px;}
+.scan-grid{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;}
+.scan-opt{display:flex;align-items:center;gap:10px;padding:8px 9px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface2);cursor:pointer;text-align:left;width:100%;}
+.scan-opt:hover{border-color:var(--accentBorder);background:var(--accentSoft);}
+.scan-opt .qrmini{width:26px;height:26px;background:
+  repeating-linear-gradient(0deg,var(--ink) 0 2.4px,transparent 2.4px 5.4px),
+  repeating-linear-gradient(90deg,var(--ink) 0 2.4px,transparent 2.4px 5.4px);
+  background-blend-mode:multiply;background-color:var(--surface);border-radius:5px;flex:0 0 auto;}
+.scan-opt .sotext{flex:1;min-width:0;}
+.scan-opt .socode{font-family:var(--fontMono);font-size:11.5px;font-weight:700;}
+.scan-opt .solabel{font-size:10.5px;color:var(--inkMute);}
+.confirm-step{display:none;}
+.confirm-step.active{display:block;}
+.confirm-bchip{font-family:var(--fontMono);font-size:11px;color:var(--inkDim);background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r8);padding:8px 10px;margin:8px 0;}
+.confirm-bchip b{color:var(--ink);}
+.readgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.readbox{border:1px solid var(--hairline2);border-radius:var(--r10);padding:9px 10px;}
+.readbox .rl{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);font-weight:700;}
+.readbox .rv{font-family:var(--fontMono);font-size:20px;font-weight:700;margin-top:2px;}
+.readbox.mismatch{border-color:var(--bad);background:var(--badSoft);}
+.readbox.mismatch .rv{color:var(--bad);}
+.exc-toggle{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--inkMute);margin-bottom:8px;cursor:pointer;}
+.exc-note{font-size:11px;color:var(--bad);font-weight:600;margin-bottom:8px;}
+.print-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
+
 @media (max-width: 1024px){
   .rail{width:64px;flex-basis:64px;}
   .rail-item .lbl{display:none;}
@@ -190,9 +227,10 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
   .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
   .example-banner{margin:14px 12px 0;}
   .content{padding:12px;}
-  .arow{flex-direction:column;}
-  .arow-action{align-items:flex-start;width:100%;}
+  .aline{flex-direction:column;}
+  .aline-action{align-items:flex-start;width:100%;}
   .holdreason,.heldtext{width:100%;max-width:none;text-align:left;}
+  .readgrid{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -208,7 +246,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
     </div>
     <div class="rail-spacer"></div>
     <div class="rail-bottom">
-      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
     </div>
   </aside>
 
@@ -228,11 +266,11 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
     </header>
 
     <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-      Design mockup — every product, name, quantity and time on this screen is example data, not a live receiving log.</div>
+      Design mockup — every product, batch, name, quantity and time on this screen is example data, not a live receiving log.</div>
 
     <div class="content">
       <div class="card">
-        <div class="card-head"><h2>Received today</h2><span class="hint">Every arrival, three kinds, 100% accounted for — never a bare skip</span></div>
+        <div class="card-head"><h2>Received today</h2><span class="hint">Kind is decided per batch, 100% accounted for — never a bare skip</span></div>
         <div class="stats" id="statTiles"></div>
         <div class="filters" id="filterChips"></div>
         <div class="arrival-list" id="arrivalList"></div>
@@ -244,6 +282,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
           <span class="li"><span class="kindpill restock">Restock</span></span>
           <span class="li"><span class="kindpill newbatch">New Batch</span></span>
           <span class="li"><span class="agechip age2" style="padding:0 8px;">2+ days, premium</span>Ages visibly the longer premium sits in the safe</span>
+          <span class="li">LOUD banner — two batches of one SKU arrived and would share a shelf</span>
         </div>
       </div>
     </div>
@@ -259,6 +298,14 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
   "use strict";
   var ACTOR = 'Marcus D.';
   var REASONS = ['Below par — not needed yet', 'Needs price tag / labeling', 'QA hold', 'Quarantine — held batch', 'Other'];
+  var SHELVES = [
+    { code:'F2-A-01', label:'Top Shelf Flower' },
+    { code:'F2-B-03', label:'Value Flower' },
+    { code:'V1-A-02', label:'510 + Pods' },
+    { code:'P1-A-01', label:'Singles' },
+    { code:'E1-A-01', label:'Gummies & Chews' },
+    { code:'C1-A-01', label:'Concentrate Case' }
+  ];
 
   /* ---------------- theme + clock ---------------- */
   var root = document.documentElement;
@@ -294,39 +341,57 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
     host.appendChild(el);
     setTimeout(function(){ el.remove(); }, 4400);
   }
+  function chip(b){
+    return '<b>#'+b.no+'</b> · THC '+(b.thc!=null?b.thc+'%':'n/a')+' · pkg '+b.pkg+' · exp '+b.exp+' · '+b.age+' d on hand';
+  }
 
-  /* ---------------- EXAMPLE DATA: today's received ledger ---------------- */
+  /* ---------------- EXAMPLE DATA: today's received ledger, grouped by product ---------------- */
+  /* each group is one SKU; each batch inside it has its OWN kind — arrival kind is decided per batch */
   var CATCOLOR = { flower:'var(--cat-flower)', vape:'var(--cat-vape)', preroll:'var(--cat-preroll)', edible:'var(--cat-edible)', concentrate:'var(--cat-concentrate)' };
-  var ARRIVALS = [
-    { id:'a1', kind:'new', name:'Rainbow Belts 3.5g', cat:'flower', qty:24, receivedAt:'6:05 AM', receivedBy:'Dana R.',
-      batch:{no:'B-8801', thc:26.8, packaged:'Sep 08'}, premium:true, ageDays:0, disp:'pending' },
-    { id:'a2', kind:'restock', name:'GG4 Pre-Roll 5-pack', cat:'preroll', qty:60, receivedAt:'6:10 AM', receivedBy:'Dana R.',
-      batch:{no:'B-8820', thc:24.1, packaged:'Sep 06'}, premium:false, disp:'floor', putAwayBy:'Marcus D.', putAwayAt:'7:02 AM' },
-    { id:'a3', kind:'newbatch', name:'Live Resin Cart 1g', cat:'vape', qty:22, receivedAt:'6:14 AM', receivedBy:'Dana R.',
-      batch:{no:'B-1090', thc:88.1, packaged:'Aug 20'}, existing:[{no:'B-1042', where:'510 + Pods shelf'}], premium:false, disp:'pending' },
-    { id:'a4', kind:'new', name:'Sungrown Rosin 1g', cat:'concentrate', qty:8, receivedAt:'6:20 AM', receivedBy:'Dana R.',
-      batch:{no:'B-8830', thc:76.4, packaged:'Sep 09'}, premium:true, ageDays:1, disp:'safe', holdReason:'Needs price tag / labeling', heldBy:'Dana R.' },
-    { id:'a5', kind:'restock', name:'Gummies 10mg 10-pack', cat:'edible', qty:36, receivedAt:'6:25 AM', receivedBy:'Whitney L.',
-      batch:{no:'B-4450', thc:null, packaged:'Sep 01'}, premium:false, disp:'pending' },
-    { id:'a6', kind:'newbatch', name:'Wedding Cake 3.5g', cat:'flower', qty:26, receivedAt:'6:31 AM', receivedBy:'Whitney L.',
-      batch:{no:'B-2455', thc:29.0, packaged:'Sep 08'}, existing:[{no:'B-2402', where:'Top Shelf Flower'}], premium:true, ageDays:0, disp:'pending' },
-    { id:'a7', kind:'new', name:'Single-Source Hash Rosin 0.5g', cat:'concentrate', qty:5, receivedAt:'6:38 AM', receivedBy:'Dana R.',
-      batch:{no:'B-8840', thc:81.2, packaged:'Sep 07'}, premium:true, ageDays:2, disp:'pending' }
+  var GROUPS = [
+    { id:'g1', name:'Rainbow Belts 3.5g', cat:'flower', batches:[
+      { id:'a1a', kind:'new', qty:24, receivedAt:'6:05 AM', receivedBy:'Dana R.', batch:{no:'HW-2409-30',thc:26.8,pkg:'Sep 08',exp:'Mar 06',age:2}, premium:true, ageDays:2, disp:'pending' },
+      { id:'a1b', kind:'newbatch', qty:14, receivedAt:'6:06 AM', receivedBy:'Dana R.', batch:{no:'HW-2411-15',thc:28.9,pkg:'Sep 09',exp:'Mar 07',age:1}, premium:true, ageDays:1, disp:'pending' }
+    ]},
+    { id:'g2', name:'GG4 Pre-Roll 5-pack', cat:'preroll', batches:[
+      { id:'a2', kind:'restock', qty:60, receivedAt:'6:10 AM', receivedBy:'Dana R.', batch:{no:'HW-2409-08',thc:24.1,pkg:'Sep 06',exp:'Mar 04',age:4}, premium:false, disp:'floor', putAwayBy:'Marcus D.', putAwayAt:'7:02 AM' }
+    ]},
+    { id:'g3', name:'Live Resin Cart 1g', cat:'vape', batches:[
+      { id:'a3', kind:'newbatch', qty:22, receivedAt:'6:14 AM', receivedBy:'Dana R.', batch:{no:'HW-2408-90',thc:88.1,pkg:'Aug 20',exp:'Aug 17',age:21}, existing:[{no:'HW-2406-77', where:'510 + Pods shelf'}], premium:false, disp:'pending' }
+    ]},
+    { id:'g4', name:'Sungrown Rosin 1g', cat:'concentrate', batches:[
+      { id:'a4', kind:'new', qty:8, receivedAt:'6:20 AM', receivedBy:'Dana R.', batch:{no:'HW-2409-52',thc:76.4,pkg:'Sep 09',exp:'Dec 08',age:1}, premium:true, ageDays:1, disp:'safe', holdReason:'Needs price tag / labeling', heldBy:'Dana R.' }
+    ]},
+    { id:'g5', name:'Gummies 10mg 10-pack', cat:'edible', batches:[
+      { id:'a5', kind:'restock', qty:36, receivedAt:'6:25 AM', receivedBy:'Whitney L.', batch:{no:'HW-2409-01b',thc:null,pkg:'Sep 01',exp:'Sep 01 2027',age:9}, premium:false, disp:'pending' }
+    ]},
+    { id:'g6', name:'Wedding Cake 3.5g', cat:'flower', batches:[
+      { id:'a6', kind:'newbatch', qty:26, receivedAt:'6:31 AM', receivedBy:'Whitney L.', batch:{no:'HW-2411-22',thc:29.0,pkg:'Sep 08',exp:'Mar 06',age:2}, existing:[{no:'HW-2408-19', where:'Top Shelf Flower'}], premium:true, ageDays:2, disp:'pending' }
+    ]},
+    { id:'g7', name:'Single-Source Hash Rosin 0.5g', cat:'concentrate', batches:[
+      { id:'a7', kind:'new', qty:5, receivedAt:'6:38 AM', receivedBy:'Dana R.', batch:{no:'HW-2409-61',thc:81.2,pkg:'Sep 07',exp:'Dec 06',age:3}, premium:true, ageDays:3, disp:'pending', exception:true }
+    ]}
   ];
   var activeFilter = 'all';
 
+  function allBatches(){
+    var list = [];
+    GROUPS.forEach(function(g){ g.batches.forEach(function(b){ list.push({ group:g, batch:b }); }); });
+    return list;
+  }
+  function findBatch(id){ var r = allBatches().filter(function(x){ return x.batch.id===id; })[0]; return r; }
   function statCounts(){
     var c = { new:0, restock:0, newbatch:0, units:0 };
-    ARRIVALS.forEach(function(a){ c[a.kind]++; c.units += a.qty; });
+    allBatches().forEach(function(x){ c[x.batch.kind]++; c.units += x.batch.qty; });
     return c;
   }
   function renderStats(){
-    var c = statCounts();
+    var c = statCounts(), n = allBatches().length;
     var tiles = [
       { label:'New SKU', val:c.new, sub:'Never carried before', color:'var(--accentBorder)' },
       { label:'Restock', val:c.restock, sub:'Was sold out, same batch line', color:'var(--info)' },
       { label:'New Batch', val:c.newbatch, sub:'More of a SKU already on hand', color:'var(--warn)' },
-      { label:'Total units', val:c.units, sub:ARRIVALS.length+' lines received today', color:'var(--good)' }
+      { label:'Total units', val:c.units, sub:n+' batch lines received today', color:'var(--good)' }
     ];
     document.getElementById('statTiles').innerHTML = tiles.map(function(t){
       return '<div class="stat" style="--sc:'+t.color+'"><div class="slabel">'+t.label+'</div><div class="sval">'+t.val+'</div><div class="ssub">'+t.sub+'</div></div>';
@@ -343,72 +408,141 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
   function ageClass(days){ return days<=0 ? 'age0' : (days===1 ? 'age1' : 'age2'); }
   function ageLabel(days){ return days<=0 ? 'Received today' : ('Received '+days+' day'+(days>1?'s':'')+' ago — still in the safe'); }
 
-  function renderRow(a){
-    var kindLabel = a.kind==='new' ? 'New SKU' : (a.kind==='restock' ? 'Restock' : 'New Batch');
-    var html = '<div class="arow'+(a.disp==='floor'?' done':'')+'" data-id="'+a.id+'">'
-      + '<span class="cat-dot" style="--cd:'+CATCOLOR[a.cat]+'"></span>'
-      + '<div class="arow-main">'
-      + '<div class="aname"><span class="kindpill '+a.kind+'">'+kindLabel+'</span>'+esc(a.name)+' <span style="color:var(--inkMute);font-weight:500;">× '+a.qty+'</span></div>'
-      + '<div class="batchchip"><b>'+a.batch.no+'</b><span>THC '+(a.batch.thc!=null?a.batch.thc+'%':'n/a')+'</span><span>Packaged '+a.batch.packaged+'</span></div>';
-    if (a.kind==='newbatch' && a.existing && a.existing.length){
+  function batchMatchesFilter(b){
+    if (activeFilter==='premium') return b.premium;
+    if (activeFilter==='all') return true;
+    return b.kind===activeFilter;
+  }
+  function renderLine(g, b){
+    var kindLabel = b.kind==='new' ? 'New SKU' : (b.kind==='restock' ? 'Restock' : 'New Batch');
+    var html = '<div class="aline'+(b.disp==='floor'?' done':'')+'" data-id="'+b.id+'">'
+      + '<div class="aline-main">'
+      + '<div><span class="kindpill '+b.kind+'">'+kindLabel+'</span><span class="qty">× '+b.qty+'</span></div>'
+      + '<div class="bchip">'+chip(b.batch)+'</div>';
+    if (b.kind==='newbatch' && b.existing && b.existing.length){
       html += '<div class="existingnote"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><circle cx="12" cy="16.4" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9.3"/></svg>'
-        + a.existing.map(function(e){ return e.no+' already on hand ('+e.where+')'; }).join('; ') + ' — do not say "no stock."</div>';
+        + b.existing.map(function(e){ return e.no+' already on hand ('+e.where+')'; }).join('; ') + ' — do not say "no stock."</div>';
     }
-    if (a.premium){
-      var days = a.disp==='floor' ? 0 : (a.ageDays||0);
+    if (b.premium){
+      var days = b.disp==='floor' ? 0 : (b.ageDays||0);
       html += '<div><span class="agechip '+ageClass(days)+'">'+ageLabel(days)+'</span></div>';
     }
-    html += '<div class="attrline">Received by <b>'+esc(a.receivedBy)+'</b> · '+a.receivedAt+'</div>';
-    if (a.disp==='floor') html += '<div class="attrline putaway">Put away by <b>'+esc(a.putAwayBy)+'</b> · '+a.putAwayAt+'</div>';
-    if (a.disp==='safe') html += '<div class="attrline">Held in safe by <b>'+esc(a.heldBy)+'</b> — '+esc(a.holdReason)+'</div>';
+    html += '<div class="attrline">Received by <b>'+esc(b.receivedBy)+'</b> · '+b.receivedAt+'</div>';
+    if (b.disp==='floor') html += '<div class="attrline putaway">Confirmed at <b>'+esc(b.confirmShelf||'—')+'</b> by <b>'+esc(b.putAwayBy)+'</b> · '+b.putAwayAt+(b.excUsed?' · hand-count exception':'')+'</div>';
+    if (b.disp==='safe') html += '<div class="attrline">Held in safe by <b>'+esc(b.heldBy)+'</b> — '+esc(b.holdReason)+'</div>';
+    if (b.exception && b.disp!=='floor') html += '<div class="attrline excline">No RFID tag on this batch — moving it to the floor will need a hand-count exception.</div>';
     html += '</div>';
 
-    html += '<div class="arow-action">';
-    if (a.disp==='floor'){
+    html += '<div class="aline-action">';
+    if (b.disp==='floor'){
       html += '<span class="disp-onfloor"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>On floor</span>';
-    } else if (a.disp==='safe'){
-      html += '<button class="btn btn-primary btn-sm" data-putout="'+a.id+'">Put out now</button>';
-      html += '<button class="holdlink" data-clearhold="'+a.id+'">Clear hold</button>';
+    } else if (b.disp==='safe'){
+      html += '<button class="btn btn-primary btn-sm" data-putout="'+b.id+'">Put out now</button>';
+      html += '<button class="holdlink" data-clearhold="'+b.id+'">Clear hold</button>';
     } else {
-      html += '<button class="btn btn-primary btn-sm" data-putout="'+a.id+'">Put out now</button>';
-      html += '<select class="holdreason" data-holdselect="'+a.id+'"><option value="">Hold in safe — why not?</option>'
+      html += '<button class="btn btn-primary btn-sm" data-putout="'+b.id+'">Put out now</button>';
+      html += '<select class="holdreason" data-holdselect="'+b.id+'"><option value="">Hold in safe — why not?</option>'
         + REASONS.map(function(r){ return '<option value="'+esc(r)+'">'+esc(r)+'</option>'; }).join('') + '</select>';
     }
     html += '</div></div>';
     return html;
   }
+  function renderGroup(g){
+    var visible = g.batches.filter(batchMatchesFilter);
+    if (!visible.length) return '';
+    var loud = g.batches.length>1 && g.batches.some(function(b){return b.disp!=='floor';});
+    return '<div class="agroup">'
+      + '<span class="cat-dot" style="--cd:'+CATCOLOR[g.cat]+'"></span>'
+      + '<div class="agroup-body">'
+      + '<div class="gname">'+esc(g.name)+'</div>'
+      + (loud ? '<div class="loudbanner">LOUD — two batches of this SKU arrived today and would share a shelf. Oldest batch out first.</div>' : '')
+      + visible.map(function(b){ return renderLine(g, b); }).join('')
+      + '</div></div>';
+  }
 
   function renderList(){
-    var list = ARRIVALS.filter(function(a){
-      if (activeFilter==='premium') return a.premium;
-      if (activeFilter==='all') return true;
-      return a.kind===activeFilter;
-    });
-    document.getElementById('arrivalList').innerHTML = list.map(renderRow).join('') || '<div class="arow"><div class="arow-main">No arrivals match this filter.</div></div>';
+    var host = document.getElementById('arrivalList');
+    var html = GROUPS.map(renderGroup).join('');
+    host.innerHTML = html || '<div class="agroup"><div class="agroup-body">No arrivals match this filter.</div></div>';
 
-    document.querySelectorAll('[data-putout]').forEach(function(b){
-      b.addEventListener('click', function(){
-        var a = ARRIVALS.filter(function(x){ return x.id===b.getAttribute('data-putout'); })[0];
-        a.disp = 'floor'; a.putAwayBy = ACTOR; a.putAwayAt = 'just now'; delete a.holdReason; delete a.heldBy;
-        renderList();
-        toast('On the floor', esc(a.name)+' put out by '+ACTOR+'.');
-      });
+    host.querySelectorAll('[data-putout]').forEach(function(b){
+      b.addEventListener('click', function(){ openShelfScan(b.getAttribute('data-putout')); });
     });
-    document.querySelectorAll('[data-clearhold]').forEach(function(b){
+    host.querySelectorAll('[data-clearhold]').forEach(function(b){
       b.addEventListener('click', function(){
-        var a = ARRIVALS.filter(function(x){ return x.id===b.getAttribute('data-clearhold'); })[0];
-        a.disp = 'pending'; delete a.holdReason; delete a.heldBy;
+        var f = findBatch(b.getAttribute('data-clearhold')); if (!f) return;
+        f.batch.disp = 'pending'; delete f.batch.holdReason; delete f.batch.heldBy;
         renderList();
       });
     });
-    document.querySelectorAll('[data-holdselect]').forEach(function(sel){
+    host.querySelectorAll('[data-holdselect]').forEach(function(sel){
       sel.addEventListener('change', function(){
         if (!sel.value) return;
-        var a = ARRIVALS.filter(function(x){ return x.id===sel.getAttribute('data-holdselect'); })[0];
-        a.disp = 'safe'; a.holdReason = sel.value; a.heldBy = ACTOR;
+        var f = findBatch(sel.getAttribute('data-holdselect')); if (!f) return;
+        f.batch.disp = 'safe'; f.batch.holdReason = sel.value; f.batch.heldBy = ACTOR;
         renderList();
-        toast('Held in safe', esc(a.name)+' — '+sel.value+'.');
+        toast('Held in safe', esc(f.group.name)+' — '+sel.value+'.');
       });
+    });
+  }
+
+  /* ---------------- Put out now: scan the destination shelf, then confirm read vs expected ---------------- */
+  function openShelfScan(batchId){
+    var f = findBatch(batchId); if (!f) return;
+    var host = document.getElementById('overlayHost');
+    var el = document.createElement('div');
+    el.className = 'overlay'; el.id = 'scanOverlay';
+    el.innerHTML = '<div class="scan-sheet">'
+      + '<div class="scan-step-1 confirm-step active">'
+      + '<h3>Scan destination shelf</h3><div class="ssub">'+esc(f.group.name)+' · '+f.batch.qty+' units — the shelf is chosen by scanning its QR, not a location list.</div>'
+      + '<div class="scan-grid">' + SHELVES.map(function(s){
+          return '<button class="scan-opt" data-shelfcode="'+s.code+'" data-shelflabel="'+esc(s.label)+'"><span class="qrmini"></span><span class="sotext"><span class="socode">'+s.code+'</span><br/><span class="solabel">'+esc(s.label)+'</span></span></button>';
+        }).join('') + '</div>'
+      + '<div class="print-actions"><button class="btn btn-ghost" data-cancelscan="1">Cancel</button></div>'
+      + '</div>'
+      + '<div class="scan-step-2 confirm-step"></div>'
+      + '</div>';
+    host.appendChild(el);
+    el.querySelectorAll('[data-cancelscan]').forEach(function(b){ b.addEventListener('click', function(){ el.remove(); }); });
+    el.querySelectorAll('.scan-opt').forEach(function(b){
+      b.addEventListener('click', function(){
+        renderConfirmStep(el, f, b.getAttribute('data-shelfcode'), b.getAttribute('data-shelflabel'));
+      });
+    });
+  }
+  function renderConfirmStep(el, f, shelfCode, shelfLabel){
+    el.querySelector('.scan-step-1').classList.remove('active');
+    var step2 = el.querySelector('.scan-step-2');
+    step2.classList.add('active');
+    var expected = f.batch.qty;
+    var read = f.batch.exception ? null : expected; // normal case: RFID confirms the full count at the shelf
+    var mismatch = read!=null && read!==expected;
+    step2.innerHTML = '<h3>Confirm at the shelf</h3><div class="ssub">'+shelfCode+' · '+esc(shelfLabel)+'</div>'
+      + '<div class="confirm-bchip">'+chip(f.batch.batch)+'</div>'
+      + (f.batch.exception
+        ? '<div class="exc-note">No RFID tag on this batch — hand-count exception required to close this line.</div>'
+          + '<div class="readgrid"><div class="readbox"><div class="rl">Expected</div><div class="rv">'+expected+'</div></div>'
+          + '<div class="readbox"><div class="rl">Hand count</div><div class="rv"><input id="handQtyInput" type="number" min="0" value="'+expected+'" style="width:64px;font:inherit;border:1px solid var(--fieldBorder);border-radius:6px;padding:2px 6px;"/></div></div></div>'
+        : '<div class="readgrid"><div class="readbox'+(mismatch?' mismatch':'')+'"><div class="rl">Read (RFID)</div><div class="rv">'+read+'</div></div>'
+          + '<div class="readbox"><div class="rl">Expected</div><div class="rv">'+expected+'</div></div></div>'
+          + (mismatch ? '<div class="exc-note">Read does not match expected — flagged for manager review before this confirms.</div>' : ''))
+      + '<div class="print-actions"><button class="btn btn-ghost" data-backscan="1">Back</button><button class="btn btn-primary" id="confirmPutOut">Confirm &amp; put on floor</button></div>';
+    step2.querySelector('[data-backscan]').addEventListener('click', function(){
+      step2.classList.remove('active'); step2.innerHTML = '';
+      el.querySelector('.scan-step-1').classList.add('active');
+    });
+    step2.querySelector('#confirmPutOut').addEventListener('click', function(){
+      var handInput = step2.querySelector('#handQtyInput');
+      f.batch.disp = 'floor';
+      f.batch.putAwayBy = ACTOR;
+      f.batch.putAwayAt = 'just now';
+      f.batch.confirmShelf = shelfCode;
+      f.batch.excUsed = !!f.batch.exception;
+      if (handInput) f.batch.qty = parseInt(handInput.value,10) || f.batch.qty;
+      delete f.batch.holdReason; delete f.batch.heldBy;
+      el.remove();
+      renderList();
+      toast('On the floor', esc(f.group.name)+' confirmed at '+shelfCode+' by '+ACTOR+'.');
     });
   }
 

@@ -13,6 +13,10 @@
    Concept B (Box Cards) and Concept D (Tablet Packing) so this reads like the
    same estate. No build step, no external scripts or fonts. Every driver
    name, product, quantity and time on this screen is EXAMPLE DATA.
+   Round-2 revision: reconciliation is per BATCH — the RFID read at the LP
+   bench is the source of truth for what came back; a hand count is only a
+   flagged exception (dead tag / untagged item). Two batches sharing a line
+   are LOUD (red chip, both batch numbers, THC, packaged dates).
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -194,19 +198,25 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .attrib-item .v{font-weight:700;color:var(--ink);}
 .attrib-item .v.pending{font-weight:600;color:var(--inkFaint);}
 
+/* ---- read-vs-expected legend ---- */
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:10.5px;color:var(--inkMute);padding:2px 0 8px;align-items:center;}
+.legend-item{display:flex;align-items:center;gap:6px;}
+
 table.rectbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
-table.rectbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:5px 6px;border-bottom:1px solid var(--hairline);}
+table.rectbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:5px 6px;border-bottom:1px solid var(--hairline);white-space:nowrap;}
 table.rectbl th:first-child{text-align:left;}
 table.rectbl td{padding:6px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
 table.rectbl tr:last-child td{border-bottom:none;}
-.rectbl .pn{font-weight:600;font-size:11.5px;}
+.rectbl .pn{font-weight:600;font-size:11.5px;min-width:180px;}
 .rectbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
 .rectbl tr.row-diff{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
 .rectbl tr.row-mixed{background:var(--badSoft);}
-.rectbl .reasoncell{font-size:9.5px;color:var(--inkMute);max-width:150px;line-height:1.25;}
+.rectbl tr.row-handcount{background:var(--infoSoft);box-shadow:inset 3px 0 0 var(--info);}
+.rectbl .reasoncell{font-size:9.5px;color:var(--inkMute);max-width:180px;line-height:1.25;}
 .rectbl .reasoncell.r-warn{color:var(--warnText);font-weight:700;}
-.batchchip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;margin:1px 3px 1px 0;border-radius:6px;background:var(--badSoft);color:var(--bad);font-weight:800;font-family:var(--fontMono);font-size:9.5px;border:1px solid var(--bad);white-space:nowrap;}
-.batchwrap{display:flex;flex-wrap:wrap;gap:2px;}
+.batchchip{display:block;width:max-content;max-width:100%;padding:2px 7px;margin-top:3px;border-radius:6px;background:var(--badSoft);color:var(--bad);font-weight:800;font-family:var(--fontMono);font-size:9.5px;border:1px solid var(--bad);white-space:nowrap;}
+.batchchip-plain{display:block;font-family:var(--fontMono);font-size:9.5px;color:var(--inkMute);margin-top:3px;white-space:nowrap;}
+.loudtag{display:inline-flex;align-items:center;height:16px;padding:0 6px;margin-left:6px;border-radius:99px;background:var(--bad);color:#fff;font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;}
 
 .revrow{display:flex;gap:20px;flex-wrap:wrap;padding:10px 12px;background:var(--surface2);border-radius:var(--r10);border:1px solid var(--hairline2);}
 .revrow .ritem{display:flex;flex-direction:column;gap:1px;}
@@ -308,7 +318,7 @@ table.rectbl tr:last-child td{border-bottom:none;}
       <div class="banner info" id="modelBanner">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
         <div><div class="b-title">A day closes one driver at a time — never all at once</div>
-        <div class="b-body">"Closed" isn't one flag: each driver's own closeout must be approved, and the day is closed only once every driver is. Every dispatched unit must end as sold, returned, or an open case with a reason — nothing is silently dropped. Who packed, who return-verified and who closed each kit is recorded below.</div></div>
+        <div class="b-body">"Closed" isn't one flag: each driver's own closeout must be approved, and the day is closed only once every driver is. Every dispatched unit must end as sold, returned, or an open case with a reason — nothing is silently dropped. Reconciliation runs per batch: the RFID read at the bench is the source of truth for what came back, and a hand count only appears as a flagged exception for a dead tag or an untagged item. Who packed, who return-verified and who closed each kit is recorded below.</div></div>
         <div class="b-actions"><button class="btn btn-ghost btn-sm" onclick="this.closest('.banner').style.display='none'">Dismiss</button></div>
       </div>
 
@@ -382,8 +392,14 @@ table.rectbl tr:last-child td{border-bottom:none;}
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
   function money(n){ var neg = n<0; n = Math.abs(n); var s = '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return neg ? '−'+s : s; }
   function who(name){ return name ? esc(name) : '<span class="v pending">pending</span>'; }
+  function chip(b){ return '#'+b.no+' · THC '+(b.thc!=null?b.thc+'%':'—')+' · pkg '+b.pkg+' · exp '+b.exp+' · '+b.age+' d on hand'; }
 
   /* ---------------- data: EXAMPLE ONLY ---------------- */
+  /* Every row below is one BATCH LINE (product name + monospace batch chip),
+     never a bare SKU quantity. "returnedRead" is the RFID read at the LP
+     bench — the source of truth. isHandCount flags the exception (dead tag /
+     untagged item). pendingReturn means the kit has not reached the bench
+     yet — not a discrepancy. Mixed pairs share pairId and are LOUD (red chip). */
   var STAGES = ['Dispatched','Pack-verified','Refilled','Returned','Return-verified','Closed'];
 
   function tl(doneCount, activeAt, times){
@@ -398,25 +414,26 @@ table.rectbl tr:last-child td{border-bottom:none;}
       { id:'mr3', driver:'Marcus R.', route:'Route 3', state:'closed', closedBy:'Marcus R.', closedAt:'6:12 PM', packedBy:'Marcus R.', verifiedBy:'LP Bench — Sam D.',
         timeline: tl(6,6, ['1:40 PM','1:52 PM','3:05 PM','5:44 PM','5:58 PM','6:12 PM']),
         rows:[
-          { name:'Blue Dream 3.5g', batches:[{no:'B-11042',thc:22.4}], dispatched:20, soldAsap:17, soldSched:0, returned:3, reason:'' },
-          { name:'OG Kush 3.5g', batches:[{no:'B-11039',thc:24.1}], dispatched:12, soldAsap:10, soldSched:0, returned:2, reason:'' },
-          { name:'Gummies 100mg 10-pk', batches:[{no:'B-10988',thc:null}], dispatched:18, soldAsap:14, soldSched:2, returned:2, reason:'' }
+          { product:'Blue Dream 3.5g', batch:{no:'B-11042',thc:22.4,pkg:'Aug 20',exp:'Feb 20',age:21}, dispatched:20, refilled:4, soldAsap:21, soldSched:0, returnedRead:3, reason:'' },
+          { product:'OG Kush 3.5g', batch:{no:'B-11039',thc:24.1,pkg:'Aug 18',exp:'Feb 18',age:23}, dispatched:12, refilled:0, soldAsap:10, soldSched:0, returnedRead:2, reason:'' },
+          { product:'Gummies 100mg 10-pk', batch:{no:'B-10988',thc:null,pkg:'Jul 30',exp:'Jul 2027',age:42}, dispatched:18, refilled:0, soldAsap:14, soldSched:2, returnedRead:2, reason:'' }
         ],
         expectedRevenue:1284.50, actualRevenue:1284.50, cases:[] },
       { id:'dk1', driver:'Dana K.', route:'Route 1', state:'pending', closedBy:null, closedAt:null, packedBy:'Dana K.', verifiedBy:'LP Bench — Sam D.',
         timeline: tl(5,5, ['1:35 PM','1:48 PM','3:10 PM','5:36 PM','5:50 PM','—']),
         rows:[
-          { name:'Wedding Cake 3.5g', batches:[{no:'B-11050',thc:23.8},{no:'B-11061',thc:31.2}], dispatched:14, soldAsap:11, soldSched:0, returned:2, reason:'MIXED_BATCH — two batches shipped in one line', mixed:true },
-          { name:'Live Resin Cart 1g', batches:[{no:'B-10977',thc:null}], dispatched:10, soldAsap:9, soldSched:0, returned:1, reason:'' },
-          { name:'Rosin 1g', batches:[{no:'B-10960',thc:null}], dispatched:6, soldAsap:4, soldSched:0, returned:1, reason:'1 unit unaccounted — open case below', diff:true }
+          { product:'Wedding Cake 3.5g', batch:{no:'HW-2409-01',thc:24.1,pkg:'Aug 28',exp:'Feb 24',age:13}, dispatched:8, refilled:0, soldAsap:7, soldSched:0, returnedRead:1, mixed:true, pairId:'wc1', reason:'Older batch — oldest-first honored' },
+          { product:'Wedding Cake 3.5g', batch:{no:'HW-2411-07',thc:31.6,pkg:'Sep 6',exp:'Mar 6',age:4}, dispatched:6, refilled:0, soldAsap:4, soldSched:0, returnedRead:1, mixed:true, pairId:'wc1', reason:'Newer batch — RFID read short 1 unit, recount pending' },
+          { product:'Live Resin Cart 1g', batch:{no:'B-10977',thc:null,pkg:'Jul 15',exp:'Jan 15',age:57}, dispatched:10, refilled:0, soldAsap:9, soldSched:0, returnedRead:1, isHandCount:true, reason:'Hand-counted — no RFID tag on cartridge blister' },
+          { product:'Rosin 1g', batch:{no:'B-10960',thc:null,pkg:'Jul 10',exp:'Jan 10',age:62}, dispatched:6, refilled:0, soldAsap:4, soldSched:0, returnedRead:1, reason:'RFID read found 1 of 2 expected back — 1 tag never scanned, case opened below' }
         ],
         expectedRevenue:842.00, actualRevenue:806.50, cases:[
-          { id:'c1', kind:'Missing', title:'Rosin 1g — 1 unit missing', text:'Dispatched 6, sold 4, returned 1 — one tag never scanned back and no sale recorded.', status:'pending' }
+          { id:'c1', kind:'Missing', title:'Rosin 1g — batch B-10960 — 1 unit unaccounted', text:'Dispatched 6, sold 4, RFID read found only 1 of 2 expected back — tag E28011...960-05 was never scanned at the bench.', status:'pending' }
         ] },
       { id:'ps5', driver:'Priya S.', route:'Route 5', state:'open', closedBy:null, closedAt:null, packedBy:'Priya S.', verifiedBy:null,
         timeline: tl(3,3, ['1:38 PM','1:55 PM','3:20 PM','—','—','—']),
         rows:[
-          { name:'Ice Cream Cake 3.5g', batches:[{no:'B-11055',thc:null}], dispatched:12, soldAsap:8, soldSched:0, returned:0, reason:'Not yet returned — driver still on route' }
+          { product:'Ice Cream Cake 3.5g', batch:{no:'B-11055',thc:null,pkg:'Sep 1',exp:'Mar 1',age:9}, dispatched:12, refilled:0, soldAsap:8, soldSched:0, returnedRead:0, pendingReturn:true, reason:'On route — RFID read pending at return-verify' }
         ],
         expectedRevenue:0, actualRevenue:0, cases:[] }
     ]},
@@ -424,16 +441,16 @@ table.rectbl tr:last-child td{border-bottom:none;}
       { id:'tg2', driver:'Tomás G.', route:'Route 2', state:'forced', closedBy:'Warehouse (admin)', closedAt:'5:20 PM', packedBy:'Tomás G.', verifiedBy:null,
         timeline: tl(6,6, ['12:50 PM','1:05 PM','2:40 PM','5:02 PM','—','5:20 PM']),
         rows:[
-          { name:'GMO 3.5g', batches:[{no:'B-11020',thc:null}], dispatched:16, soldAsap:13, soldSched:0, returned:2, reason:'Forced closed before return-verify — driver could not reach the bench', diff:true }
+          { product:'GMO 3.5g', batch:{no:'B-11020',thc:null,pkg:'Aug 5',exp:'Feb 5',age:36}, dispatched:16, refilled:0, soldAsap:13, soldSched:0, returnedRead:2, reason:'Forced closed before return-verify — RFID read found 2 of 3 expected back' }
         ],
         expectedRevenue:606.00, actualRevenue:0, cases:[
-          { id:'c2', kind:'Unverified', title:'GMO 3.5g — 1 unit never scanned back', text:'Return-verify was skipped when this driver\'s closeout was forced. Sold + returned accounts for 15 of 16 dispatched.', status:'pending' }
+          { id:'c2', kind:'Unverified', title:'GMO 3.5g — batch B-11020 — 1 unit never scanned back', text:'Return-verify was skipped when this driver\'s closeout was forced. RFID read found 2 of 3 expected; tag E28011...020-09 is unaccounted. Sold + read accounts for 15 of 16 dispatched.', status:'pending' }
         ] },
       { id:'wl4', driver:'Whitney L.', route:'Route 4', state:'open', closedBy:null, closedAt:null, packedBy:'Whitney L.', verifiedBy:null,
         timeline: tl(4,4, ['12:52 PM','1:08 PM','2:44 PM','5:10 PM','—','—']),
         rows:[
-          { name:'Zkittlez 3.5g', batches:[{no:'B-11031',thc:null}], dispatched:12, soldAsap:0, soldSched:0, returned:0, reason:'Awaiting return-verify' },
-          { name:'Chocolate Bar 100mg', batches:[{no:'B-10999',thc:null}], dispatched:8, soldAsap:0, soldSched:0, returned:0, reason:'Awaiting return-verify' }
+          { product:'Zkittlez 3.5g', batch:{no:'B-11031',thc:null,pkg:'Aug 25',exp:'Feb 25',age:16}, dispatched:12, refilled:0, soldAsap:0, soldSched:0, returnedRead:0, pendingReturn:true, reason:'Awaiting return-verify' },
+          { product:'Chocolate Bar 100mg', batch:{no:'B-10999',thc:null,pkg:'Jul 20',exp:'Jul 2027',age:52}, dispatched:8, refilled:0, soldAsap:0, soldSched:0, returnedRead:0, pendingReturn:true, reason:'Awaiting return-verify' }
         ],
         expectedRevenue:0, actualRevenue:0, cases:[] }
     ]},
@@ -441,7 +458,7 @@ table.rectbl tr:last-child td{border-bottom:none;}
       { id:'jp6', driver:'Jordan P.', route:'Route 6', state:'open', closedBy:null, closedAt:null, packedBy:'Jordan P.', verifiedBy:null,
         timeline: tl(2,2, ['1:02 PM','1:14 PM','—','—','—','—']),
         rows:[
-          { name:'Lemon Cherry Gelato 3.5g', batches:[{no:'B-11066',thc:null}], dispatched:10, soldAsap:0, soldSched:0, returned:0, reason:'On route' }
+          { product:'Lemon Cherry Gelato 3.5g', batch:{no:'B-11066',thc:null,pkg:'Sep 3',exp:'Mar 3',age:7}, dispatched:10, refilled:0, soldAsap:0, soldSched:0, returnedRead:0, pendingReturn:true, reason:'On route' }
         ],
         expectedRevenue:0, actualRevenue:0, cases:[] }
     ]}
@@ -450,7 +467,7 @@ table.rectbl tr:last-child td{border-bottom:none;}
 
   function findRegion(id){ for (var i=0;i<REGIONS.length;i++) if (REGIONS[i].id===id) return REGIONS[i]; }
   function findDriver(region, id){ for (var i=0;i<region.drivers.length;i++) if (region.drivers[i].id===id) return region.drivers[i]; }
-  function diffOf(r){ return r.dispatched - r.soldAsap - r.soldSched - r.returned; }
+  function diffOf(r){ return r.dispatched + (r.refilled||0) - r.soldAsap - r.soldSched - r.returnedRead; }
   function allCasesResolved(d){ return d.cases.every(function(c){ return c.status !== 'pending'; }); }
   function rowsClean(d){ return d.rows.every(function(r){ return diffOf(r) === 0; }); }
 
@@ -462,7 +479,7 @@ table.rectbl tr:last-child td{border-bottom:none;}
       if (d.state==='closed' || d.state==='forced') closedDrivers++;
       d.cases.forEach(function(c){ if (c.status==='pending') openCases++; });
       expected += d.expectedRevenue; actual += d.actualRevenue;
-      d.rows.forEach(function(r){ unitsDispatched += r.dispatched; unitsReturned += r.returned; });
+      d.rows.forEach(function(r){ unitsDispatched += r.dispatched; unitsReturned += r.returnedRead; });
     }); });
     var variance = actual - expected;
     var tiles = [
@@ -470,7 +487,7 @@ table.rectbl tr:last-child td{border-bottom:none;}
       { c:'var(--warn)', lbl:'Open cases', val: openCases, sub: openCases ? 'need manager disposition' : 'none open' },
       { c: variance<0 ? 'var(--bad)' : 'var(--good)', lbl:'Revenue variance', val: money(variance), sub: 'expected '+money(expected)+' vs actual '+money(actual) },
       { c:'var(--good)', lbl:'Units dispatched', val: unitsDispatched, sub: 'across '+totalDrivers+' drivers today' },
-      { c:'var(--neutral)', lbl:'Units returned', val: unitsReturned, sub: 'to safe / loss prevention' }
+      { c:'var(--neutral)', lbl:'Units returned (read)', val: unitsReturned, sub: 'RFID read at the bench, to safe / LP' }
     ];
     document.getElementById('dayStats').innerHTML = tiles.map(function(t){
       return '<div class="stat" style="--stat-c:'+t.c+'"><div class="lbl">'+t.lbl+'</div><div class="val">'+t.val+'</div><div class="sub">'+t.sub+'</div></div>';
@@ -504,20 +521,26 @@ table.rectbl tr:last-child td{border-bottom:none;}
     open:'<span class="pill pill-neutral">Open</span>',
     forced:'<span class="pill pill-bad">Forced closed</span>'
   };
-  function renderRow(r, di){
+  function renderRow(r){
     var d = diffOf(r);
-    var cls = r.mixed ? 'row-mixed' : (d !== 0 ? 'row-diff' : '');
-    var batchHtml = '<div class="batchwrap">' + r.batches.map(function(b){
-      return r.mixed ? '<span class="batchchip">'+b.no+(b.thc?' · '+b.thc+'% THC':'')+'</span>' : '<span style="font-family:var(--fontMono);font-size:10px;color:var(--inkMute);">'+b.no+'</span>';
-    }).join('') + '</div>';
+    var cls = r.mixed ? 'row-mixed' : (r.isHandCount ? 'row-handcount' : (!r.pendingReturn && d !== 0 ? 'row-diff' : ''));
+    var chipHtml = '<div class="'+(r.mixed?'batchchip':'batchchip-plain')+'">'+chip(r.batch)+'</div>';
+    var retCell = r.pendingReturn
+      ? '<span style="color:var(--inkFaint);font-style:italic;">pending</span>'
+      : (r.isHandCount
+          ? '<span class="pill pill-neutral" style="margin-right:5px;">HC</span>'+r.returnedRead
+          : '<span class="pill pill-info" style="margin-right:5px;">RFID</span>'+r.returnedRead);
+    var diffCell = r.pendingReturn ? '—' : d;
+    var warnReason = !r.pendingReturn && (d!==0 || r.mixed || r.isHandCount);
     return '<tr class="'+cls+'">'
-      + '<td class="pn">'+esc(r.name)+batchHtml+'</td>'
+      + '<td class="pn">'+esc(r.product)+(r.mixed?' <span class="loudtag">Mixed batch</span>':'')+chipHtml+'</td>'
       + '<td class="num">'+r.dispatched+'</td>'
+      + '<td class="num">'+(r.refilled||0)+'</td>'
       + '<td class="num">'+r.soldAsap+'</td>'
       + '<td class="num">'+r.soldSched+'</td>'
-      + '<td class="num">'+r.returned+'</td>'
-      + '<td class="num" style="font-weight:800;color:'+(d!==0?'var(--warnText)':'var(--ink)')+'">'+d+'</td>'
-      + '<td class="reasoncell'+(d!==0||r.mixed?' r-warn':'')+'">'+(r.reason||'—')+'</td>'
+      + '<td class="num">'+retCell+'</td>'
+      + '<td class="num" style="font-weight:800;color:'+(!r.pendingReturn && d!==0?'var(--warnText)':'var(--ink)')+'">'+diffCell+'</td>'
+      + '<td class="reasoncell'+(warnReason?' r-warn':'')+'">'+(r.reason||'—')+'</td>'
       + '</tr>';
   }
   function renderDriverCard(region, d){
@@ -561,8 +584,13 @@ table.rectbl tr:last-child td{border-bottom:none;}
       + '<div class="driver-body">'
       + attribRow
       + forcedNote
-      + '<div><div class="subhead">Return-verify reconciliation</div>'
-      + '<table class="rectbl"><thead><tr><th>Product</th><th>Dispatched</th><th>Sold ASAP</th><th>Sold sched.</th><th>Returned</th><th>Diff</th><th>Reason</th></tr></thead><tbody>'+recRows+'</tbody></table></div>'
+      + '<div><div class="subhead">Return-verify reconciliation — per batch</div>'
+      + '<div class="legend">'
+      +   '<span class="legend-item"><span class="pill pill-info">RFID</span>read from tag scan — the source of truth</span>'
+      +   '<span class="legend-item"><span class="pill pill-neutral">HC</span>hand-count exception — dead tag or untagged item</span>'
+      +   '<span class="legend-item"><span class="loudtag" style="margin-left:0;">Mixed batch</span>two batches sharing this line, both shown in red</span>'
+      + '</div>'
+      + '<div style="overflow-x:auto;"><table class="rectbl"><thead><tr><th>Batch</th><th>Dispatched</th><th>Refilled</th><th>Sold ASAP</th><th>Sold sched.</th><th>Returned (read)</th><th>Diff</th><th>Reason</th></tr></thead><tbody>'+recRows+'</tbody></table></div></div>'
       + '<div><div class="subhead">Revenue reconciliation</div>'
       + '<div class="revrow">'
       + '<div class="ritem"><span class="k">Expected</span><span class="v">'+money(d.expectedRevenue)+'</span></div>'

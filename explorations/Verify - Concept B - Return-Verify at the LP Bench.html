@@ -6,13 +6,16 @@
 <title>Verify — Concept B — Return-Verify at the LP Bench</title>
 <style>
 /* ============================================================================
-   Verify — Concept B — Return-Verify at the LP Bench
+   Verify — Concept B — Return-Verify at the LP Bench (Round 2 revision)
    Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); rail
    shell copied from Hyperwolf Bounty.html; kit-column/box-card conventions from
-   the Concept B (Box Cards) and Concept D (Tablet Packing) keepers. This round
-   adds: return-verify per batch, driver closeout, one case per tag across
-   days, and station sign-in for attribution. No build step, no external
-   requests. All names, batches, quantities and times are EXAMPLE data.
+   the Concept B (Box Cards) and Concept D (Tablet Packing) keepers. Round-2
+   rules applied: RFID first (read kit is the primary action, typed steppers
+   only in a flagged hand-count exception row, station sign-in leads with a
+   badge read, kit QR to open/close, no location dropdowns) and batch level
+   everywhere (every line is a batch line with a monospace batch chip; the
+   Blue Dream pair uses the standard mixed-batch example). No build step, no
+   external requests. All names, batches, quantities and times are EXAMPLE data.
    ========================================================================= */
 :root{
   --fontSans:"Inter",-apple-system,system-ui,sans-serif;
@@ -134,6 +137,8 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 .pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
 .pill-neutral{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
 .pill-info{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+.qrbtn{background:none;border:1px dashed var(--hairline3);border-radius:99px;color:var(--inkMute);font-size:11px;cursor:pointer;padding:5px 10px;display:inline-flex;align-items:center;gap:5px;font-weight:600;}
+.qrbtn:hover{color:var(--ink);border-color:var(--inkMute);}
 
 .bench{flex:1;display:flex;min-height:0;overflow:hidden;}
 .pane-kits{width:300px;flex:0 0 300px;border-right:1px solid var(--hairline2);overflow-y:auto;background:var(--surface2);padding:12px;}
@@ -189,21 +194,27 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 
 table.vtbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
 table.vtbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:6px 6px;border-bottom:1px solid var(--hairline);}
-table.vtbl th:first-child,table.vtbl th:nth-child(2){text-align:left;}
-table.vtbl td{padding:7px 6px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
+table.vtbl th:first-child{text-align:left;}
+table.vtbl td{padding:8px 6px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
 table.vtbl tr:last-child td{border-bottom:none;}
-.vtbl .pn{font-weight:700;}
-.vtbl .bn{font-family:var(--fontMono);font-size:11px;color:var(--inkDim);}
+.vtbl .pn b{font-weight:700;display:block;}
 .vtbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.bchip{display:block;font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);margin-top:2px;font-weight:500;}
 tr.st-missing{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 tr.st-extra{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 tr.st-wrongbatch{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+tr.excrow{background:var(--infoSoft);box-shadow:inset 3px 0 0 var(--info);}
 .statuspill{display:inline-flex;align-items:center;gap:4px;height:21px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
 .sp-match{background:var(--goodSoft);color:var(--good);}
 .sp-sold{background:var(--infoSoft);color:var(--info);}
 .sp-missing{background:var(--badSoft);color:var(--bad);}
 .sp-extra{background:var(--badSoft);color:var(--bad);}
 .sp-wrongbatch{background:var(--warnSoft);color:var(--warnText);}
+.exc-badge{display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:99px;background:var(--infoSoft);color:var(--info);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
+.stepper-sm{display:inline-flex;align-items:center;gap:6px;}
+.stepbtn-sm{width:28px;height:28px;border-radius:8px;border:1px solid var(--hairline3);background:var(--surface3);font-size:15px;font-weight:700;cursor:pointer;color:var(--ink);}
+.stepbtn-sm:hover{background:var(--hairline2);}
+.stepval-sm{width:30px;text-align:center;font-family:var(--fontMono);font-size:13px;font-weight:800;}
 .reasonwrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .reasonsel{height:29px;border-radius:7px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:11px;padding:0 5px;}
 .fixbtn{height:29px;padding:0 10px;border-radius:99px;border:1px solid var(--warn);background:var(--surface);color:var(--warnText);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
@@ -211,8 +222,7 @@ tr.st-wrongbatch{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn)
 .casebadge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--bad);text-decoration:underline;cursor:pointer;margin-left:4px;background:none;border:none;padding:0;}
 
 /* LOUD mixed-batch flag — always red, never quiet */
-.loudrow td{background:var(--badSoft) !important;}
-.loud{border:1.5px solid var(--bad);background:var(--badSoft);border-radius:var(--r8);padding:3px 8px;font-size:10.5px;color:var(--bad);font-weight:800;text-transform:uppercase;letter-spacing:.03em;display:inline-block;}
+.loud{border:1.5px solid var(--bad);background:var(--badSoft);border-radius:var(--r8);padding:2px 7px;font-size:10px;color:var(--bad);font-weight:800;text-transform:uppercase;letter-spacing:.03em;display:inline-block;margin-top:3px;}
 
 .completebar{position:sticky;bottom:0;display:flex;align-items:center;gap:16px;padding:12px 20px;border-top:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;}
 .completebar .chk{font-size:12.5px;color:var(--inkDim);display:flex;align-items:center;gap:6px;}
@@ -223,13 +233,19 @@ tr.st-wrongbatch{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn)
 .modal{background:var(--surface);border-radius:var(--r20);width:100%;max-width:420px;max-height:86vh;overflow-y:auto;padding:22px;box-shadow:var(--shadowLg);}
 .modal h2{margin:0 0 4px;font-size:var(--f-title);}
 .modal p{font-size:12.5px;color:var(--inkDim);}
-.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
-.pinpad button{height:52px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface2);font-size:18px;font-weight:700;cursor:pointer;}
+.qr{width:96px;height:96px;margin:12px auto 0;background:
+  repeating-linear-gradient(0deg, var(--ink) 0 4px, transparent 4px 8px),
+  repeating-linear-gradient(90deg, var(--ink) 0 4px, transparent 4px 8px);
+  background-blend-mode:multiply; border:6px solid var(--surface); box-shadow:0 0 0 2px var(--ink);}
+.badgebtn-lg{width:100%;height:52px;border-radius:var(--r12);border:1px solid var(--info);background:var(--infoSoft);color:var(--info);font-weight:800;font-size:var(--f-body);cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:9px;}
+.pin-fallback{margin-top:16px;padding-top:14px;border-top:1px dashed var(--hairline3);}
+.pin-fallback summary{font-size:12px;color:var(--inkMute);cursor:pointer;}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.pinpad button{height:48px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface2);font-size:17px;font-weight:700;cursor:pointer;}
 .pinpad button:hover{background:var(--surface3);}
-.pindots{display:flex;gap:10px;justify-content:center;margin:14px 0 2px;}
-.pindots span{width:14px;height:14px;border-radius:50%;border:2px solid var(--hairline3);}
+.pindots{display:flex;gap:10px;justify-content:center;margin:10px 0 2px;}
+.pindots span{width:13px;height:13px;border-radius:50%;border:2px solid var(--hairline3);}
 .pindots span.filled{background:var(--ink);border-color:var(--ink);}
-.badgebtn{width:100%;margin-top:10px;height:44px;border-radius:var(--r10);border:1px dashed var(--hairline3);background:none;color:var(--inkDim);cursor:pointer;font-size:12.5px;}
 .modal-actions{display:flex;gap:10px;margin-top:16px;}
 .modal-actions .btn{flex:1;}
 .caselist{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
@@ -291,10 +307,13 @@ tr.st-wrongbatch{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn)
 <div class="overlay" id="pinOverlay" style="display:none;">
   <div class="modal">
     <h2>Sign in at this station</h2>
-    <p>Enter your 4-digit PIN, or scan your staff badge. This stamps "return-verified by" on every case you close.</p>
-    <div class="pindots" id="pinDots"></div>
-    <div class="pinpad" id="pinPad"></div>
-    <button class="badgebtn" id="badgeBtn">📇 Scan staff badge instead</button>
+    <p>Scan your staff badge to stamp "return-verified by" on every kit you close.</p>
+    <button class="badgebtn-lg" id="badgeBtn">📇 Scan staff badge</button>
+    <details class="pin-fallback">
+      <summary>Badge reader down? Enter your 4-digit PIN instead</summary>
+      <div class="pindots" id="pinDots"></div>
+      <div class="pinpad" id="pinPad"></div>
+    </details>
   </div>
 </div>
 
@@ -304,6 +323,16 @@ tr.st-wrongbatch{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn)
     <p id="caseSub"></p>
     <div class="caselist" id="caseList"></div>
     <div class="modal-actions"><button class="btn btn-ghost" id="caseClose" style="flex:1;">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="qrOverlay" style="display:none;">
+  <div class="modal">
+    <h2 id="qrTitle">Kit QR</h2>
+    <div class="crumb" id="qrSub"></div>
+    <div style="text-align:center;"><div class="qr" title="Scan to open or close"></div>
+    <p id="qrNote" style="margin-top:8px;"></p></div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="qrClose" style="flex:1;">Close</button></div>
   </div>
 </div>
 
@@ -346,25 +375,25 @@ function toast(msg){
   document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 3600);
 }
 
-/* ---------- station sign-in ---------- */
+/* ---------- station sign-in — badge read leads, PIN is the fallback ---------- */
 var LP_STAFF = {'4471':'Priya S.', '1010':'Jorge M.', '9982':'Ana T.'};
 var currentUser = null;
+function initials(name){ return name.split(' ').map(function(p){return p[0];}).join('').slice(0,2).toUpperCase(); }
 function renderSignin(){
   var bar = $('#signinBar');
   if(!currentUser){
     bar.className = 'signinbar';
     bar.innerHTML = '<div class="signin-avatar">—</div><div class="signin-txt">Not signed in at this station.</div>'
-      + '<button class="btn btn-primary btn-sm" id="signinBtn" style="margin-left:auto;">Sign in to verify returns</button>';
+      + '<button class="btn btn-primary btn-sm" id="signinBtn" style="margin-left:auto;">📇 Scan badge to verify returns</button>';
     $('#signinBtn').addEventListener('click', openPin);
   } else {
     bar.className = 'signinbar signed';
     bar.innerHTML = '<div class="signin-avatar">'+initials(currentUser)+'</div><div class="signin-txt">LP Bench signed in as <b>'+currentUser+'</b></div>'
-      + '<button class="btn btn-ghost btn-sm" id="switchBtn" style="margin-left:auto;">Switch user</button>';
+      + '<button class="btn btn-ghost btn-sm" id="switchBtn" style="margin-left:auto;">Switch (scan badge)</button>';
     $('#switchBtn').addEventListener('click', openPin);
   }
   renderMain();
 }
-function initials(name){ return name.split(' ').map(function(p){return p[0];}).join('').slice(0,2).toUpperCase(); }
 var pinBuf = '';
 function openPin(){
   pinBuf = ''; renderPinDots();
@@ -402,11 +431,11 @@ $('#badgeBtn').addEventListener('click', function(){
   renderSignin();
 });
 
-/* ---------- data: EXAMPLE ONLY ----------
+/* ---------- data: EXAMPLE ONLY. every line is a batch line. ----------
    expected = dispatched + refills − ASAP sold − scheduled sold, per batch.
-   read = RFID scan at the LP bench. diff drives status. */
+   read = RFID read at the LP bench. diff drives status. */
 var uid=0;
-function Line(o){ o.id='ln'+(++uid); o.reason=o.reason||null; return o; }
+function Line(o){ o.id='ln'+(++uid); o.reason=o.reason||null; if(o.handCount) o.read = o.read||0; return o; }
 var KITS = [
   {
     id:'k1', driver:'Marcus R.', route:'Route 3', region:'West LA',
@@ -414,12 +443,13 @@ var KITS = [
     scanned:false, status:'open',
     closeout:{cash:'$1,240.00', txns:34, notes:'One customer asked for a specific batch (Blue Dream, older lot) — recorded on receipt.'},
     lines:[
-      Line({sku:'Sunset OG 3.5g', batch:'B-2291', thc:24.8, dispatched:20, refills:0, asapSold:14, schedSold:0, read:6}),
-      Line({sku:'Blue Dream 3.5g', batch:'B-1187', thc:22.4, dispatched:6, refills:0, asapSold:6, schedSold:0, read:0, mixed:true}),
-      Line({sku:'Blue Dream 3.5g', batch:'B-2205', thc:27.9, dispatched:4, refills:0, asapSold:2, schedSold:0, read:2, mixed:true}),
-      Line({sku:'GMO 7g', batch:'B-2299', thc:31.2, dispatched:6, refills:2, asapSold:5, schedSold:1, read:1, prevCase:true}),
-      Line({sku:'Wedding Cake 1g', batch:'B-2100', thc:26.1, dispatched:24, refills:0, asapSold:19, schedSold:0, read:6}),
-      Line({sku:'Live Resin Cart 1g', batch:'B-2077', thc:82.4, dispatched:16, refills:0, asapSold:10, schedSold:2, read:5})
+      Line({sku:'Sunset OG 3.5g', batch:'HW-2408-14', thc:24.8, pkg:'Aug 22', exp:'Feb 18', onHand:19, metrc:'1A4…9C2', dispatched:20, refills:0, asapSold:14, schedSold:0, read:6}),
+      Line({sku:'Blue Dream 3.5g', batch:'HW-2409-01', thc:24.1, pkg:'Aug 28', exp:'Feb 24', onHand:42, metrc:'1A40…7F3', dispatched:6, refills:0, asapSold:6, schedSold:0, read:0, mixed:true}),
+      Line({sku:'Blue Dream 3.5g', batch:'HW-2411-07', thc:31.6, pkg:'Sep 6', exp:'Mar 4', onHand:4, metrc:'1A40…9D1', dispatched:4, refills:0, asapSold:2, schedSold:0, read:2, mixed:true}),
+      Line({sku:'GMO 7g', batch:'HW-2410-05', thc:31.2, pkg:'Aug 28', exp:'Feb 24', onHand:13, metrc:'1A40…2E8', dispatched:6, refills:2, asapSold:5, schedSold:1, read:1, prevCase:true}),
+      Line({sku:'Wedding Cake 1g', batch:'HW-2407-09', thc:26.1, pkg:'Aug 18', exp:'Feb 14', onHand:23, metrc:'1A40…6B4', dispatched:24, refills:0, asapSold:19, schedSold:0, read:5, readBatch:'HW-2405-02'}),
+      Line({sku:'Live Resin Cart 1g', batch:'HW-2401-08', thc:82.4, pkg:'Aug 5', exp:'Feb 1', onHand:36, metrc:'1A40…0A9', dispatched:16, refills:0, asapSold:10, schedSold:2, read:5}),
+      Line({sku:'Infused Pre-Roll Cones (bulk)', batch:null, dispatched:20, refills:0, asapSold:14, schedSold:0, handCount:true, tagReason:'Bulk cone stock carries no RFID tag — hand-counted at the bench.'})
     ]
   },
   {
@@ -428,8 +458,8 @@ var KITS = [
     scanned:false, status:'open',
     closeout:{cash:'$860.00', txns:21, notes:'Clean route, no customer disputes.'},
     lines:[
-      Line({sku:'Sunset OG 3.5g', batch:'B-2291', thc:24.8, dispatched:12, refills:0, asapSold:9, schedSold:0, read:3}),
-      Line({sku:'Sativa Singles', batch:'B-1955', thc:null, dispatched:10, refills:0, asapSold:7, schedSold:0, read:3})
+      Line({sku:'Sunset OG 3.5g', batch:'HW-2408-14', thc:24.8, pkg:'Aug 22', exp:'Feb 18', onHand:19, metrc:'1A4…9C2', dispatched:12, refills:0, asapSold:9, schedSold:0, read:3}),
+      Line({sku:'Sativa Singles', batch:'HW-2403-20', thc:null, pkg:'Aug 9', exp:'Feb 5', onHand:32, metrc:'1A40…1B6', dispatched:10, refills:0, asapSold:7, schedSold:0, read:3})
     ]
   },
   {
@@ -438,32 +468,48 @@ var KITS = [
     scanned:true, status:'done', returnVerifiedBy:'Priya S.', returnVerifiedAt:'4:58 PM',
     closeout:{cash:'$1,510.00', txns:29, notes:'Ran full through the afternoon; no shortfalls.'},
     lines:[
-      Line({sku:'OG Kush 3.5g', batch:'B-2033', thc:25.6, dispatched:18, refills:0, asapSold:12, schedSold:0, read:6})
+      Line({sku:'OG Kush 3.5g', batch:'HW-2406-11', thc:25.6, pkg:'Aug 14', exp:'Feb 10', onHand:27, metrc:'1A40…8E5', dispatched:18, refills:0, asapSold:12, schedSold:0, read:6})
     ]
   }
 ];
 function expected(l){ return l.dispatched + l.refills - l.asapSold - l.schedSold; }
+function isException(l){ return !!l.handCount; }
 function lineStatus(l, scanned){
+  if (isException(l)) return 'exception';
   if(!scanned) return 'pending';
+  if (l.readBatch && l.readBatch !== l.batch) return 'wrongbatch';
   var exp = expected(l);
   if(l.read === exp) return 'match';
   if(l.read > exp) return 'extra';
   return 'missing';
+}
+function lineResolved(l, scanned){
+  var st = lineStatus(l, scanned);
+  if (st === 'pending') return false;
+  if (st === 'match') return true;
+  if (st === 'exception'){ return l.read === expected(l) || !!l.reason; }
+  return !!l.reason;
 }
 var selectedKitId = null;
 
 function renderKitList(){
   var wrap = $('#paneKits');
   wrap.innerHTML = '<h2>Returning today</h2>' + KITS.map(function(k){
-    var openCount = k.scanned ? k.lines.filter(function(l){ return lineStatus(l,true)!=='match' && !l.reason; }).length : k.lines.length;
+    var openCount = k.scanned ? k.lines.filter(function(l){ return !lineResolved(l,true); }).length : k.lines.filter(function(l){ return isException(l) && !lineResolved(l,false); }).length;
     var stcls = k.status==='done' ? 'st-done' : (k.scanned && openCount>0 ? 'st-open' : (k.scanned ? 'st-clean' : 'st-open'));
-    var sttxt = k.status==='done' ? 'Closed — verified by '+k.returnVerifiedBy : (k.scanned ? (openCount>0 ? openCount+' discrepancy line(s)' : 'All matched') : 'Not scanned yet');
+    var sttxt = k.status==='done' ? 'Closed — verified by '+k.returnVerifiedBy : (k.scanned ? (openCount>0 ? openCount+' discrepancy line(s)' : 'All matched') : 'Not read yet');
     return '<button class="kit-chip'+(k.id===selectedKitId?' selected':'')+'" data-kit="'+k.id+'">'
       + '<div class="kc-av">'+initials(k.driver)+'</div>'
       + '<div class="kc-mid"><div class="kc-name">'+k.driver+'</div><div class="kc-route">'+k.route+' · '+k.region+'</div><div class="kc-status '+stcls+'">'+sttxt+'</div></div>'
       + '</button>';
   }).join('');
   $$('.kit-chip', wrap).forEach(function(b){ b.addEventListener('click', function(){ selectedKitId = b.getAttribute('data-kit'); renderKitList(); renderMain(); }); });
+}
+
+function bchip(l){
+  if (!l.batch) return '<span class="bchip">no RFID tag — hand-counted at the bench</span>';
+  var thc = l.thc!=null ? ('THC '+l.thc+'%') : 'THC —';
+  return '<span class="bchip">#'+l.batch+' · '+thc+' · pkg '+l.pkg+' · exp '+l.exp+' · '+l.onHand+' d on hand · Metrc '+l.metrc+'</span>';
 }
 
 function renderMain(){
@@ -475,8 +521,8 @@ function renderMain(){
   }
   var dispatchedTotal = k.lines.reduce(function(s,l){ return s+l.dispatched+l.refills; },0);
   var soldTotal = k.lines.reduce(function(s,l){ return s+l.asapSold+l.schedSold; },0);
-  var readTotal = k.scanned ? k.lines.reduce(function(s,l){ return s+l.read; },0) : 0;
-  var discCount = k.scanned ? k.lines.filter(function(l){ return lineStatus(l,true)!=='match'; }).length : 0;
+  var readTotal = k.scanned ? k.lines.reduce(function(s,l){ return s+(l.read||0); },0) : 0;
+  var discCount = k.scanned ? k.lines.filter(function(l){ return !lineResolved(l,true); }).length : 0;
 
   var chainHtml = '<div class="chain">'
     + chip('Built by', k.builtBy, '')
@@ -497,36 +543,50 @@ function renderMain(){
   var rowsHtml = k.lines.map(function(l){
     var exp = expected(l);
     var st = lineStatus(l, k.scanned);
-    var trcls = st==='missing' ? 'st-missing' : st==='extra' ? 'st-extra' : (st==='match' && l.read!==exp ? 'st-wrongbatch' : '');
-    var pill = st==='pending' ? '<span class="statuspill" style="background:var(--neutralSoft);color:var(--neutral);">awaiting scan</span>'
-      : st==='match' ? '<span class="statuspill sp-match">match</span>'
-      : st==='extra' ? '<span class="statuspill sp-extra">extra</span>'
-      : '<span class="statuspill sp-missing">missing '+(exp-l.read)+'</span>';
-    var reasonCell = '';
-    if(k.scanned && st!=='match'){
-      reasonCell = l.reason
-        ? '<span class="donereason">✓ '+l.reason+'</span>'
-        : '<div class="reasonwrap"><select class="reasonsel" data-ln="'+l.id+'"><option value="">Reason…</option><option>Sold-but-not-decremented</option><option>Found in wrong kit</option><option>Damaged in transit</option><option>Customer dispute</option><option>Unresolved — open case</option></select></div>';
+    var trcls = st==='missing' ? 'st-missing' : st==='extra' ? 'st-extra' : st==='wrongbatch' ? 'st-wrongbatch' : st==='exception' ? 'excrow' : '';
+    var readCell, pill, reasonCell = '';
+    if (st === 'exception'){
+      var matches = l.read === exp;
+      readCell = '<td class="num"><div class="stepper-sm"><button class="stepbtn-sm" data-dec="'+l.id+'">−</button><span class="stepval-sm">'+l.read+'</span><button class="stepbtn-sm" data-inc="'+l.id+'">+</button></div></td>';
+      pill = '<span class="exc-badge">'+(matches?'Hand-count OK':'Hand-counted')+'</span>';
+      reasonCell = matches ? '<span class="donereason">'+(l.tagReason||'Hand-counted — no RFID tag.')+'</span>'
+        : (l.reason ? '<span class="donereason">'+l.reason+'</span>'
+          : '<div class="reasonwrap"><select class="reasonsel" data-ln="'+l.id+'"><option value="">Reason…</option><option>Sold-but-not-decremented</option><option>Found in wrong kit</option><option>Damaged in transit</option><option>Unresolved — open case</option></select></div>');
+    } else {
+      readCell = '<td class="num">'+(k.scanned?l.read:'—')+'</td>';
+      pill = st==='pending' ? '<span class="statuspill" style="background:var(--neutralSoft);color:var(--neutral);">awaiting read</span>'
+        : st==='match' ? '<span class="statuspill sp-match">match</span>'
+        : st==='wrongbatch' ? '<span class="statuspill sp-wrongbatch">wrong batch</span>'
+        : st==='extra' ? '<span class="statuspill sp-extra">extra</span>'
+        : '<span class="statuspill sp-missing">missing '+(exp-l.read)+'</span>';
+      if (k.scanned && st!=='match'){
+        if (l.reason){
+          reasonCell = '<span class="donereason">✓ '+l.reason+'</span>';
+        } else if (st==='wrongbatch'){
+          reasonCell = '<div class="reasonwrap"><span class="bchip" style="display:inline;margin:0;">read tag #'+l.readBatch+'</span><select class="reasonsel" data-ln="'+l.id+'"><option value="">Reason…</option><option>Wrong batch pulled at return</option><option>Swap confirmed — relabel</option></select></div>';
+        } else {
+          reasonCell = '<div class="reasonwrap"><select class="reasonsel" data-ln="'+l.id+'"><option value="">Reason…</option><option>Sold-but-not-decremented</option><option>Found in wrong kit</option><option>Damaged in transit</option><option>Customer dispute</option><option>Unresolved — open case</option></select></div>';
+        }
+      }
     }
     var caseBadge = l.prevCase ? '<button class="casebadge" data-case="'+l.id+'">Case DK1-0904-A · 2nd occurrence ↗</button>' : '';
     return '<tr class="'+trcls+'" data-row="'+l.id+'">'
-      + '<td class="pn">'+l.sku+(l.mixed?' <span class="loud">MIXED BATCH</span>':'')+caseBadge+'</td>'
-      + '<td class="bn">'+l.batch+(l.thc?' · '+l.thc+'% THC':'')+'</td>'
+      + '<td class="pn"><b>'+l.sku+'</b>'+bchip(l)+(l.mixed?'<span class="loud">MIXED BATCH — LOUD</span>':'')+caseBadge+'</td>'
       + '<td class="num">'+l.dispatched+'</td><td class="num">'+l.refills+'</td>'
       + '<td class="num">'+l.asapSold+'</td><td class="num">'+l.schedSold+'</td>'
-      + '<td class="num">'+exp+'</td><td class="num">'+(k.scanned?l.read:'—')+'</td>'
+      + '<td class="num">'+exp+'</td>'+readCell
       + '<td>'+pill+'</td><td>'+reasonCell+'</td>'
       + '</tr>';
   }).join('');
 
   var scanSection = k.scanned
     ? ''
-    : '<div class="scanbar"><button class="btn scan-btn" id="scanBtn" '+(currentUser?'':'disabled')+'>📡 Scan returned kit</button>'
-      + (currentUser ? '' : '<span style="font-size:12px;color:var(--inkMute);">Sign in at the station to scan.</span>')+'</div>';
+    : '<div class="scanbar"><button class="btn scan-btn" id="scanBtn" '+(currentUser?'':'disabled')+'>📡 Read kit</button>'
+      + (currentUser ? '' : '<span style="font-size:12px;color:var(--inkMute);">Sign in at the station to read.</span>')+'</div>';
 
-  var allResolved = k.scanned && k.lines.every(function(l){ return lineStatus(l,true)==='match' || l.reason; });
+  var allResolved = k.scanned && k.lines.every(function(l){ return lineResolved(l, true); });
   var completeBar = '<div class="completebar">'
-    + '<span class="chk'+(k.scanned?' ok':'')+'">'+(k.scanned?'✓':'○')+' Kit scanned</span>'
+    + '<span class="chk'+(k.scanned?' ok':'')+'">'+(k.scanned?'✓':'○')+' Kit read</span>'
     + '<span class="chk'+(allResolved?' ok':'')+'">'+(allResolved?'✓':'○')+' Every tag sold, returned, or explained</span>'
     + '<span class="chk'+(currentUser?' ok':'')+'">'+(currentUser?'✓':'○')+' Station signed in</span>'
     + '<button class="btn btn-primary" id="completeBtn" '+(allResolved && currentUser && k.status!=='done' ? '' : 'disabled')+'>'
@@ -535,11 +595,12 @@ function renderMain(){
 
   pane.innerHTML =
     '<div class="kit-head"><div><div class="kh-name">'+k.driver+'</div><div class="kh-route">'+k.route+' · '+k.region+' · kit '+k.id.toUpperCase()+'</div></div>'
+    + '<button class="qrbtn" id="kitQrBtn">▤ Kit QR</button>'
     + '<div class="kh-side">Dispatched '+ (k.scanned? '6:20 AM' : '6:20 AM')+' · Return window closes 6:00 PM</div></div>'
     + chainHtml + summaryHtml
     + '<div class="split">'
     + '<div class="tablewrap">' + scanSection
-    + (k.scanned ? '<table class="vtbl"><thead><tr><th>Product</th><th>Batch</th><th>Dispatched</th><th>Refills</th><th>ASAP sold</th><th>Sched. sold</th><th>Expected</th><th>Read</th><th>Status</th><th>Reason</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>' : '<div style="padding:24px;text-align:center;color:var(--inkMute);border:1px dashed var(--hairline3);border-radius:12px;">Scan the returned kit to compare read vs. expected, per batch.</div>')
+    + '<table class="vtbl"><thead><tr><th>Product &amp; batch</th><th>Dispatched</th><th>Refills</th><th>ASAP sold</th><th>Sched. sold</th><th>Expected</th><th>Read</th><th>Status</th><th>Reason</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'
     + '</div>'
     + '<div class="closeout"><h3>Driver closeout</h3>'
     + '<div class="cline"><span>Cash collected</span><b>'+k.closeout.cash+'</b></div>'
@@ -549,11 +610,25 @@ function renderMain(){
 
   var scanBtn = $('#scanBtn');
   if(scanBtn) scanBtn.addEventListener('click', function(){ doScan(k); });
+  var kitQr = $('#kitQrBtn');
+  if(kitQr) kitQr.addEventListener('click', function(){ openQr('Kit QR', k.driver+' · '+k.route, 'Scanning this kit\'s tag opens this exact return-verify screen at any bench station, and closes it out once every line is resolved.'); });
   $$('.reasonsel', pane).forEach(function(sel){
     sel.addEventListener('change', function(){
       var ln = sel.getAttribute('data-ln');
       var line = k.lines.filter(function(l){ return l.id===ln; })[0];
       if(sel.value){ line.reason = sel.value; renderMain(); renderKitList(); }
+    });
+  });
+  $$('[data-inc]', pane).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var line = k.lines.filter(function(l){ return l.id===btn.getAttribute('data-inc'); })[0];
+      if(line){ line.read = (line.read||0)+1; renderMain(); renderKitList(); }
+    });
+  });
+  $$('[data-dec]', pane).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var line = k.lines.filter(function(l){ return l.id===btn.getAttribute('data-dec'); })[0];
+      if(line){ line.read = Math.max(0,(line.read||0)-1); renderMain(); renderKitList(); }
     });
   });
   $$('.casebadge', pane).forEach(function(b){ b.addEventListener('click', openCase); });
@@ -567,10 +642,10 @@ function sumcell(k,v,cls){ return '<div class="sumcell"><div class="k">'+k+'</di
 function doScan(k){
   var btn = $('#scanBtn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Scanning tags…';
+  btn.innerHTML = '<span class="spinner"></span> Reading tags…';
   setTimeout(function(){
     k.scanned = true;
-    toast('Scan complete — '+k.lines.reduce(function(s,l){return s+l.read;},0)+' tags read at the LP bench.');
+    toast('Read complete — '+k.lines.reduce(function(s,l){return s+(l.read||0);},0)+' tags read at the LP bench.');
     renderMain(); renderKitList();
   }, 1100);
 }
@@ -583,9 +658,18 @@ function completeKit(k){
   renderMain(); renderKitList();
 }
 
+/* ---------- kit / box QR modal ---------- */
+function openQr(title, sub, note){
+  $('#qrTitle').textContent = title;
+  $('#qrSub').textContent = sub;
+  $('#qrNote').textContent = note;
+  $('#qrOverlay').style.display='flex';
+}
+$('#qrClose').addEventListener('click', function(){ $('#qrOverlay').style.display='none'; });
+
 /* ---------- case history modal (one case per tag, across days) ---------- */
 var CASE_HISTORY = {
-  'GMO 7g|B-2299': [
+  'GMO 7g|HW-2410-05': [
     {date:'Tue Sep 8', text:'1 unit short at return-verify — recorded as "unresolved, open case" by LP.'},
     {date:'Wed Sep 9', text:'Same tag not seen at receiving or on any shelf; case left open, escalated to warehouse manager.'},
     {date:'Thu Sep 10', text:'Recurs on the same driver kit — linked to the same case, not opened as new.'}

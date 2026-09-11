@@ -12,6 +12,10 @@
    Hyperwolf Bounty.html so this reads like the same estate. No build step,
    no external scripts or fonts. Every location, batch, name and time on this
    screen is EXAMPLE DATA — see the banner below the header.
+   Round 2 revision: RFID first (already the core loop here — reads propose,
+   nothing writes) and batch level everywhere (full monospace batch chip on
+   every line, plus a hand-count exception lane for dead tags / untagged
+   categories, since a handheld can't read what has no tag).
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -143,6 +147,7 @@ select.sel{height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorde
 .pill-active{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
 .pill-pending{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
 .pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.pill-hand{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
 
 /* ---- session bar ---- */
 .walkbar{display:flex;align-items:center;gap:22px;padding:14px 16px;flex-wrap:wrap;}
@@ -167,6 +172,7 @@ select.sel{height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorde
 .loc-tile.match{border-color:var(--good);background:var(--goodSoft);color:var(--good);}
 .loc-tile.variance{border-color:var(--warn);background:var(--warnSoft);color:var(--warnText);}
 .loc-tile.drift{border-color:var(--bad);background:var(--badSoft);color:var(--bad);}
+.loc-tile.deadTag{border-color:var(--info);background:var(--infoSoft);color:var(--info);border-style:dashed;}
 .loc-tile.empty-expected{background:var(--surface3);color:var(--inkFaint);border-style:dashed;}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,209,0,.5);}50%{box-shadow:0 0 0 5px rgba(255,209,0,0);}}
 .legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px 16px 14px;align-items:center;}
@@ -185,6 +191,23 @@ select.sel{height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorde
 .feedrow .ftext{flex:1;color:var(--ink2);}
 .feedrow .ftext b{color:var(--ink);}
 
+/* ---- batch chip (monospace, every line) ---- */
+.batchchip{font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);margin-top:2px;line-height:1.4;}
+
+/* ---- hand count exception lane ---- */
+.exc-card{border-color:var(--info);}
+.exc-card .card-head{background:var(--infoSoft);border-radius:var(--r16) var(--r16) 0 0;}
+.exc-row{display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.exc-row:last-child{border-bottom:none;}
+.exc-tag{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:5px;background:var(--info);color:#fff;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;}
+.exc-spacer{flex:1;min-width:160px;}
+.stepper{display:flex;align-items:center;gap:6px;}
+.stepbtn{width:30px;height:30px;border-radius:var(--r8);border:1px solid var(--hairline3);background:var(--surface3);font-size:16px;font-weight:700;cursor:pointer;color:var(--ink);flex:0 0 auto;}
+.stepbtn:hover{background:var(--hairline2);}
+.stepbtn:disabled{opacity:.35;cursor:not-allowed;}
+.stepval{width:40px;text-align:center;font-family:var(--fontMono);font-size:15px;font-weight:800;}
+.stepval.notcounted{color:var(--inkFaint);font-weight:600;font-size:11px;}
+
 /* ---- proposal table ---- */
 table.proptbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
 table.proptbl th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:7px 8px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
@@ -193,8 +216,10 @@ table.proptbl td{padding:8px;border-bottom:1px solid var(--hairline);vertical-al
 table.proptbl tr:last-child td{border-bottom:none;}
 table.proptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
 table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+table.proptbl tr.handcount{background:var(--infoSoft);box-shadow:inset 3px 0 0 var(--info);}
 .num{font-family:var(--fontMono);text-align:right;white-space:nowrap;}
 .batchflag{color:var(--bad);font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.03em;}
+.handflag{color:var(--info);font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.03em;}
 .attrib{font-size:10.5px;color:var(--inkMute);white-space:nowrap;}
 .attrib b{color:var(--ink2);font-weight:700;}
 .rowactions{display:flex;gap:6px;flex-wrap:wrap;}
@@ -239,7 +264,7 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
     </div>
     <div class="rail-spacer"></div>
     <div class="rail-bottom">
-      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
     </div>
   </aside>
 
@@ -265,7 +290,7 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
       <div class="banner info">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor" stroke="none"/></svg>
         <div><div class="b-title">RFID reads propose — nothing adjusts stock until a manager approves</div>
-        <div class="b-body">Walk the vault with the handheld; each read updates the map below in real time. Matches auto-confirm. Anything that disagrees with what the system expects becomes a proposal line a manager must approve, reject, or send to a blind recount — the count itself never writes to inventory.</div></div>
+        <div class="b-body">Walk the vault with the handheld; each read updates the map below in real time, per batch. Matches auto-confirm. Anything that disagrees with what the system expects — or a batch read where it should not be — becomes a proposal line a manager must approve, reject, or send to a blind recount. Locations open by RFID read, never by a location dropdown; a dead tag or an untagged category drops to the hand-count lane below, typed and flagged.</div></div>
       </div>
 
       <!-- ============ session / control bar ============ -->
@@ -303,7 +328,14 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
           <span class="li"><span class="swatch" style="border-color:var(--good);background:var(--goodSoft);"></span>Match</span>
           <span class="li"><span class="swatch" style="border-color:var(--warn);background:var(--warnSoft);"></span>Variance</span>
           <span class="li"><span class="swatch" style="border-color:var(--bad);background:var(--badSoft);"></span>Drift — batch read where it shouldn't be</span>
+          <span class="li"><span class="swatch" style="border-color:var(--info);background:var(--infoSoft);border-style:dashed;"></span>Dead tag / untagged — hand count below</span>
         </div>
+      </div>
+
+      <!-- ============ hand count exceptions ============ -->
+      <div class="card exc-card">
+        <div class="card-head"><h2>Hand count &middot; exception</h2><span class="hint">Dead tag or untagged category — the handheld gets no read here</span></div>
+        <div id="excBody"></div>
       </div>
 
       <!-- ============ live feed ============ -->
@@ -324,8 +356,8 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
         <div id="confirmedStrip"></div>
         <div style="overflow-x:auto;">
         <table class="proptbl">
-          <thead><tr><th>Product</th><th>Location</th><th class="r">Expected</th><th class="r">Read</th><th class="r">Variance</th><th>Flag / batch</th><th>Attribution</th><th>Action</th></tr></thead>
-          <tbody id="proposalBody"><tr><td colspan="8" style="color:var(--inkMute);padding:14px 8px;">No proposals yet — start the walk above.</td></tr></tbody>
+          <thead><tr><th>Product &middot; batch</th><th>Location</th><th class="r">Expected</th><th class="r">Read</th><th class="r">Counted</th><th class="r">Variance</th><th>Flag</th><th>Attribution</th><th>Action</th></tr></thead>
+          <tbody id="proposalBody"><tr><td colspan="9" style="color:var(--inkMute);padding:14px 8px;">No proposals yet — start the walk above, or hand-count an exception.</td></tr></tbody>
         </table>
         </div>
       </div>
@@ -376,7 +408,27 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
 
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
 
-  /* ---------------- data: EXAMPLE ONLY ---------------- */
+  /* ---------------- batch registry: EXAMPLE ONLY — full monospace chip per batch ---------------- */
+  var BATCH = {
+    'HW-2404-03': {thc:'22.9%', pkg:'Apr 18', exp:'Oct 18', age:145, metrc:'1A40…2C11'},
+    'HW-2405-14': {thc:'19.8%', pkg:'May 22', exp:'Nov 22', age:111, metrc:'1A40…3B08'},
+    'HW-2409-22': {thc:'27.2%', pkg:'Sep 1',  exp:'Mar 1',  age:9,   metrc:'1A40…5E44'},
+    'HW-2405-19': {thc:'25.6%', pkg:'May 30', exp:'Nov 30', age:103, metrc:'1A40…6F19'},
+    'HW-2401-09': {thc:'20.5%', pkg:'Jan 12', exp:'Jul 12', age:241, metrc:'1A40…7A02'},
+    'HW-2408-02': {thc:'81.4%', pkg:'Aug 4',  exp:'Aug 4, 2027', age:37, metrc:'1A40…8D55'},
+    'HW-2407-27': {thc:'88.2%', pkg:'Jul 29', exp:'Jul 29, 2027', age:43, metrc:'1A40…9E71'},
+    'HW-2403-11': {thc:'24.0%', pkg:'Mar 15', exp:'Sep 15', age:179, metrc:'1A40…1C63'},
+    'HW-2402-30': {thc:'22.3%', pkg:'Feb 28', exp:'Aug 28', age:194, metrc:'1A40…2D88'},
+    'HW-2406-08': {thc:'74.8%', pkg:'Jun 10', exp:'Jun 10, 2027', age:92, metrc:'1A40…3F17'},
+    'HW-2408-30': {thc:'100mg', pkg:'Aug 22', exp:'Aug 22, 2027', age:19, metrc:'1A40…4A29'},
+    'HW-2408-16': {thc:'100mg', pkg:'Aug 16', exp:'Aug 16, 2027', age:25, metrc:'1A40…5B34'},
+    'HW-2402-27': {thc:'21.1%', pkg:'Feb 20', exp:'Aug 20', age:202, metrc:'1A40…6C40'},
+    'HW-2406-18': {thc:'—',     pkg:'Jun 25', exp:'Jun 25, 2027', age:77, metrc:'1A40…7D52'},
+    'HW-2403-44': {thc:'23.1%', pkg:'Mar 30', exp:'Sep 30', age:164, metrc:'1A40…8E67'}
+  };
+  function chip(code){ var b = BATCH[code]; if(!b) return '#'+code; return '#'+code+' &middot; THC '+b.thc+' &middot; pkg '+b.pkg+' &middot; exp '+b.exp+' &middot; '+b.age+' d on hand &middot; Metrc '+b.metrc; }
+  function chipPlain(code){ return chip(code).replace(/&middot;/g,'·'); }
+
   var RACKS = [
     { id:'F2', name:'Rack F2 — Flower', cat:'flower', shelves:['A','B','C'], bins:3 },
     { id:'V1', name:'Rack V1 — Vape / Pre-Roll', cat:'vape', shelves:['A','B','C'], bins:3 },
@@ -384,8 +436,6 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
   ];
   var CATCOLOR = { flower:'var(--cat-flower)', vape:'var(--cat-vape)', edible:'var(--cat-edible)' };
 
-  // Build the full location list. Most are plain "expect nothing / expect a known batch, and it matches."
-  // A curated subset gets an interesting outcome so the walk demonstrates variance and drift.
   var LOCATIONS = [];
   RACKS.forEach(function(rack){
     rack.shelves.forEach(function(shelf){
@@ -397,57 +447,61 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
   });
   function loc(addr){ return LOCATIONS.find(function(l){ return l.addr===addr; }); }
 
-  // Seed expected stock on a handful of real locations.
+  // Seed expected stock — one batch per location.
   var SEED = [
-    ['F2-A-01','Blue Dream 3.5g','#F-1188',24],
-    ['F2-A-02','OG Kush 3.5g','#F-1204',18],
-    ['F2-B-01','Wedding Cake 3.5g','#F-1177',30],
-    ['F2-B-03','GMO 7g','#F-1204',12],
-    ['F2-C-02','Sour Diesel 3.5g','#F-1150',16],
-    ['V1-A-01','Live Resin Cart 1g','#V-0912',40],
-    ['V1-A-02','Distillate Cart 0.5g','#V-0888',35],
-    ['V1-B-02','Indica PR 5-pack','#P-0301',60],
-    ['V1-C-01','Hybrid PR Single','#P-0299',50],
-    ['C3-A-01','Live Rosin 1g','#C-0455',20],
-    ['C3-B-02','Gummies 100mg','#E-0710',45],
-    ['C3-C-01','Chocolate Bar 100mg','#E-0699',22]
+    ['F2-A-01','Blue Dream 3.5g','HW-2404-03',24],
+    ['F2-A-02','OG Kush 3.5g','HW-2405-14',18],
+    ['F2-B-01','Wedding Cake 3.5g','HW-2409-22',30],
+    ['F2-B-03','GMO 7g','HW-2405-19',12],
+    ['F2-C-02','Sour Diesel 3.5g','HW-2401-09',16],
+    ['V1-A-01','Live Resin Cart 1g','HW-2408-02',40],
+    ['V1-A-02','Distillate Cart 0.5g','HW-2407-27',35],
+    ['V1-B-02','Indica PR 5-pack','HW-2403-11',60],
+    ['V1-C-01','Hybrid PR Single','HW-2402-30',50],
+    ['C3-A-01','Live Rosin 1g','HW-2406-08',20],
+    ['C3-B-02','Gummies 100mg','HW-2408-30',45],
+    ['C3-C-01','Chocolate Bar 100mg','HW-2408-16',22]
   ];
   SEED.forEach(function(s){ var l = loc(s[0]); if (l){ l.product = s[1]; l.expectedBatch = s[2]; l.expectedQty = s[3]; } });
 
+  // Hand-count exceptions: RFID cannot read these — a dead tag, or a category never tagged.
+  var EXCEPTIONS = [
+    { addr:'F2-C-01', product:'Sour Diesel Shake 14g', batch:'HW-2402-27', expected:10, counted:null, kind:'dead tag' },
+    { addr:'V1-B-01', product:'CBD Tincture 30ct', batch:'HW-2406-18', expected:25, counted:null, kind:'untagged category' }
+  ];
+  EXCEPTIONS.forEach(function(x){ var l = loc(x.addr); if(l){ l.status='deadTag'; l.readBatch=null; } });
+
   // Walk sequence: each step reads one location and reports what the handheld actually found.
-  // outcome: 'match' | 'variance' | 'drift' | 'empty'
   var WALK = [
-    { addr:'F2-A-01', found:24, batch:'#F-1188', outcome:'match' },
-    { addr:'F2-A-02', found:18, batch:'#F-1204', outcome:'match' },
+    { addr:'F2-A-01', found:24, batch:'HW-2404-03', outcome:'match' },
+    { addr:'F2-A-02', found:18, batch:'HW-2405-14', outcome:'match' },
     { addr:'F2-A-03', found:0, batch:null, outcome:'empty' },
-    { addr:'F2-B-01', found:27, batch:'#F-1177', outcome:'variance', note:'3 short of expected 30' },
-    { addr:'F2-B-02', found:2, batch:'#F-1204', outcome:'drift', note:'GMO 7g Batch #F-1204 read here — that batch is racked at F2-B-03, not F2-B-02' },
-    { addr:'F2-B-03', found:9, batch:'#F-1204', outcome:'variance', note:'9 of 12 expected; the other 2 units read at F2-B-02 (see above)' },
-    { addr:'F2-C-01', found:0, batch:null, outcome:'empty' },
-    { addr:'F2-C-02', found:16, batch:'#F-1150', outcome:'match' },
+    { addr:'F2-B-01', found:27, batch:'HW-2409-22', outcome:'variance', note:'3 short of expected 30' },
+    { addr:'F2-B-02', found:2, batch:'HW-2405-19', outcome:'drift', note:'GMO 7g batch #HW-2405-19 read here — that batch is racked at F2-B-03, not F2-B-02' },
+    { addr:'F2-B-03', found:9, batch:'HW-2405-19', outcome:'variance', note:'9 of 12 expected; the other 2 units read at F2-B-02 (see above)' },
+    { addr:'F2-C-02', found:16, batch:'HW-2401-09', outcome:'match' },
     { addr:'F2-C-03', found:0, batch:null, outcome:'empty' },
-    { addr:'V1-A-01', found:40, batch:'#V-0912', outcome:'match' },
-    { addr:'V1-A-02', found:35, batch:'#V-0888', outcome:'match' },
+    { addr:'V1-A-01', found:40, batch:'HW-2408-02', outcome:'match' },
+    { addr:'V1-A-02', found:35, batch:'HW-2407-27', outcome:'match' },
     { addr:'V1-A-03', found:0, batch:null, outcome:'empty' },
-    { addr:'V1-B-01', found:0, batch:null, outcome:'empty' },
-    { addr:'V1-B-02', found:57, batch:'#P-0301', outcome:'variance', note:'3 short of expected 60' },
+    { addr:'V1-B-02', found:57, batch:'HW-2403-11', outcome:'variance', note:'3 short of expected 60' },
     { addr:'V1-B-03', found:0, batch:null, outcome:'empty' },
-    { addr:'V1-C-01', found:50, batch:'#P-0299', outcome:'match' },
-    { addr:'V1-C-02', found:6, batch:'#P-0345', outcome:'drift', note:'Pre-Roll batch #P-0345 read here — not on any expected location list; likely mis-shelved from receiving' },
+    { addr:'V1-C-01', found:50, batch:'HW-2402-30', outcome:'match' },
+    { addr:'V1-C-02', found:6, batch:'HW-2403-44', outcome:'drift', note:'Pre-Roll batch #HW-2403-44 read here — not on any expected location list; likely mis-shelved from receiving' },
     { addr:'V1-C-03', found:0, batch:null, outcome:'empty' },
-    { addr:'C3-A-01', found:20, batch:'#C-0455', outcome:'match' },
+    { addr:'C3-A-01', found:20, batch:'HW-2406-08', outcome:'match' },
     { addr:'C3-A-02', found:0, batch:null, outcome:'empty' },
     { addr:'C3-A-03', found:0, batch:null, outcome:'empty' },
     { addr:'C3-B-01', found:0, batch:null, outcome:'empty' },
-    { addr:'C3-B-02', found:45, batch:'#E-0710', outcome:'match' },
+    { addr:'C3-B-02', found:45, batch:'HW-2408-30', outcome:'match' },
     { addr:'C3-B-03', found:0, batch:null, outcome:'empty' },
-    { addr:'C3-C-01', found:22, batch:'#E-0699', outcome:'match' },
+    { addr:'C3-C-01', found:22, batch:'HW-2408-16', outcome:'match' },
     { addr:'C3-C-02', found:0, batch:null, outcome:'empty' },
     { addr:'C3-C-03', found:0, batch:null, outcome:'empty' }
   ];
 
   var cursor = 0, playTimer = null, startTime = null, elapsedTimer = null;
-  var proposals = []; // { addr, product, expectedQty, expectedBatch, found, batch, outcome, note, status, approvedBy, approvedAt }
+  var proposals = []; // { addr, product, expectedQty, expectedBatch, found, batch, outcome, note, status, countedBy, approvedBy, approvedAt, hand }
   var matchCount = 0;
 
   function operatorName(){ return document.getElementById('operatorSel').value; }
@@ -460,9 +514,27 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
       var tiles = LOCATIONS.filter(function(l){ return l.rack===rack.id; }).map(function(l){
         var cls = 'loc-tile' + (l.status ? ' '+l.status : (l.expectedQty>0 ? '' : ' empty-expected'));
         var shelfBin = l.addr.split('-').slice(1).join('-');
-        return '<div class="'+cls+'" data-addr="'+l.addr+'" title="'+l.addr+(l.product?' — '+esc(l.product):'')+'">'+shelfBin+(l.readBatch?'<span class="b">'+l.readBatch.replace('#','')+'</span>':'')+'</div>';
+        return '<div class="'+cls+'" data-addr="'+l.addr+'" title="'+l.addr+(l.product?' — '+esc(l.product):'')+'">'+shelfBin+(l.readBatch?'<span class="b">'+l.readBatch.replace('HW-','')+'</span>':'')+'</div>';
       }).join('');
       return '<div class="rack"><h3><span class="catdot" style="background:'+CATCOLOR[rack.cat]+'"></span>'+rack.name+'</h3><div class="shelfgrid">'+tiles+'</div></div>';
+    }).join('');
+  }
+
+  /* ---------------- hand count exceptions ---------------- */
+  function renderExceptions(){
+    document.getElementById('excBody').innerHTML = EXCEPTIONS.map(function(x,i){
+      var counted = x.counted;
+      return '<div class="exc-row">'
+        + '<div style="min-width:240px;"><div style="font-weight:700;font-size:var(--f-strong);">'+esc(x.product)+'<span class="exc-tag" style="margin-left:6px;">'+x.kind+'</span></div>'
+        + '<div class="batchchip">'+chip(x.batch)+'</div><div style="font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);">'+x.addr+' &middot; Expected '+x.expected+'</div></div>'
+        + '<div class="exc-spacer"></div>'
+        + '<div class="stepper">'
+        + '<button class="stepbtn" data-eact="dec" data-ei="'+i+'" '+(counted===0?'disabled':'')+' aria-label="Decrease hand count">−</button>'
+        + (counted===null ? '<span class="stepval notcounted">—</span>' : '<span class="stepval">'+counted+'</span>')
+        + '<button class="stepbtn" data-eact="inc" data-ei="'+i+'" aria-label="Increase hand count">+</button>'
+        + '</div>'
+        + (counted!==null && !x.submitted ? '<button class="btn btn-good btn-sm" data-esubmit="'+i+'">Submit hand count</button>' : (x.submitted ? '<span class="pill pill-hand">Hand counted — in proposal list</span>' : ''))
+        + '</div>';
     }).join('');
   }
 
@@ -478,7 +550,7 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
       ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/></svg>'
       : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
     var text = entry.outcome==='empty' ? '<b>'+entry.addr+'</b> — no tags read, none expected. Match.'
-      : entry.outcome==='match' ? '<b>'+entry.addr+'</b> — '+esc(entry.product)+' '+entry.batch+' — '+entry.found+' read, '+entry.found+' expected. Match.'
+      : entry.outcome==='match' ? '<b>'+entry.addr+'</b> — '+esc(entry.product)+' #'+entry.batch+' — '+entry.found+' read, '+entry.found+' expected. Match.'
       : '<b>'+entry.addr+'</b> — '+esc(entry.note);
     row.innerHTML = '<span class="ftime">'+timeStr+'</span><span class="ficon">'+icon+'</span><span class="ftext">'+text+'</span>';
     host.insertBefore(row, host.firstChild);
@@ -488,19 +560,24 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
     proposals.push({
       addr: entry.addr, product: entry.product || '(unbound tag)', expectedQty: entry.l.expectedQty, expectedBatch: entry.l.expectedBatch,
       found: entry.found, batch: entry.batch, outcome: entry.outcome, note: entry.note,
-      status: 'pending', countedBy: operatorName(), approvedBy: null, approvedAt: null
+      status: 'pending', countedBy: operatorName(), approvedBy: null, approvedAt: null, hand:false
     });
   }
 
   function renderProposals(){
     var body = document.getElementById('proposalBody');
-    if (!proposals.length){ body.innerHTML = '<tr><td colspan="8" style="color:var(--inkMute);padding:14px 8px;">No proposals yet — start the walk above.</td></tr>'; document.getElementById('confirmedStrip').innerHTML=''; return; }
+    if (!proposals.length){ body.innerHTML = '<tr><td colspan="9" style="color:var(--inkMute);padding:14px 8px;">No proposals yet — start the walk above, or hand-count an exception.</td></tr>'; document.getElementById('confirmedStrip').innerHTML=''; return; }
     body.innerHTML = proposals.map(function(p, i){
       var variance = p.found - (p.expectedQty || 0);
       var varTxt = (p.outcome==='drift') ? '—' : (variance>0?'+':'')+variance;
-      var flagHtml = p.outcome==='drift'
-        ? '<span class="batchflag">Drift · batch '+esc(p.batch)+'</span><div style="font-size:10.5px;color:var(--inkDim);margin-top:2px;max-width:220px;">'+esc(p.note)+'</div>'
-        : '<span style="font-size:10.5px;color:var(--warnText);font-weight:700;">Variance</span><div style="font-size:10.5px;color:var(--inkDim);margin-top:2px;max-width:220px;">'+esc(p.note)+'</div>';
+      var flagHtml;
+      if (p.hand){
+        flagHtml = '<span class="handflag">Hand counted &middot; '+esc(p.kind)+'</span>';
+      } else if (p.outcome==='drift'){
+        flagHtml = '<span class="batchflag">Drift</span><div style="font-size:10.5px;color:var(--inkDim);margin-top:2px;max-width:220px;">'+esc(p.note)+'</div>';
+      } else {
+        flagHtml = '<span style="font-size:10.5px;color:var(--warnText);font-weight:700;">Variance</span><div style="font-size:10.5px;color:var(--inkDim);margin-top:2px;max-width:220px;">'+esc(p.note)+'</div>';
+      }
       var attrib = '<div class="attrib">Counted by <b>'+esc(p.countedBy)+'</b></div><div class="attrib">'+(p.approvedBy?('Approved by <b>'+esc(p.approvedBy)+'</b> · '+p.approvedAt):'Awaiting approval')+'</div>';
       var actions;
       if (p.status==='pending'){
@@ -511,9 +588,11 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
       } else {
         actions = '<span class="pill '+(p.status==='approved'?'pill-done':'pill-active')+'">'+(p.status==='approved'?'Approved — posts to Discrepancy queue':'Recount requested')+'</span>';
       }
-      return '<tr class="'+p.outcome+'"><td>'+esc(p.product)+(p.expectedBatch&&p.outcome!=='drift'?'<div style="font-size:10.5px;color:var(--inkMute);">Batch '+esc(p.expectedBatch)+'</div>':'')+'</td>'
+      var productCell = esc(p.product) + (p.expectedBatch && p.outcome!=='drift' && !p.hand ? '<div class="batchchip">'+chip(p.expectedBatch)+'</div>' : (p.batch ? '<div class="batchchip">'+chip(p.batch)+'</div>' : ''));
+      return '<tr class="'+(p.hand?'handcount':p.outcome)+'"><td>'+productCell+'</td>'
         + '<td style="font-family:var(--fontMono);">'+p.addr+'</td>'
         + '<td class="num">'+(p.expectedQty||0)+'</td>'
+        + '<td class="num">'+(p.hand?'<span style="color:var(--inkFaint);">no tag</span>':p.found)+'</td>'
         + '<td class="num">'+p.found+'</td>'
         + '<td class="num">'+varTxt+'</td>'
         + '<td>'+flagHtml+'</td>'
@@ -544,13 +623,9 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
     if (cursor===0 && !startTime){ startTime = Date.now(); elapsedTimer = setInterval(updateElapsed, 1000); }
     var entry = WALK[cursor];
     var l = loc(entry.addr);
-    // clear previous "reading" state
     LOCATIONS.forEach(function(x){ if (x.status==='reading') x.status = x._prevStatus || null; });
     l.status = (entry.outcome==='match'||entry.outcome==='empty') ? 'match' : entry.outcome;
     l.readBatch = entry.batch;
-    if (entry.outcome==='drift'){
-      // also mark the location the batch is supposed to live at, if any, as variance-adjacent
-    }
     entry.product = l.product;
     entry.l = l;
     var t = nowStr();
@@ -592,25 +667,50 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
     cursor = 0; matchCount = 0; proposals = []; startTime = null;
     if (elapsedTimer){ clearInterval(elapsedTimer); elapsedTimer=null; }
     document.getElementById('statTime').textContent = '00:00';
-    LOCATIONS.forEach(function(l){ l.status=null; l.readBatch=null; });
+    LOCATIONS.forEach(function(l){ if(l.status!=='deadTag'){ l.status=null; l.readBatch=null; } });
+    EXCEPTIONS.forEach(function(x){ x.counted=null; x.submitted=false; });
     document.getElementById('feedList').innerHTML = '<div class="feedrow"><span class="ftime">—</span><span class="ftext" style="color:var(--inkMute);">Press Step or Play to begin the walk.</span></div>';
     document.getElementById('statRead').textContent = '0 / '+WALK.length;
     document.getElementById('statMatch').textContent = '0';
     document.getElementById('statFlag').textContent = '0';
     document.getElementById('progressBar').style.width = '0%';
-    renderRacks(); renderProposals();
+    renderRacks(); renderProposals(); renderExceptions();
+  });
+
+  document.getElementById('excBody').addEventListener('click', function(e){
+    var eb = e.target.closest('[data-eact]');
+    if(eb){
+      var ei = +eb.getAttribute('data-ei'), eact = eb.getAttribute('data-eact');
+      var x = EXCEPTIONS[ei];
+      if(x.counted===null) x.counted = x.expected;
+      if(eact==='inc') x.counted++;
+      if(eact==='dec' && x.counted>0) x.counted--;
+      renderExceptions();
+      return;
+    }
+    var sb = e.target.closest('[data-esubmit]');
+    if(sb){
+      var si = +sb.getAttribute('data-esubmit');
+      var xx = EXCEPTIONS[si];
+      xx.submitted = true;
+      proposals.push({ addr:xx.addr, product:xx.product, expectedQty:xx.expected, expectedBatch:xx.batch, found:xx.counted, batch:xx.batch, outcome:'variance', note:'Hand counted — '+xx.kind+', no RFID tag to read.', status:'pending', countedBy:operatorName(), approvedBy:null, approvedAt:null, hand:true, kind:xx.kind });
+      document.getElementById('statFlag').textContent = proposals.length;
+      renderExceptions();
+      renderProposals();
+      return;
+    }
   });
 
   /* ---------------- print count sheet ---------------- */
   document.getElementById('printBtn').addEventListener('click', function(){
     var rows = proposals.map(function(p){
-      return '<tr><td>'+esc(p.product)+'</td><td>'+p.addr+'</td><td>'+(p.expectedQty||0)+'</td><td>'+p.found+'</td><td>'+(p.outcome==='drift'?'DRIFT — '+esc(p.batch):'variance')+'</td></tr>';
+      return '<tr><td>'+esc(p.product)+'</td><td>'+chipPlain(p.batch||p.expectedBatch||'')+'</td><td>'+p.addr+'</td><td>'+(p.expectedQty||0)+'</td><td>'+p.found+'</td><td>'+(p.hand?'HAND COUNT':(p.outcome==='drift'?'DRIFT':'variance'))+'</td></tr>';
     }).join('');
     document.getElementById('printSheetBody').innerHTML =
       '<div class="qr"></div><h3 style="margin:0;">Vault Cycle Count — Warehouse 1, Zone A</h3>'
-      + '<div>Business day: Thu Sep 10, 2026 · Session started '+nowStr()+'</div>'
-      + '<table><thead><tr><th>Product</th><th>Location</th><th>Expected</th><th>Read</th><th>Flag</th></tr></thead><tbody>'
-      + (rows || '<tr><td colspan="5">No flagged lines — every read matched.</td></tr>') + '</tbody></table>'
+      + '<div>Business day: Thu Sep 10, 2026 · Session started '+nowStr()+' · one line per batch · scan the QR to close this sheet</div>'
+      + '<table><thead><tr><th>Product</th><th>Batch</th><th>Location</th><th>Expected</th><th>Counted</th><th>Flag</th></tr></thead><tbody>'
+      + (rows || '<tr><td colspan="6">No flagged lines — every read matched.</td></tr>') + '</tbody></table>'
       + '<div class="signline"><div>Counted by: '+esc(operatorName())+'</div><div>Approved by: _____________________</div></div>';
     document.getElementById('printOverlay').style.display = 'flex';
   });
@@ -619,6 +719,7 @@ table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--
   /* ---------------- boot ---------------- */
   renderRacks();
   renderProposals();
+  renderExceptions();
 })();
 </script>
 </body>

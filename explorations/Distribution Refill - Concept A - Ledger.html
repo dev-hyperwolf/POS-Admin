@@ -13,6 +13,9 @@
    fonts (system font stack stands in for Inter / JetBrains Mono — this file
    must render offline from file://). Every product, driver, and quantity on
    this screen is EXAMPLE DATA — see the banner below.
+   Round 2 revision: batch is the unit on every row (chip line under each
+   product name); a two-batch SKU is LOUD when both batches share a kit line;
+   a QR affordance closes each kit's pick by scan, same as the paper slip.
    ========================================================================= */
 :root{
   --fontSans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -168,7 +171,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 /* ledger layout: table + docked skip panel */
 .ledger-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;}
 .ledger-scroll{max-height:64vh;overflow:auto;border-top:1px solid var(--hairline2);}
-table.ledger{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--f-body);min-width:820px;}
+table.ledger{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--f-body);min-width:860px;}
 table.ledger thead th{position:sticky;top:0;z-index:4;background:var(--surface3);text-align:left;font-size:var(--f-meta);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);padding:9px 12px;border-bottom:1px solid var(--hairline3);white-space:nowrap;}
 table.ledger td{padding:8px 12px;border-bottom:1px solid var(--hairline);vertical-align:middle;}
 table.ledger tr.prow:hover{background:var(--surface2);}
@@ -178,6 +181,8 @@ table.ledger tr.prow:hover{background:var(--surface2);}
 .toggle-btn:hover{background:var(--surface3);}
 .toggle-btn svg{transition:transform .12s;}
 .toggle-btn[aria-expanded="false"] svg{transform:rotate(-90deg);}
+.qr-mini{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;border:1px solid var(--hairline3);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.qr-mini:hover{background:var(--surface3);color:var(--ink);}
 tr.lvl-region td{position:sticky;top:37px;z-index:3;background:var(--ink);color:var(--bg);font-weight:700;padding:9px 12px;border-bottom:1px solid var(--hairline3);}
 tr.lvl-region .toggle-btn{background:transparent;border-color:rgba(255,255,255,.3);color:var(--bg);}
 tr.lvl-region .region-name{font-size:var(--f-strong);}
@@ -185,10 +190,13 @@ tr.lvl-region .region-meta{font-size:10px;opacity:.7;font-weight:500;margin-left
 tr.lvl-kit td{position:sticky;top:74px;z-index:2;background:var(--surface3);font-weight:700;padding:8px 12px;border-bottom:1px solid var(--hairline2);}
 tr.lvl-kit .kit-name{font-size:var(--f-strong);}
 tr.lvl-kit .kit-meta{font-size:10.5px;color:var(--inkMute);font-weight:500;margin-left:6px;}
+tr.lvl-kit .qr-mini{margin-left:auto;background:var(--surface);border-color:var(--hairline3);}
 tr.lvl-box td{background:var(--surface2);font-weight:600;padding:7px 12px 7px 34px;border-bottom:1px solid var(--hairline);}
 tr.lvl-box .box-meta{font-size:10.5px;color:var(--inkMute);font-weight:500;margin-left:6px;}
 tr.prow td.pname-cell{padding-left:56px;}
 .pn{font-weight:600;font-size:var(--f-strong);}
+.pn.cont{color:var(--inkMute);font-style:italic;}
+.loud-badge{display:inline-flex;align-items:center;height:16px;padding:0 6px;margin-left:6px;border-radius:5px;background:var(--bad);color:#fff;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;}
 .psku{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);}
 .willgive-input{width:58px;height:30px;text-align:right;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:var(--f-numRow);font-weight:600;padding:0 7px;}
 .willgive-input:disabled{background:var(--surface3);color:var(--inkFaint);}
@@ -199,6 +207,7 @@ tr.prow td.pname-cell{padding-left:56px;}
 .reason.reason-skip{color:var(--inkMute);}
 tr.row-short{background:var(--badSoft);}
 tr.row-skip td{color:var(--inkMute);}
+tr.row-loud td{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 tr[style*="display: none"]{display:none;}
 
 .skippanel{position:sticky;top:104px;}
@@ -299,7 +308,7 @@ tr[style*="display: none"]{display:none;}
 
       <div class="example-banner">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-        Design mockup — every region, driver, kit, box and quantity below is example data, not a live refill.
+        Design mockup — every region, driver, kit, box, batch and quantity below is example data, not a live refill.
       </div>
 
       <div class="banner warn" id="alreadyRanBanner">
@@ -322,7 +331,7 @@ tr[style*="display: none"]{display:none;}
         <section class="card">
           <div class="card-head">
             <h2>Refill preview — all regions</h2>
-            <span class="hint">Region → Kit → Box. Edit "Will give" — nothing leaves the warehouse until you commit.</span>
+            <span class="hint">Region → Kit → Box → Batch. Edit "Will give" — nothing leaves the warehouse until you commit.</span>
             <div class="spacer">
               <button class="btn btn-ghost btn-sm" id="expandAllBtn">Expand all boxes</button>
               <button class="btn btn-ghost btn-sm" id="collapseAllBtn">Collapse all boxes</button>
@@ -332,7 +341,7 @@ tr[style*="display: none"]{display:none;}
           <div class="ledger-scroll">
             <table class="ledger">
               <thead><tr>
-                <th style="min-width:260px;">Region / Kit / Box / Product</th>
+                <th style="min-width:280px;">Region / Kit / Box / Product · Batch</th>
                 <th class="num">Sold since last refill</th>
                 <th class="num">Need</th>
                 <th class="num">Cap</th>
@@ -370,6 +379,8 @@ tr[style*="display: none"]{display:none;}
           <span><span class="pill pill-skip">Skipped</span> no sales counted since last refill</span>
           <span><span class="pill pill-notpl">Not in template</span> sold, but no box template row</span>
           <span><span class="pill pill-atcap">At cap</span> filled to the box cap exactly</span>
+          <span><span class="loud-badge" style="margin-left:0;">Mixed batch</span> two batches of one SKU share this kit line — oldest ships first, both shown LOUD</span>
+          <span><svg width="12" height="12" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> next to a kit is its pick-slip QR — scan to close that kit's pick, same as the printed slip</span>
           <span>Color is never the only signal — every state pairs an icon and a label.</span>
         </div>
       </section>
@@ -391,7 +402,7 @@ tr[style*="display: none"]{display:none;}
 <div class="modal-scrim" id="commitModal">
   <div class="modal">
     <h3>Commit today's refill?</h3>
-    <p>This sends the current "Will give" quantities to Blaze for dispatch across every region, kit and box shown in the ledger. Products marked skipped, short, or not-in-template are excluded automatically.</p>
+    <p>This sends the current "Will give" quantities to Blaze for dispatch, per batch, across every region, kit and box shown in the ledger. Products marked skipped, short, or not-in-template are excluded automatically.</p>
     <div class="btype"><span>Units going out</span><span id="modalUnits" style="font-family:var(--fontMono);font-weight:700;"></span></div>
     <div class="btype"><span>Wholesale value</span><span id="modalValue" style="font-family:var(--fontMono);font-weight:700;"></span></div>
     <div class="btype" style="border-bottom:none;"><span>Skips / shortfalls left open</span><span style="font-weight:700;color:var(--bad);">5</span></div>
@@ -462,53 +473,72 @@ var TODAY = [
 ];
 
 var RECEIPTS = [
-  {tag:'premium', name:'Blue Dream Pre-Rolls 5pk', brand:'Jeeter', qty:18, days:'3 days ago', cov:25, covtext:'Covers 2 of 6 kits'},
-  {tag:'premium', name:'Sundae Driver 3.5g', brand:'Alien Labs', qty:48, days:'2 days ago', cov:50, covtext:'Covers 3 of 6 kits'},
-  {tag:'new', name:'Wedding Cake Live Resin 1g', brand:'Raw Garden', qty:96, days:'yesterday', cov:100, covtext:'Covers all 6 kits'},
-  {tag:'new', name:'Gelato Gummies 100mg', brand:'Kiva', qty:60, days:'today', cov:83, covtext:'Covers 5 of 6 kits'}
+  {tag:'premium', name:'Blue Dream Pre-Rolls 5pk', brand:'Jeeter', qty:18, days:'3 days ago', cov:25, covtext:'Covers 2 of 6 kits', batchNo:'#HW-2409-22', thc:'19.5%', pkg:'Sep 7'},
+  {tag:'premium', name:'Sundae Driver 3.5g', brand:'Alien Labs', qty:48, days:'2 days ago', cov:50, covtext:'Covers 3 of 6 kits', batchNo:'#HW-2409-19', thc:'27.3%', pkg:'Sep 6'},
+  {tag:'new', name:'Wedding Cake Live Resin 1g', brand:'Raw Garden', qty:96, days:'yesterday', cov:100, covtext:'Covers all 6 kits', batchNo:'#HW-2409-25', thc:'81.2%', pkg:'Sep 7'},
+  {tag:'new', name:'Gelato Gummies 100mg', brand:'Kiva', qty:60, days:'today', cov:83, covtext:'Covers 5 of 6 kits', batchNo:'#HW-2409-27', thc:'10 mg/pc', pkg:'Sep 9'}
 ];
 
-function P(n,sku,sold,need,cap,price,flag,extra){ return Object.assign({n:n,sku:sku,sold:sold,need:need,cap:cap,price:price,flag:flag||null}, extra||{}); }
+function P(n,sku,batchNo,thc,pkg,exp,age,sold,need,cap,price,flag,extra){ return Object.assign({n:n,sku:sku,batchNo:batchNo,thc:thc,pkg:pkg,exp:exp,age:age,sold:sold,need:need,cap:cap,price:price,flag:flag||null}, extra||{}); }
 
 var REGIONS = [
   {n:'West LA', kits:[
     {d:'Marcus R.', r:'Route 3', boxes:[
-      {t:'Flower Box 1', items:[ P('OG Kush 3.5g','FL-2201',5,5,8,22), P('Wedding Cake 3.5g','FL-2214',6,6,6,24,'atcap') ]},
-      {t:'Pre-Roll Box 1', items:[ P('Runtz Pre-Roll 5pk','PR-3310',5,5,3,20,'short'), P('Blue Dream Pre-Rolls 5pk','PR-3302',0,0,5,20,'skip') ]},
-      {t:'Vape Box 1', items:[ P('OG Kush Vape Cart 1g','VP-4410',2,2,6,18,'held',{holder:'Marcus R.', note:'flavor complaint under QA review'}), P('Sundae Driver Vape Cart 1g','VP-4422',4,4,6,26) ]},
-      {t:'Cooler', items:[ P('Sparkling THC Seltzer 4pk','CL-5501',3,3,4,16), P('CBD Recovery Drink','CL-5509',0,0,6,14,'new') ]}
+      {t:'Flower Box 1', items:[
+        P('OG Kush 3.5g','FL-2201','#HW-2308-11','22.8%','Aug 15','Feb 10','26 d',5,5,8,22),
+        P('Wedding Cake 3.5g','FL-2214','#HW-2409-01','24.1%','Aug 28','Feb 24','42 d',4,4,4,24,'atcap'),
+        P('Wedding Cake 3.5g','FL-2214','#HW-2411-07','31.6%','Sep 6','Mar 3','4 d',2,2,2,24,'atcap')
+      ]},
+      {t:'Pre-Roll Box 1', items:[
+        P('Runtz Pre-Roll 5pk','PR-3310','#HW-2408-14','19.5%','Aug 22','Feb 18','19 d',5,5,3,20,'short'),
+        P('Blue Dream Pre-Rolls 5pk','PR-3302','#HW-2407-09','21.0%','Aug 5','Jan 31','36 d',0,0,5,20,'skip')
+      ]},
+      {t:'Vape Box 1', items:[
+        P('OG Kush Vape Cart 1g','VP-4410','#HW-2406-03','84.2%','Jul 30','Jul 30 \'27','42 d',2,2,6,18,'held',{holder:'Marcus R.', note:'flavor complaint under QA review'}),
+        P('Sundae Driver Vape Cart 1g','VP-4422','#HW-2408-20','86.7%','Aug 24','Aug 24 \'27','17 d',4,4,6,26)
+      ]},
+      {t:'Cooler', items:[
+        P('Sparkling THC Seltzer 4pk','CL-5501','#HW-2405-30','5 mg/can','Jul 20','Jan \'27','52 d',3,3,4,16),
+        P('CBD Recovery Drink','CL-5509','#HW-2409-11','2 mg CBD','Sep 1','Mar \'27','9 d',0,0,6,14,'new')
+      ]}
     ]},
     {d:'Dana K.', r:'Route 7', boxes:[
-      {t:'Flower Box 1', items:[ P('Sundae Driver 3.5g','FL-2205',4,4,6,24), P('Runtz 3.5g','FL-2219',3,3,5,22) ]},
-      {t:'Flower Box 2', items:[ P('Gelato 41 3.5g','FL-2230',2,2,4,23), P('Ice Cream Cake 3.5g','FL-2241',3,3,5,22) ]},
-      {t:'Concentrate Bin 1', items:[ P('Diamond Sauce 1g','CN-6601',3,3,0,30,'notpl') ]},
-      {t:'Edible Bin', items:[ P('Watermelon Gummies 100mg','ED-7701',5,5,8,12) ]}
+      {t:'Flower Box 1', items:[
+        P('Sundae Driver 3.5g','FL-2205','#HW-2408-06','26.4%','Aug 18','Feb 14','23 d',4,4,6,24),
+        P('Runtz 3.5g','FL-2219','#HW-2407-27','25.0%','Aug 10','Feb 5','31 d',3,3,5,22)
+      ]},
+      {t:'Flower Box 2', items:[
+        P('Gelato 41 3.5g','FL-2230','#HW-2408-02','23.7%','Aug 16','Feb 11','25 d',2,2,4,23),
+        P('Ice Cream Cake 3.5g','FL-2241','#HW-2407-31','24.9%','Aug 11','Feb 6','30 d',3,3,5,22)
+      ]},
+      {t:'Concentrate Bin 1', items:[ P('Diamond Sauce 1g','CN-6601','#HW-2406-18','88.1%','Aug 3','Aug 3 \'27','38 d',3,3,0,30,'notpl') ]},
+      {t:'Edible Bin', items:[ P('Watermelon Gummies 100mg','ED-7701','#HW-2405-22','10 mg/pc','Jul 25','Jan \'27','47 d',5,5,8,12) ]}
     ]}
   ]},
   {n:'Inland Empire', kits:[
     {d:'Priya S.', r:'Route 12', boxes:[
-      {t:'Flower Box 1', items:[ P('Blue Dream 3.5g','FL-2203',4,4,7,21) ]},
-      {t:'Vape Box 1', items:[ P('Gelato Live Resin Cart .5g','VP-4430',3,3,5,20) ]},
-      {t:'Vape Box 2', items:[ P('Sundae Driver Vape Cart 1g','VP-4423',2,2,4,26) ]}
+      {t:'Flower Box 1', items:[ P('Blue Dream 3.5g','FL-2203','#HW-2408-09','22.1%','Aug 19','Feb 15','22 d',4,4,7,21) ]},
+      {t:'Vape Box 1', items:[ P('Gelato Live Resin Cart .5g','VP-4430','#HW-2407-15','90.3%','Aug 7','Aug 7 \'27','34 d',3,3,5,20) ]},
+      {t:'Vape Box 2', items:[ P('Sundae Driver Vape Cart 1g','VP-4423','#HW-2408-21','85.9%','Aug 24','Aug 24 \'27','17 d',2,2,4,26) ]}
     ]},
     {d:'Jamal O.', r:'Route 5', boxes:[
-      {t:'Pre-Roll Box 1', items:[ P('Gelato Pre-Roll Single','PR-3320',6,6,10,6) ]},
-      {t:'Pre-Roll Box 2', items:[ P('OG Kush Pre-Rolls 5pk','PR-3315',4,4,6,20) ]},
-      {t:'Cooler', items:[ P('Infused Lemonade 10mg','CL-5515',2,2,4,10) ]},
-      {t:'Edible Bin', items:[ P('Chocolate Bar 100mg','ED-7710',3,3,6,14) ]}
+      {t:'Pre-Roll Box 1', items:[ P('Gelato Pre-Roll Single','PR-3320','#HW-2409-04','20.2%','Aug 30','Feb 25','11 d',6,6,10,6) ]},
+      {t:'Pre-Roll Box 2', items:[ P('OG Kush Pre-Rolls 5pk','PR-3315','#HW-2408-17','21.6%','Aug 23','Feb 18','18 d',4,4,6,20) ]},
+      {t:'Cooler', items:[ P('Infused Lemonade 10mg','CL-5515','#HW-2406-25','10 mg/btl','Aug 4','Feb \'27','37 d',2,2,4,10) ]},
+      {t:'Edible Bin', items:[ P('Chocolate Bar 100mg','ED-7710','#HW-2405-28','10 mg/sq','Jul 28','Jan \'27','44 d',3,3,6,14) ]}
     ]}
   ]},
   {n:'Orange County', kits:[
     {d:'Wes T.', r:'Route 9', boxes:[
-      {t:'Flower Box 1', items:[ P('OG Kush 3.5g','FL-2201',3,3,6,22) ]},
-      {t:'Concentrate Bin 1', items:[ P('Rosin Badder 1g','CN-6610',2,2,4,32) ]},
-      {t:'Concentrate Bin 2', items:[ P('Live Resin Sauce 1g','CN-6620',2,2,3,30) ]}
+      {t:'Flower Box 1', items:[ P('OG Kush 3.5g','FL-2201','#HW-2308-11','22.8%','Aug 15','Feb 10','26 d',3,3,6,22) ]},
+      {t:'Concentrate Bin 1', items:[ P('Rosin Badder 1g','CN-6610','#HW-2407-05','79.4%','Aug 6','Aug 6 \'27','35 d',2,2,4,32) ]},
+      {t:'Concentrate Bin 2', items:[ P('Live Resin Sauce 1g','CN-6620','#HW-2408-12','82.6%','Aug 21','Aug 21 \'27','20 d',2,2,3,30) ]}
     ]},
     {d:'Alicia N.', r:'Route 14', boxes:[
-      {t:'Flower Box 2', items:[ P('Ice Cream Cake 3.5g','FL-2241',4,4,6,22) ]},
-      {t:'Vape Box 1', items:[ P('OG Kush Vape Cart 1g','VP-4410',3,3,5,18) ]},
-      {t:'Edible Bin', items:[ P('Gelato Gummies 100mg','ED-7705',4,4,8,12) ]},
-      {t:'Cooler', items:[ P('Sparkling THC Seltzer 4pk','CL-5501',2,2,4,16) ]}
+      {t:'Flower Box 2', items:[ P('Ice Cream Cake 3.5g','FL-2241','#HW-2407-31','24.9%','Aug 11','Feb 6','30 d',4,4,6,22) ]},
+      {t:'Vape Box 1', items:[ P('OG Kush Vape Cart 1g','VP-4410','#HW-2406-03','84.2%','Jul 30','Jul 30 \'27','42 d',3,3,5,18) ]},
+      {t:'Edible Bin', items:[ P('Gelato Gummies 100mg','ED-7705','#HW-2409-27','10 mg/pc','Sep 9','Mar \'27','1 d',4,4,8,12) ]},
+      {t:'Cooler', items:[ P('Sparkling THC Seltzer 4pk','CL-5501','#HW-2405-30','5 mg/can','Jul 20','Jan \'27','52 d',2,2,4,16) ]}
     ]}
   ]}
 ];
@@ -523,6 +553,15 @@ function calc(p){
     case 'notpl':  return {will:0, reason:'Not in template for this box — add it to carry it here', cls:'notpl'};
     default:       return {will:Math.min(p.need,p.cap), reason:'—', cls:''};
   }
+}
+function chipOf(p){ return p.batchNo+' · THC '+p.thc+' · pkg '+p.pkg+' · exp '+p.exp+' · '+p.age+' on hand'; }
+function groupBatches(items){
+  var groups=[];
+  items.forEach(function(p){
+    var last=groups[groups.length-1];
+    if(last && last[0].n===p.n && last[0].sku===p.sku){ last.push(p); } else { groups.push([p]); }
+  });
+  return groups;
 }
 
 /* ---------------- render: step strip ---------------- */
@@ -545,6 +584,7 @@ function calc(p){
     return '<div class="chip" id="chip'+i+'">'+
       '<div class="row1">'+tag+'<span class="cmeta">Received '+r.days+'</span></div>'+
       '<div class="cname">'+r.name+'</div><div class="cbrand">'+r.brand+' · '+r.qty+' units received</div>'+
+      '<div class="cmeta">'+r.batchNo+' · THC '+r.thc+' · pkg '+r.pkg+' · one batch, RFID-tagged at intake</div>'+
       '<div class="covbar"><span style="width:'+r.cov+'%;background:'+color+';"></span></div>'+
       '<div class="covtext"><span>'+r.covtext+'</span><span>'+r.cov+'%</span></div>'+
       '<div class="cfoot"><button class="btn btn-primary btn-sm" data-send="'+i+'">Send today</button></div>'+
@@ -574,30 +614,36 @@ function renderLedger(){
     rows.push('<tr class="lvl-region" data-id="'+rid+'"><td colspan="4"><div class="tree-cell"><button class="toggle-btn" data-toggle="region" data-id="'+rid+'" aria-expanded="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span class="region-name">'+region.n+'</span><span class="region-meta">'+region.kits.length+' kits</span></div></td><td class="num" id="units-'+rid+'">—</td><td class="num" id="value-'+rid+'">—</td><td></td></tr>');
     region.kits.forEach(function(kit, ki){
       var kid = rid+'k'+ki;
-      rows.push('<tr class="lvl-kit" data-id="'+kid+'" data-region="'+rid+'"><td colspan="4"><div class="tree-cell" style="padding-left:18px;"><button class="toggle-btn" data-toggle="kit" data-id="'+kid+'" aria-expanded="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span class="kit-name">'+kit.d+' · '+kit.r+'</span><span class="kit-meta">'+kit.boxes.length+' boxes</span></div></td><td class="num" id="units-'+kid+'">—</td><td class="num" id="value-'+kid+'">—</td><td></td></tr>');
+      rows.push('<tr class="lvl-kit" data-id="'+kid+'" data-region="'+rid+'"><td colspan="4"><div class="tree-cell" style="padding-left:18px;"><button class="toggle-btn" data-toggle="kit" data-id="'+kid+'" aria-expanded="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span class="kit-name">'+kit.d+' · '+kit.r+'</span><span class="kit-meta">'+kit.boxes.length+' boxes</span><button class="qr-mini" data-kitqr="'+kit.d+' · '+kit.r+'" title="Pick slip QR — scan to close this kit\'s pick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/><rect x="14" y="18" width="3" height="3"/><rect x="18" y="14" width="3" height="3"/></svg></button></div></td><td class="num" id="units-'+kid+'">—</td><td class="num" id="value-'+kid+'">—</td><td></td></tr>');
       kit.boxes.forEach(function(box, bi){
         var bid = kid+'b'+bi;
         allBoxIds.push(bid);
         collapsedBoxes.add(bid);
         boxTypeSet[box.t] = (boxTypeSet[box.t]||0)+1;
-        rows.push('<tr class="lvl-box" data-id="'+bid+'" data-region="'+rid+'" data-kit="'+kid+'"><td colspan="4"><div class="tree-cell"><button class="toggle-btn" data-toggle="box" data-id="'+bid+'" aria-expanded="false"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span>'+box.t+'</span><span class="box-meta">'+box.items.length+' products</span></div></td><td class="num" id="units-'+bid+'">—</td><td class="num" id="value-'+bid+'">—</td><td></td></tr>');
-        box.items.forEach(function(p){
-          var c = calc(p);
-          var rowCls = c.cls==='short' ? 'row-short' : (c.cls==='skip'||c.cls==='held'||c.cls==='notpl') ? 'row-skip' : '';
-          var reasonCls = c.cls==='short' ? 'reason-short' : (c.cls==='skip'||c.cls==='held'||c.cls==='notpl') ? 'reason-skip' : '';
-          var inputCls = c.cls==='short'?'short':(c.cls==='atcap'?'at-cap':'');
-          var disabled = c.cls==='notpl' ? 'disabled' : '';
-          var newTag = p.flag==='new' ? ' <span class="tag tag-new">New</span>' : '';
-          var soldTxt = p.flag==='new' ? '—' : p.sold;
-          var needTxt = p.flag==='new' ? '—' : p.need;
-          var capTxt = c.cls==='notpl' ? '—' : p.cap;
-          rows.push('<tr class="prow '+rowCls+'" data-region="'+rid+'" data-kit="'+kid+'" data-box="'+bid+'">'+
-            '<td class="pname-cell"><div class="pn">'+p.n+newTag+'</div><div class="psku">'+p.sku+'</div></td>'+
-            '<td class="num">'+soldTxt+'</td><td class="num">'+needTxt+'</td><td class="num">'+capTxt+'</td>'+
-            '<td class="num"><input class="willgive-input '+inputCls+'" type="number" min="0" value="'+c.will+'" data-price="'+p.price+'" '+disabled+'/></td>'+
-            '<td class="num value-cell">$'+(c.will*p.price)+'</td>'+
-            '<td class="reason '+reasonCls+'">'+c.reason+'</td>'+
-          '</tr>');
+        rows.push('<tr class="lvl-box" data-id="'+bid+'" data-region="'+rid+'" data-kit="'+kid+'"><td colspan="4"><div class="tree-cell"><button class="toggle-btn" data-toggle="box" data-id="'+bid+'" aria-expanded="false"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span>'+box.t+'</span><span class="box-meta">'+box.items.length+' batch lines</span></div></td><td class="num" id="units-'+bid+'">—</td><td class="num" id="value-'+bid+'">—</td><td></td></tr>');
+        groupBatches(box.items).forEach(function(grp){
+          var loud = grp.length>1;
+          grp.forEach(function(p, gi){
+            var c = calc(p);
+            var rowCls = (loud?'row-loud ':'') + (c.cls==='short' ? 'row-short' : (c.cls==='skip'||c.cls==='held'||c.cls==='notpl') ? 'row-skip' : '');
+            var reasonCls = c.cls==='short' ? 'reason-short' : (c.cls==='skip'||c.cls==='held'||c.cls==='notpl') ? 'reason-skip' : '';
+            var inputCls = c.cls==='short'?'short':(c.cls==='atcap'?'at-cap':'');
+            var disabled = c.cls==='notpl' ? 'disabled' : '';
+            var newTag = p.flag==='new' ? ' <span class="tag tag-new">New</span>' : '';
+            var soldTxt = p.flag==='new' ? '—' : p.sold;
+            var needTxt = p.flag==='new' ? '—' : p.need;
+            var capTxt = c.cls==='notpl' ? '—' : p.cap;
+            var nameCell = gi===0
+              ? '<div class="pn">'+p.n+newTag+(loud?'<span class="loud-badge">Mixed batch</span>':'')+'</div>'
+              : '<div class="pn cont">↳ same SKU, older batch first</div>';
+            rows.push('<tr class="prow '+rowCls+'" data-region="'+rid+'" data-kit="'+kid+'" data-box="'+bid+'">'+
+              '<td class="pname-cell">'+nameCell+'<div class="psku">'+chipOf(p)+'</div></td>'+
+              '<td class="num">'+soldTxt+'</td><td class="num">'+needTxt+'</td><td class="num">'+capTxt+'</td>'+
+              '<td class="num"><input class="willgive-input '+inputCls+'" type="number" min="0" value="'+c.will+'" data-price="'+p.price+'" '+disabled+'/></td>'+
+              '<td class="num value-cell">$'+(c.will*p.price)+'</td>'+
+              '<td class="reason '+reasonCls+'">'+c.reason+'</td>'+
+            '</tr>');
+          });
         });
       });
     });
@@ -606,6 +652,11 @@ function renderLedger(){
   window.__boxTypeSet = boxTypeSet;
 }
 renderLedger();
+
+document.getElementById('ledgerBody').addEventListener('click', function(e){
+  var qr = e.target.closest('.qr-mini');
+  if (qr) { toast('Pick slip QR', 'Scanning this at '+qr.getAttribute('data-kitqr')+' closes today\'s pick for that kit — the same QR prints on the paper slip.'); }
+});
 
 /* ---------------- visibility (collapse state) ---------------- */
 var collapsedRegions = new Set(), collapsedKits = new Set();
@@ -672,11 +723,11 @@ recalc();
 
 /* ---------------- skip panel (curated: the 5 flagged rows above) ---------------- */
 var SKIPS = [
-  {cls:'short', pill:'pill-short', label:'Short', loc:'West LA · Marcus R. · Pre-Roll Box 1', title:'Runtz Pre-Roll 5pk', text:'Sold 5 since last refill, but the box cap is 3. Raise the cap or approve sending it short today.', actions:['Raise cap','Approve short']},
-  {cls:'skip', pill:'pill-skip', label:'Skipped', loc:'West LA · Marcus R. · Pre-Roll Box 1', title:'Blue Dream Pre-Rolls 5pk', text:'Nothing sold from this box since the last refill. Also carrying 9 units unplaced from the receiving lane above.', actions:[]},
-  {cls:'held', pill:'pill-skip', label:'Held', loc:'West LA · Marcus R. · Vape Box 1', title:'OG Kush Vape Cart 1g', text:'Set to 0 today — flavor complaint from a store is under QA review. Sold quantity (2) is tracked but withheld.', actions:['View note']},
-  {cls:'notpl', pill:'pill-notpl', label:'Not in template', loc:'West LA · Dana K. · Concentrate Bin 1', title:'Diamond Sauce 1g', text:'Sold 3 units, but this box has no template row for it, so there is no cap to refill against.', actions:['Add to template']},
-  {cls:'atcap', pill:'pill-atcap', label:'At cap', loc:'West LA · Marcus R. · Flower Box 1', title:'Wedding Cake 3.5g', text:'Filled to the box cap of 6 — demand may be higher; raise the cap if this keeps happening.', actions:['Raise cap']}
+  {cls:'short', pill:'pill-short', label:'Short', loc:'West LA · Marcus R. · Pre-Roll Box 1', title:'Runtz Pre-Roll 5pk — #HW-2408-14', text:'Sold 5 since last refill, but the box cap is 3. Raise the cap or approve sending it short today.', actions:['Raise cap','Approve short']},
+  {cls:'skip', pill:'pill-skip', label:'Skipped', loc:'West LA · Marcus R. · Pre-Roll Box 1', title:'Blue Dream Pre-Rolls 5pk — #HW-2407-09', text:'Nothing sold from this batch since the last refill. Also carrying 9 units unplaced from the receiving lane above.', actions:[]},
+  {cls:'held', pill:'pill-skip', label:'Held', loc:'West LA · Marcus R. · Vape Box 1', title:'OG Kush Vape Cart 1g — #HW-2406-03', text:'Set to 0 today — flavor complaint from a store is under QA review. Sold quantity (2) is tracked but withheld.', actions:['View note']},
+  {cls:'notpl', pill:'pill-notpl', label:'Not in template', loc:'West LA · Dana K. · Concentrate Bin 1', title:'Diamond Sauce 1g — #HW-2406-18', text:'Sold 3 units, but this box has no template row for it, so there is no cap to refill against.', actions:['Add to template']},
+  {cls:'atcap', pill:'pill-atcap', label:'At cap · mixed batch', loc:'West LA · Marcus R. · Flower Box 1', title:'Wedding Cake 3.5g — #HW-2409-01 + #HW-2411-07', text:'Both batches filled to their combined cap of 6 (4 + 2) — LOUD because they share this kit line. Oldest batch (#HW-2409-01) ships first; raise the cap if this keeps happening.', actions:['Raise cap']}
 ];
 (function renderSkips(){
   document.getElementById('skipList').innerHTML = SKIPS.map(function(s){

@@ -6,16 +6,19 @@
 <title>Store — Concept D — Store Day</title>
 <style>
 /* ============================================================================
-   Store — Concept D — Store Day. One screen for a store manager: opening
-   count status, restocks done and due (BOH → FOH, oldest batch first, loud
-   when a second batch would join a shelf), new arrivals with disposition,
-   floor pars with velocity-suggested min/max (accept/dismiss), and end-of-day
-   close. Every restock and count line carries who did it. Tokens copied
-   inline from pos/tokens.jsx (LIGHT/DARK); card/pill/table patterns from
-   shared/hd-ui.jsx; rail/header shape from Hyperwolf Bounty.html (rail active
-   "Store"). No build step, no external scripts or fonts. Every store, name,
-   product, quantity and time below is EXAMPLE DATA — see the banner below
-   the header.
+   Store — Concept D — Store Day. RFID first: the opening count is an RFID
+   walk (read vs expected, from tags on file) that PROPOSES — a manager must
+   approve before anything is treated as reconciled; nothing here adjusts
+   stock. Batch level everywhere: every restock line is one shelf's one
+   batch, with its own monospace chip (number · THC · pkg · exp); a shelf
+   that would carry two live batches gets LOUD on both rows, cross-referenced;
+   every arrival card is one batch, tag read at receiving, disposition
+   decided per batch. The one non-RFID category (bulk edibles) is flagged
+   hand-counted wherever it appears. Tokens copied inline from pos/tokens.jsx
+   (LIGHT/DARK); card/pill/table patterns from shared/hd-ui.jsx; rail/header
+   shape from Hyperwolf Bounty.html (rail active "Store"). No build step, no
+   external scripts or fonts. Every store, name, product, quantity and time
+   below is EXAMPLE DATA — see the banner below the header.
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -110,6 +113,8 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 
 .example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
 .example-banner svg{flex:0 0 auto;}
+.rfid-note{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:6px;}
+.rfid-note svg{flex:0 0 auto;color:var(--inkFaint);}
 
 .kpirow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 .statcard{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);padding:13px 15px;display:flex;flex-direction:column;gap:5px;border-top:3px solid var(--sc,var(--neutral));}
@@ -155,6 +160,9 @@ table.dtbl tr:last-child td{border-bottom:none;}
 table.dtbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
 table.dtbl .pn{font-weight:700;}
 table.dtbl .pn .sub{display:block;font-weight:500;font-size:var(--f-meta);color:var(--inkMute);}
+table.dtbl .pn .sub.batchmono{font-family:var(--fontMono);font-size:10.5px;margin-top:2px;}
+table.dtbl .pn .sub.batchmono .hcflag{font-family:var(--fontSans);color:var(--neutral);font-weight:700;}
+table.dtbl .pn .qricon{display:inline-flex;vertical-align:-2px;margin-right:4px;color:var(--inkFaint);}
 table.dtbl tr.row-loud{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
 .loudflag{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;color:var(--bad);text-transform:uppercase;letter-spacing:.03em;margin-top:3px;}
@@ -169,6 +177,7 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
 .tag-restock{background:var(--neutral);color:#fff;}
 .tag-newbatch{background:var(--accent);color:var(--accentInk);}
 .arrival-card .aname{font-size:var(--f-strong);font-weight:700;line-height:1.25;}
+.arrival-card .abatch{font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);}
 .arrival-card .ameta{font-size:var(--f-meta);color:var(--inkMute);}
 .agebadge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;border-radius:6px;padding:2px 6px;width:fit-content;}
 .agebadge.fresh{background:var(--goodSoft);color:var(--good);}
@@ -250,6 +259,8 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
       <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
         Design mockup — every associate name, product, quantity and timestamp on this screen is example data, not a live count or a real sale.</div>
 
+      <div class="rfid-note"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0120 0"/><path d="M5.5 12a10 10 0 0113 0"/><circle cx="12" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg>Opening count and every restock line begin as a tag read. Reads propose — a manager approves before anything is treated as reconciled; nothing here adjusts stock.</div>
+
       <div class="kpirow" id="kpiRow"></div>
 
       <!-- ============ opening count ============ -->
@@ -260,21 +271,21 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
 
       <!-- ============ restocks ============ -->
       <div class="card">
-        <div class="card-head"><h2>Restocks — back of house → floor</h2><span class="hint">Oldest batch first · a second live batch on a shelf is flagged, never quiet</span>
+        <div class="card-head"><h2>Restocks — back of house → floor</h2><span class="hint">Oldest batch first · a second live batch on a shelf is flagged LOUD, never quiet</span>
           <div class="tabs" id="restockTabs"></div>
         </div>
-        <div class="card-body"><table class="dtbl"><thead><tr><th class="left">Shelf · SKU</th><th>Sold (register)</th><th>On shelf</th><th>Par</th><th>Will move</th><th class="left">Reason</th><th class="left">Restocked by</th><th></th></tr></thead><tbody id="restockBody"></tbody></table></div>
+        <div class="card-body"><table class="dtbl"><thead><tr><th class="left">Shelf · SKU · Batch</th><th>Sold (register)</th><th>On shelf</th><th>Par</th><th>Will move</th><th class="left">Reason</th><th class="left">Restocked by</th><th></th></tr></thead><tbody id="restockBody"></tbody></table></div>
       </div>
 
       <!-- ============ new arrivals ============ -->
       <div class="card">
-        <div class="card-head"><h2>New arrivals today</h2><span class="hint">New SKU · restock of a sold-out SKU · new batch of an in-stock SKU — each needs a disposition</span></div>
+        <div class="card-head"><h2>New arrivals today</h2><span class="hint">New SKU · restock of a sold-out SKU · new batch of an in-stock SKU — each batch's tag was read at receiving; disposition decided per batch</span></div>
         <div class="lane" id="arrivalLane"></div>
       </div>
 
       <!-- ============ floor pars ============ -->
       <div class="card">
-        <div class="card-head"><h2>Floor pars — velocity suggestions</h2><span class="hint">Smart min/max suggestions from sales velocity; the manager decides</span></div>
+        <div class="card-head"><h2>Floor pars — velocity suggestions</h2><span class="hint">Shelf capacity by SKU; the batch currently out is shown for reference. The manager decides.</span></div>
         <div class="card-body" style="padding-top:4px;" id="parBody"></div>
       </div>
 
@@ -335,31 +346,35 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
   }
   function initials(name){ return name.split(' ').map(function(p){return p[0];}).join('').slice(0,2).toUpperCase(); }
   function who(name, time){ return '<span class="whochip"><span class="av">'+initials(name)+'</span><b>'+esc(name)+'</b> · '+time+'</span>'; }
+  function qrIcon(){ return '<span class="qricon" title="Shelf QR — opens this shelf&#39;s live window"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M20 14v3h-3M14 20h3M20 20v-3"/></svg></span>'; }
 
   /* ---------------- data: EXAMPLE ONLY ---------------- */
-  var opening = { expected:1842, counted:1839, variance:-3, status:'confirmed', by:'Priya S.', time:'8:04 AM' };
+  var opening = { expected:1842, read:1839, variance:-3, status:'pending', readBy:'Marcus R.', readTime:'8:04 AM', approvedBy:null, approvedTime:null };
 
+  // Every row is one shelf's one batch. A shelf that would carry two live
+  // batches gets loud:true on both rows, cross-referenced via "pair".
   var restocks = [
-    { shelf:'Flower Wall A', sku:'Blue Dream 3.5g', sold:14, onShelf:6, par:20, will:14, reason:'', loud:false, batches:null, status:'due' },
-    { shelf:'Flower Wall B', sku:'Wedding Cake 3.5g', sold:9, onShelf:3, par:15, will:9, reason:'New batch B-2402 joins B-2350 already on the shelf', loud:true, batches:['B-2350 · THC 24.9% · Aug 02','B-2402 · THC 27.6% · Aug 12'], status:'due' },
-    { shelf:'Vape Case', sku:'Live Resin Cart 1g', sold:5, onShelf:11, par:16, will:5, reason:'', loud:false, batches:null, status:'done', by:'Marcus R.', time:'9:14 AM' },
-    { shelf:'Pre-Roll Rack', sku:'GMO Pre-Roll 5-pack', sold:12, onShelf:0, par:12, will:8, reason:'BOH short 4 units — safe has 8', loud:false, batches:null, status:'due', shortfall:true },
-    { shelf:'Edible Shelf', sku:'Gummies 10mg 10-pack', sold:6, onShelf:9, par:14, will:6, reason:'', loud:false, batches:null, status:'done', by:'Priya S.', time:'8:50 AM' },
-    { shelf:'Concentrate Case', sku:'Rosin 1g', sold:3, onShelf:5, par:8, will:3, reason:'', loud:false, batches:null, status:'due' }
+    { shelf:'Flower Wall A', sku:'Blue Dream 3.5g', batch:'B-2291', thc:22.4, packaged:'Jun 28', exp:'Dec 28', sold:5, onShelf:2, par:20, will:5, reason:'', loud:false, status:'due' },
+    { shelf:'Flower Wall B', sku:'Wedding Cake 3.5g', batch:'B-2350', thc:24.9, packaged:'Aug 02', exp:'Feb 02', sold:9, onShelf:3, par:15, will:0, reason:'Still has 3 on hand — a new batch is about to join this shelf', loud:true, pair:'B-2402 · THC 27.6% · pkg Aug 12', status:'onshelf', by:'Marcus R.', time:'7:40 AM' },
+    { shelf:'Flower Wall B', sku:'Wedding Cake 3.5g', batch:'B-2402', thc:27.6, packaged:'Aug 12', exp:'Feb 12', sold:0, onShelf:0, par:15, will:12, reason:'BOH is out of B-2350 — this batch must join the shelf now', loud:true, pair:'B-2350 · THC 24.9% · pkg Aug 02', status:'due' },
+    { shelf:'Vape Case', sku:'Live Resin Cart 1g', batch:'B-1042', thc:84.2, packaged:'Jul 10', exp:'Jan 10', sold:5, onShelf:11, par:16, will:5, reason:'', loud:false, status:'done', by:'Marcus R.', time:'9:14 AM' },
+    { shelf:'Pre-Roll Rack', sku:'GMO Pre-Roll 5-pack', batch:'B-3311', thc:26.0, packaged:'Jul 01', exp:'Jan 01', sold:12, onShelf:0, par:12, will:8, reason:'BOH short 4 units of this batch — safe has 8', loud:false, status:'due', shortfall:true },
+    { shelf:'Edible Shelf', sku:'Gummies 10mg 10-pack', batch:'B-4410', thc:null, packaged:'May 15', exp:'Nov 15', sold:6, onShelf:9, par:14, will:6, reason:'', loud:false, status:'done', by:'Priya S.', time:'8:50 AM', rfid:false },
+    { shelf:'Concentrate Case', sku:'Rosin 1g', batch:'B-5501', thc:71.3, packaged:'Jun 02', exp:'Dec 02', sold:3, onShelf:5, par:8, will:3, reason:'', loud:false, status:'due' }
   ];
   var restockFilter = 'due';
 
   var arrivals = [
-    { kind:'new', name:'Papaya Punch 3.5g', qty:60, received:'This morning', disp:'floor', premium:false, ageHrs:2 },
-    { kind:'newbatch', name:'Wedding Cake 3.5g — B-2402', qty:26, received:'This morning', disp:'floor', premium:false, ageHrs:2 },
-    { kind:'restock', name:'GMO Pre-Roll 5-pack', qty:24, received:'Yesterday', disp:'safe', premium:false, ageHrs:22, withheldReason:'BOH not yet restocked to floor — see Restocks above' },
-    { kind:'new', name:'Live Resin Disposable 1g', qty:18, received:'2 days ago', disp:'safe', premium:true, ageHrs:46, withheldReason:'Premium — manager reviewing display placement' }
+    { kind:'new', name:'Papaya Punch 3.5g', batch:'B-6010', thc:29.2, packaged:'Sep 09', exp:'Mar 09', qty:60, received:'This morning', disp:'floor', premium:false, ageHrs:2 },
+    { kind:'newbatch', name:'Wedding Cake 3.5g', batch:'B-2402', thc:27.6, packaged:'Aug 12', exp:'Feb 12', qty:26, received:'This morning', disp:'floor', premium:false, ageHrs:2 },
+    { kind:'restock', name:'GMO Pre-Roll 5-pack', batch:'B-3311', thc:26.0, packaged:'Jul 01', exp:'Jan 01', qty:24, received:'Yesterday', disp:'safe', premium:false, ageHrs:22, withheldReason:'BOH not yet restocked to floor — see Restocks above' },
+    { kind:'new', name:'Live Resin Disposable 1g', batch:'B-1201', thc:81.0, packaged:'Sep 08', exp:'Mar 08', qty:18, received:'2 days ago', disp:'safe', premium:true, ageHrs:46, withheldReason:'Premium — manager reviewing display placement' }
   ];
 
   var pars = [
-    { name:'Blue Dream 3.5g', sku:'BD35', curMin:8, curMax:20, sugMin:10, sugMax:24, trend:'+18% vs 30-day avg', status:'pending' },
-    { name:'Live Resin Cart 1g', sku:'LRC1', curMin:6, curMax:16, sugMin:8, sugMax:18, trend:'+12% vs 30-day avg', status:'pending' },
-    { name:'Gummies 10mg 10-pack', sku:'GUM10', curMin:6, curMax:14, sugMin:5, sugMax:11, trend:'−9% vs 30-day avg', status:'pending' }
+    { name:'Blue Dream 3.5g', sku:'BD35', currentBatch:'#B-2291', curMin:8, curMax:20, sugMin:10, sugMax:24, trend:'+18% vs 30-day avg', status:'pending' },
+    { name:'Live Resin Cart 1g', sku:'LRC1', currentBatch:'#B-1042', curMin:6, curMax:16, sugMin:8, sugMax:18, trend:'+12% vs 30-day avg', status:'pending' },
+    { name:'Gummies 10mg 10-pack', sku:'GUM10', currentBatch:'#B-4410 (no tag)', curMin:6, curMax:14, sugMin:5, sugMax:11, trend:'−9% vs 30-day avg', status:'pending' }
   ];
 
   /* ---------------- KPI row ---------------- */
@@ -368,7 +383,7 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
     var done = restocks.filter(function(r){ return r.status==='done'; }).length;
     var arrivalsPending = arrivals.filter(function(a){ return a.disp!=='floor'; }).length;
     var cards = [
-      { lbl:'Opening count', val: opening.status==='confirmed' ? 'Confirmed' : 'Variance', sub:'By '+opening.by+' · '+opening.time, c:opening.status==='confirmed'?'var(--good)':'var(--bad)' },
+      { lbl:'Opening count', val: opening.status==='approved' ? 'Approved' : 'Awaiting approval', sub:'Read by '+opening.readBy+' · '+opening.readTime, c:opening.status==='approved'?'var(--good)':'var(--warn)' },
       { lbl:'Restocks', val: done+' / '+(due+done), sub: due+' due right now', c:due>0?'var(--warn)':'var(--good)' },
       { lbl:'New arrivals', val: arrivals.length+' today', sub: arrivalsPending+' need a decision', c:arrivalsPending>0?'var(--info)':'var(--good)' },
       { lbl:'Day close', val: (due===0 && arrivalsPending===0) ? 'Ready' : 'Not yet', sub: (due===0 && arrivalsPending===0) ? 'All checkpoints clear' : 'Finish restocks & arrivals', c:(due===0 && arrivalsPending===0)?'var(--good)':'var(--neutral)' }
@@ -378,18 +393,30 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
     }).join('');
   }
 
-  /* ---------------- opening count ---------------- */
+  /* ---------------- opening count: an RFID walk that proposes ---------------- */
   function renderOpening(){
-    document.getElementById('ocHint').textContent = 'Expected vs. confirmed against overnight movement';
+    document.getElementById('ocHint').textContent = 'RFID read vs expected (from tags on file) — reads propose, nothing adjusts until approved';
     var variancePill = opening.variance === 0 ? '<span class="pill pill-done">Matched</span>' : '<span class="pill pill-warn">Variance '+opening.variance+'</span>';
+    var approvalHtml = opening.status === 'approved'
+      ? '<span class="pill pill-done">Approved</span>'
+      : '<button class="btn btn-primary btn-sm" id="approveOpenBtn">Approve — no stock adjustment</button>';
     document.getElementById('ocBody').innerHTML =
-      '<div style="display:flex;gap:28px;flex-wrap:wrap;align-items:center;">'
-      + '<div><div class="ssub">Expected (floor + BOH)</div><div style="font-family:var(--fontMono);font-size:20px;font-weight:800;">'+opening.expected+'</div></div>'
-      + '<div><div class="ssub">Counted</div><div style="font-family:var(--fontMono);font-size:20px;font-weight:800;">'+opening.counted+'</div></div>'
+      '<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;">'
+      + '<div><div class="ssub">Expected (floor + BOH, tags on file)</div><div style="font-family:var(--fontMono);font-size:20px;font-weight:800;">'+opening.expected+'</div></div>'
+      + '<div><div class="ssub">Read (RFID walk)</div><div style="font-family:var(--fontMono);font-size:20px;font-weight:800;">'+opening.read+'</div></div>'
       + '<div><div class="ssub">Result</div>'+variancePill+'</div>'
-      + '<div style="margin-left:auto;">'+who(opening.by, opening.time)+'</div>'
+      + '<div><div class="ssub">Approval</div>'+approvalHtml+'</div>'
+      + '<div style="margin-left:auto;">'+who(opening.readBy, opening.readTime)+'</div>'
       + '</div>'
-      + (opening.variance !== 0 ? '<div class="reasontxt warn" style="margin-top:8px;">Within threshold — no recount required; logged for the trend, not escalated.</div>' : '');
+      + (opening.variance !== 0 ? '<div class="reasontxt warn" style="margin-top:8px;">Within threshold — no recount required; logged for the trend, not escalated.</div>' : '')
+      + (opening.status==='approved' ? '<div class="reasontxt" style="margin-top:6px;">Approved by '+esc(opening.approvedBy)+' · '+opening.approvedTime+' — the read proposed, nothing in stock was adjusted.</div>' : '');
+    var ab = document.getElementById('approveOpenBtn');
+    if (ab) ab.addEventListener('click', function(){
+      opening.status='approved'; opening.approvedBy='Priya S. (you)';
+      opening.approvedTime = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date());
+      toast('Opening count approved', 'Logged — the RFID read proposed, nothing in stock was adjusted.');
+      renderOpening(); renderKpis(); renderChecklist();
+    });
   }
 
   /* ---------------- restocks ---------------- */
@@ -405,19 +432,21 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
   function renderRestocks(){
     document.querySelectorAll('#restockTabs .tab').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-f')===restockFilter); });
     var list = restocks.filter(function(r){ return restockFilter==='all' || r.status===restockFilter; });
-    document.getElementById('restockBody').innerHTML = list.map(function(r, i){
+    document.getElementById('restockBody').innerHTML = list.map(function(r){
       var idx = restocks.indexOf(r);
       var rowClass = r.loud ? 'row-loud' : (r.shortfall ? 'row-shortfall' : '');
+      var batchLine = '#'+r.batch+' · THC '+(r.thc!=null?r.thc+'%':'n/a')+' · pkg '+r.packaged+' · exp '+r.exp+(r.rfid===false?' · <span class="hcflag">hand-counted</span>':'');
       var reasonHtml = r.reason ? '<span class="reasontxt'+(r.loud?' bad':(r.shortfall?' warn':''))+'">'+esc(r.reason)+'</span>' : '<span class="reasontxt">—</span>';
-      if (r.loud && r.batches){
-        reasonHtml += '<div class="loudflag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>Two batches on one shelf</div>'
-          + '<div style="font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);">'+r.batches.join(' &nbsp;+&nbsp; ')+'</div>';
+      if (r.loud){
+        reasonHtml += '<div class="loudflag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>LOUD — two batches, one shelf</div>'
+          + '<div style="font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);">Also on this shelf: '+esc(r.pair)+'</div>';
       }
-      var whoHtml = r.status==='done' ? who(r.by, r.time) : '<span class="reasontxt">—</span>';
-      var actionHtml = r.status==='done'
-        ? '<span class="pill pill-done">Done</span>'
-        : '<button class="btn btn-primary btn-sm" data-move="'+idx+'">Move to floor</button>';
-      return '<tr class="'+rowClass+'"><td class="pn">'+esc(r.shelf)+'<span class="sub">'+esc(r.sku)+'</span></td>'
+      var whoHtml = (r.status==='done'||r.status==='onshelf') ? who(r.by, r.time) : '<span class="reasontxt">—</span>';
+      var actionHtml;
+      if (r.status === 'done') actionHtml = '<span class="pill pill-done">Done</span>';
+      else if (r.status === 'onshelf') actionHtml = '<span class="pill pill-pending">No action</span>';
+      else actionHtml = '<button class="btn btn-primary btn-sm" data-move="'+idx+'">Move to floor</button>';
+      return '<tr class="'+rowClass+'"><td class="pn">'+qrIcon()+esc(r.shelf)+'<span class="sub">'+esc(r.sku)+'</span><span class="sub batchmono">'+batchLine+'</span></td>'
         + '<td class="num">'+r.sold+'</td><td class="num">'+r.onShelf+'</td><td class="num">'+r.par+'</td><td class="num">'+r.will+'</td>'
         + '<td>'+reasonHtml+'</td><td>'+whoHtml+'</td><td>'+actionHtml+'</td></tr>';
     }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--inkMute);padding:18px;">Nothing in this view.</td></tr>';
@@ -425,13 +454,13 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
       b.addEventListener('click', function(){
         var r = restocks[+b.getAttribute('data-move')];
         r.status = 'done'; r.by = 'Priya S. (you)'; r.time = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date());
-        toast('Moved to floor', esc(r.sku)+' — '+r.will+' units, '+r.shelf+'.');
+        toast('Moved to floor', '#'+r.batch+' — '+r.will+' units, '+r.shelf+'.');
         renderRestocks(); renderKpis(); renderChecklist();
       });
     });
   }
 
-  /* ---------------- arrivals ---------------- */
+  /* ---------------- arrivals: one card per batch, tag read at receiving ---------------- */
   var kindLabel = { new:'New SKU', restock:'Restock', newbatch:'New batch' };
   function renderArrivals(){
     document.getElementById('arrivalLane').innerHTML = arrivals.map(function(a,i){
@@ -442,6 +471,7 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
       return '<div class="arrival-card">'
         + '<span class="tag tag-'+a.kind+'">'+kindLabel[a.kind]+'</span>'
         + '<div class="aname">'+esc(a.name)+(a.premium?' <span style="color:var(--accentText);">★</span>':'')+'</div>'
+        + '<div class="abatch">#'+a.batch+' · THC '+(a.thc!=null?a.thc+'%':'n/a')+' · pkg '+a.packaged+' · exp '+a.exp+'</div>'
         + '<div class="ameta">'+a.qty+' units · received '+a.received+'</div>'
         + '<span class="agebadge '+ageClass+'">'+a.ageHrs+'h on hand'+(a.premium && ageClass!=='fresh' ? ' — premium ages fast' : '')+'</span>'
         + dispHtml
@@ -452,7 +482,7 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
       b.addEventListener('click', function(){
         var a = arrivals[+b.getAttribute('data-put')];
         a.disp = 'floor'; delete a.withheldReason;
-        toast('Put out now', esc(a.name)+' moved to the floor.');
+        toast('Put out now', '#'+a.batch+' — '+esc(a.name)+' moved to the floor.');
         renderArrivals(); renderKpis(); renderChecklist();
       });
     });
@@ -462,10 +492,10 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
   function renderPars(){
     document.getElementById('parBody').innerHTML = pars.map(function(p,i){
       if (p.status !== 'pending'){
-        return '<div class="parrow resolved"><div class="pname">'+esc(p.name)+'<span class="sku">'+p.sku+'</span></div>'
+        return '<div class="parrow resolved"><div class="pname">'+esc(p.name)+'<span class="sku">'+p.sku+' · current '+p.currentBatch+'</span></div>'
           + '<span class="pill '+(p.status==='accepted'?'pill-done':'pill-pending')+'">'+(p.status==='accepted'?'Accepted':'Dismissed')+'</span></div>';
       }
-      return '<div class="parrow"><div class="pname">'+esc(p.name)+'<span class="sku">'+p.sku+'</span></div>'
+      return '<div class="parrow"><div class="pname">'+esc(p.name)+'<span class="sku">'+p.sku+' · current '+p.currentBatch+'</span></div>'
         + '<span class="parmm">'+p.curMin+' / '+p.curMax+'</span><span class="arrow">→</span><span class="parmm"><b>'+p.sugMin+' / '+p.sugMax+'</b></span>'
         + '<span class="trendup">'+p.trend+'</span>'
         + '<div class="pactions"><button class="btn btn-ghost btn-sm" data-dismiss="'+i+'">Dismiss</button><button class="btn btn-primary btn-sm" data-accept="'+i+'">Accept</button></div>'
@@ -491,7 +521,7 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
     var due = restocks.filter(function(r){ return r.status==='due'; }).length;
     var arrivalsPending = arrivals.filter(function(a){ return a.disp!=='floor'; }).length;
     var items = [
-      { label:'Opening count confirmed', on: opening.status==='confirmed' },
+      { label:'Opening RFID read approved', on: opening.status==='approved' },
       { label:'All due restocks moved to the floor ('+due+' remaining)', on: due===0 },
       { label:'All arrivals given a disposition ('+arrivalsPending+' pending)', on: arrivalsPending===0 },
       { label:'Revenue reconciled — expected matches counted', on:true }
@@ -507,7 +537,7 @@ table.dtbl tr.row-shortfall{background:var(--warnSoft);box-shadow:inset 3px 0 0 
 
   document.getElementById('closeDayBtn').addEventListener('click', function(){
     this.disabled = true; this.textContent = 'Closed';
-    toast('Day closed', who('Priya S.', new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date())).replace(/<[^>]+>/g,'').trim()+' closed the day — reconciliation on file.');
+    toast('Day closed', 'Priya S. closed the day — reconciliation on file.');
   });
 
   /* ---------------- boot ---------------- */

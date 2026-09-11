@@ -14,6 +14,12 @@
    shapes from shared/hd-ui.jsx; rail + header shape from Hyperwolf Bounty.html
    (rail active "Distribution"). No build step, no external requests.
    Every name, product, quantity and time on this screen is EXAMPLE DATA.
+   Round-2 revision: the monospace batch chip (number · THC · pkg · exp ·
+   age) and the Metrc tag are shown wherever units are listed — the batch
+   strip, the batch header, the location ledger and the per-unit retrieval
+   list. A pull task is only "pulled" once it is confirmed by scanning the
+   quarantine location's QR and reading the units back in — a manager still
+   approves the disposition afterward.
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -137,17 +143,18 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 
 /* ---- batch strip ---- */
 .batchstrip{display:flex;gap:10px;overflow-x:auto;padding:2px 16px 14px;}
-.battab{flex:0 0 260px;text-align:left;border:1.5px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px;}
+.battab{flex:0 0 270px;text-align:left;border:1.5px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px;}
 .battab:hover{background:var(--surface3);}
 .battab.active{border-color:var(--accentBorder);background:var(--surface);box-shadow:var(--shadowMd);}
 .battab .bt-name{font-size:var(--f-strong);font-weight:700;}
-.battab .bt-meta{font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);}
+.battab .bt-meta{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* ---- batch detail header ---- */
 .bdhead{display:flex;flex-wrap:wrap;gap:14px 26px;padding:14px 16px;align-items:flex-start;border-bottom:1px solid var(--hairline2);}
-.bdhead .bd-main{display:flex;flex-direction:column;gap:4px;min-width:220px;}
+.bdhead .bd-main{display:flex;flex-direction:column;gap:4px;min-width:260px;}
 .bdhead .bd-name{font-size:var(--f-title);font-weight:700;}
 .bdhead .bd-sku{font-size:var(--f-meta);color:var(--inkMute);}
+.bdhead .bd-chip{font-family:var(--fontMono);font-size:11px;color:var(--ink2);margin-top:1px;}
 .bdstat{display:flex;flex-direction:column;gap:2px;min-width:110px;}
 .bdstat .k{font-size:var(--f-micro);text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
 .bdstat .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
@@ -193,6 +200,18 @@ table.retrieval tr.contact td{background:var(--badSoft);}
 table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);}
 
 .footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
+
+/* ---- modal (pull-confirm scan) ---- */
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px;}
+.modal{background:var(--surface);border-radius:var(--r16);width:100%;max-width:440px;max-height:86vh;overflow-y:auto;padding:20px;box-shadow:var(--shadowMd);}
+.modal h2{margin:0 0 6px;font-size:var(--f-h2);}
+.modal p{color:var(--inkDim);font-size:var(--f-body);}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.modal-actions .btn{flex:1;}
+.scanbox{border:1.5px dashed var(--hairline3);border-radius:var(--r12);padding:16px;text-align:center;margin:12px 0;background:var(--surface2);}
+.scanbox .sc-loc{font-size:var(--f-strong);font-weight:700;}
+.scanbox .sc-count{font-family:var(--fontMono);font-size:22px;font-weight:800;margin-top:6px;}
+.scanbox.done{border-color:var(--good);border-style:solid;background:var(--goodSoft);}
 
 @media (max-width: 1024px){
   .rail{width:64px;flex-basis:64px;}
@@ -250,7 +269,7 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
         Design mockup — every batch, name, quantity and timestamp on this screen is example data, not a live recall or real inventory.</div>
 
       <div class="card">
-        <div class="card-head"><h2>Batches on hold</h2><span class="hint">Recall, quarantine (expiry ladder) and quality holds — select one to see every unit</span></div>
+        <div class="card-head"><h2>Batches on hold</h2><span class="hint">Recall, quarantine (expiry ladder) and quality holds — the monospace chip is number · THC · pkg · exp · age; select one to see every unit</span></div>
         <div class="batchstrip" id="batchStrip"></div>
       </div>
 
@@ -258,19 +277,19 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
         <div class="bdhead" id="bdHead"></div>
         <div class="reasonrow" id="reasonRow"></div>
 
-        <div class="card-head" style="padding-top:14px;"><h2>Where every unit is</h2><span class="hint">Pull task per location — assign it, mark it pulled, a manager approves the disposition</span></div>
+        <div class="card-head" style="padding-top:14px;"><h2>Where every unit is</h2><span class="hint" id="ledgerHint"></span></div>
         <div class="card-body" style="overflow-x:auto;">
           <table class="ledger">
-            <thead><tr><th>Location</th><th class="num">Units</th><th>Pull task</th><th>Picked by</th><th>Approved by</th><th></th></tr></thead>
+            <thead><tr><th>Location</th><th class="num">Units</th><th>Pull task</th><th>Read at quarantine</th><th>Picked by</th><th>Approved by</th><th></th></tr></thead>
             <tbody id="ledgerBody"></tbody>
           </table>
         </div>
 
-        <div class="card-head"><h2>Waste — pending manager approval</h2><span class="hint">Nothing adjusts stock until a manager approves; rejected marks return to quarantine</span></div>
+        <div class="card-head"><h2>Waste — pending manager approval</h2><span class="hint" id="wasteHint"></span></div>
         <div class="etaline">Discrepancy Resolution ETA: <b>48h</b> from hold — overdue waste marks surface here, not a silent empty list.</div>
         <div class="card-body wastewrap" id="wasteBody"></div>
 
-        <div class="card-head"><h2>Recall retrieval — per unit</h2><span class="hint">Metrc tag <span id="metrcTag" style="font-family:var(--fontMono);color:var(--ink2);"></span> · full list, outcome per unit, nothing dropped because it left inventory</span></div>
+        <div class="card-head"><h2>Recall retrieval — per unit</h2><span class="hint" id="retrievalHint"></span></div>
         <div class="card-body" style="overflow-x:auto;">
           <table class="retrieval">
             <thead><tr><th>Tag</th><th>Found at</th><th>Outcome</th><th>Confirmed by</th></tr></thead>
@@ -319,6 +338,8 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
   tickClock(); setInterval(tickClock, 30000);
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function chip(b){ return '#'+b.batchNo+' · THC '+(b.thc!=null?b.thc+'%':'—')+' · pkg '+b.pkgLabel+' · exp '+b.expLabel+' · '+b.age+' d on hand'; }
+  function metrcShort(tag){ return tag.slice(0,4)+'…'+tag.slice(-4); }
 
   var LOCICON = {
     safe:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/></svg>',
@@ -328,13 +349,17 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
   };
 
   /* ---------------- data: EXAMPLE ONLY ---------------- */
+  /* Batch chip fields (batchNo, thc, pkgLabel, expLabel, age) are set once
+     here and rendered everywhere this batch's units are listed — the strip,
+     the detail header, the ledger hint and the retrieval hint. */
+  var QUARANTINE_LOC = 'Quarantine Cage · F0-Q-01';
   var BATCHES = [
-    { id:'b1', name:'Zkittlez 3.5g', batchNo:'B-2291', metrcTag:'1A4030000012A7B0000291', thc:24.1, packaged:'2026-08-02',
+    { id:'b1', name:'Zkittlez 3.5g', batchNo:'B-2291', metrcTag:'1A4030000012A7B0000291', thc:24.1, pkgLabel:'Aug 2', expLabel:'Feb 2, 2027', age:39,
       status:'recall', reasonTitle:'Metrc recall — supplier retest failed',
       reasonBody:'DCC recall notice for lot 2291-C, potency retest below label claim. Halted from every allocation the moment the notice landed.',
       initiatedBy:'Dana K. (LP)', initiatedAt:'Sep 10, 7:12 AM',
       locations:[
-        { loc:'Safe · F2-B-03', type:'safe', units:18, task:'pulled', pickedBy:'Marcus R.', pickedAt:'7:40 AM', approvedBy:'Dana K.', approvedAt:'7:52 AM' },
+        { loc:'Safe · F2-B-03', type:'safe', units:18, task:'pulled', readCount:18, pickedBy:'Marcus R.', pickedAt:'7:40 AM', approvedBy:'Dana K.', approvedAt:'7:52 AM' },
         { loc:'Sales Floor · West LA', type:'floor', units:4, task:'open', pickedBy:null, approvedBy:null },
         { loc:'Kit · Priya S. · Route 5', type:'kit', units:6, task:'assigned', pickedBy:'Priya S.', pickedAt:null, approvedBy:null },
         { loc:'Vehicle · Van 12', type:'vehicle', units:2, task:'open', pickedBy:null, approvedBy:null }
@@ -350,12 +375,12 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
         { tag:'E28011...291-11', loc:'Kit · Priya S.', outcome:'pending pull', by:'—' },
         { tag:'E28011...291-14', loc:'Sold — Order #40098', outcome:'sold', by:'—', contact:true }
       ]},
-    { id:'b2', name:'GMO 3.5g', batchNo:'B-2087', metrcTag:'1A4030000012A7B0000087', thc:27.8, packaged:'2026-07-11',
+    { id:'b2', name:'GMO 3.5g', batchNo:'B-2087', metrcTag:'1A4030000012A7B0000087', thc:27.8, pkgLabel:'Jul 11', expLabel:'Sep 14, 2026', age:61,
       status:'quarantine', reasonTitle:'Expiry ladder — quarantine step',
       reasonBody:'Aging rule (Flower: expiring ≤10 days) promoted this batch to front of FEFO on Sep 3; no allocation cleared it in time, so it moved to quarantine on Sep 9. Next step is destroy at expiry (Sep 14) unless a manager promotes it again.',
       initiatedBy:'System (aging rule)', initiatedAt:'Sep 9, 12:00 AM',
       locations:[
-        { loc:'Safe · F1-A-07', type:'safe', units:9, task:'pulled', pickedBy:'Whitney L.', pickedAt:'9:10 AM', approvedBy:'Tomás G.', approvedAt:'9:20 AM' },
+        { loc:'Safe · F1-A-07', type:'safe', units:9, task:'pulled', readCount:9, pickedBy:'Whitney L.', pickedAt:'9:10 AM', approvedBy:'Tomás G.', approvedAt:'9:20 AM' },
         { loc:'Kit · Dana K. · Route 1', type:'kit', units:3, task:'open', pickedBy:null, approvedBy:null }
       ],
       waste:[],
@@ -363,7 +388,7 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
         { tag:'E28011...087-02', loc:'Safe F1-A-07', outcome:'quarantined', by:'Whitney L.' },
         { tag:'E28011...087-05', loc:'Kit · Dana K.', outcome:'pending pull', by:'—' }
       ]},
-    { id:'b3', name:'Live Resin Disposable 1g', batchNo:'B-2310', metrcTag:'1A4030000012A7B0000310', thc:81.4, packaged:'2026-08-28',
+    { id:'b3', name:'Live Resin Disposable 1g', batchNo:'B-2310', metrcTag:'1A4030000012A7B0000310', thc:81.4, pkgLabel:'Aug 28', expLabel:'Aug 28, 2028', age:13,
       status:'quality', reasonTitle:'Quality hold — damaged in transit',
       reasonBody:'A case arrived with cracked cartridges. Held from sale pending Loss Prevention inspection (edge case: damaged/opened product moves to quarantine immediately, chargeable status TBD).',
       initiatedBy:'Priya S. (driver)', initiatedAt:'Sep 10, 6:05 AM',
@@ -392,7 +417,8 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
       return '<button type="button" class="battab'+(b.id===activeId?' active':'')+'" data-id="'+b.id+'">'
         + '<span class="pill '+STATUS_PILL[b.status]+'">'+STATUS_LABEL[b.status]+'</span>'
         + '<span class="bt-name">'+esc(b.name)+'</span>'
-        + '<span class="bt-meta">Batch '+esc(b.batchNo)+' · '+totalUnits+' units across '+b.locations.length+' locations</span>'
+        + '<span class="bt-meta">'+chip(b)+'</span>'
+        + '<span class="bt-meta">Metrc '+metrcShort(b.metrcTag)+' · '+totalUnits+' units / '+b.locations.length+' locations</span>'
         + '</button>';
     }).join('');
     host.querySelectorAll('.battab').forEach(function(btn){
@@ -409,12 +435,14 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
     var b = findBatch(activeId);
     var totalUnits = b.locations.reduce(function(s,l){ return s + l.units; }, 0);
     var pulled = b.locations.filter(function(l){ return l.task==='pulled'; }).length;
+    var chipHtml = '<span style="font-family:var(--fontMono);">'+chip(b)+'</span> · Metrc <span style="font-family:var(--fontMono);">'+metrcShort(b.metrcTag)+'</span>';
 
     document.getElementById('bdHead').innerHTML =
       '<div class="bd-main"><div class="bd-name">'+esc(b.name)+' <span class="pill '+STATUS_PILL[b.status]+'">'+STATUS_LABEL[b.status]+'</span></div>'
-      + '<div class="bd-sku">Batch '+esc(b.batchNo)+' · Metrc '+esc(b.metrcTag)+'</div></div>'
+      + '<div class="bd-sku">SKU grouping label — the batch is the unit of record</div>'
+      + '<div class="bd-chip">'+chip(b)+' · Metrc '+esc(b.metrcTag)+'</div></div>'
       + '<div class="bdstat"><div class="k">THC</div><div class="v">'+b.thc+'%</div></div>'
-      + '<div class="bdstat"><div class="k">Packaged</div><div class="v">'+b.packaged+'</div></div>'
+      + '<div class="bdstat"><div class="k">Packaged</div><div class="v">'+b.pkgLabel+'</div></div>'
       + '<div class="bdstat"><div class="k">Units held</div><div class="v">'+totalUnits+'</div></div>'
       + '<div class="bdstat"><div class="k">Locations pulled</div><div class="v">'+pulled+' / '+b.locations.length+'</div></div>'
       + '<div class="haltflag"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.9 4.9l14.2 14.2"/></svg>Allocation halted</div>';
@@ -422,15 +450,23 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
     document.getElementById('reasonRow').innerHTML =
       '<b>'+esc(b.reasonTitle)+'.</b> '+esc(b.reasonBody)+' <span style="color:var(--inkMute);">— opened by '+esc(b.initiatedBy)+', '+esc(b.initiatedAt)+'.</span>';
 
+    document.getElementById('ledgerHint').innerHTML = 'Assign, then confirm by scanning the quarantine location QR (destination: '+esc(QUARANTINE_LOC)+') — '+chipHtml;
+    document.getElementById('wasteHint').innerHTML = 'Nothing adjusts stock until a manager approves; rejected marks return to quarantine — '+chipHtml;
+    document.getElementById('retrievalHint').innerHTML = 'Full list, outcome per unit, nothing dropped because it left inventory — '+chipHtml;
+
     document.getElementById('ledgerBody').innerHTML = b.locations.map(function(l, i){
       var icon = LOCICON[l.type] || LOCICON.safe;
       var btns = '';
       if (l.task === 'open') btns = '<button class="btn btn-ghost btn-sm" data-act="assign" data-i="'+i+'">Assign</button>';
-      else if (l.task === 'assigned') btns = '<button class="btn btn-good btn-sm" data-act="pull" data-i="'+i+'">Mark pulled</button>';
+      else if (l.task === 'assigned') btns = '<button class="btn btn-good btn-sm" data-act="scan" data-i="'+i+'">Confirm at quarantine (scan QR)</button>';
+      var readCell = l.readCount!=null
+        ? l.readCount+' / '+l.units+' <span style="color:var(--good);">read ✓</span>'
+        : '<span style="color:var(--inkFaint);">—</span>';
       return '<tr>'
         + '<td><div class="locname"><span class="locicon">'+icon+'</span>'+esc(l.loc)+'</div></td>'
         + '<td class="num">'+l.units+'</td>'
         + '<td><span class="pill '+TASK_PILL[l.task]+'">'+TASK_LABEL[l.task]+'</span></td>'
+        + '<td class="num">'+readCell+'</td>'
         + '<td>'+attrib(l.pickedBy, l.pickedAt, 'a picker')+'</td>'
         + '<td>'+attrib(l.approvedBy, l.approvedAt, 'manager approval')+'</td>'
         + '<td><div class="taskbtns">'+btns+'</div></td>'
@@ -439,7 +475,6 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
 
     renderWaste(b);
 
-    document.getElementById('metrcTag').textContent = b.metrcTag;
     document.getElementById('retrievalBody').innerHTML = b.retrieval.map(function(r){
       return '<tr class="'+(r.contact?'contact':'')+'"><td class="tagid">'+esc(r.tag)+'</td><td>'+esc(r.loc)+'</td>'
         + '<td>'+(r.contact ? '<span class="pill pill-recall">Sold — contact required</span>' : '<span class="pill '+(r.outcome==='quarantined'?'pill-quarantine':'pill-pending')+'">'+esc(r.outcome)+'</span>')+'</td>'
@@ -473,16 +508,50 @@ table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--
     renderDetail();
   }
 
+  /* ---------------- pull-confirm scan modal ---------------- */
+  function openPullScan(i){
+    var b = findBatch(activeId), loc = b.locations[i];
+    var overlay = document.createElement('div'); overlay.className = 'overlay';
+    overlay.innerHTML = '<div class="modal">'
+      + '<h2>Confirm pull — '+esc(loc.loc)+'</h2>'
+      + '<p>Scan the QR at the quarantine location to confirm these units are physically there. This reads each unit\'s RFID tag back in — it does not just take the picker\'s word for the count.</p>'
+      + '<div class="scanbox" id="scanbox"><div class="sc-loc">'+esc(QUARANTINE_LOC)+'</div><div class="sc-count" id="scanCount">0 / '+loc.units+' read</div></div>'
+      + '<div class="modal-actions"><button class="btn btn-ghost" id="cancelScan">Cancel</button><button class="btn btn-primary" id="doScan">Scan quarantine QR</button></div>'
+      + '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
+    overlay.querySelector('#cancelScan').addEventListener('click', function(){ overlay.remove(); });
+    overlay.querySelector('#doScan').addEventListener('click', function(){
+      var scanBtn = overlay.querySelector('#doScan');
+      scanBtn.disabled = true; scanBtn.textContent = 'Reading tags…';
+      var n = 0, box = overlay.querySelector('#scanbox'), countEl = overlay.querySelector('#scanCount');
+      var timer = setInterval(function(){
+        n++; countEl.textContent = n+' / '+loc.units+' read';
+        if (n >= loc.units){
+          clearInterval(timer);
+          box.classList.add('done');
+          scanBtn.textContent = 'Confirm pulled';
+          scanBtn.disabled = false;
+          scanBtn.onclick = function(){
+            loc.task = 'pulled';
+            loc.readCount = loc.units;
+            loc.pickedAt = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date());
+            overlay.remove();
+            renderDetail();
+          };
+        }
+      }, 220);
+    });
+  }
+
   /* ---------------- events ---------------- */
   document.addEventListener('click', function(e){
     var t = e.target.closest('[data-act]');
     if (t){
       var b = findBatch(activeId), i = +t.getAttribute('data-i'), loc = b.locations[i];
       var act = t.getAttribute('data-act');
-      var now = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date());
-      if (act==='assign'){ loc.task='assigned'; loc.pickedBy='You'; loc.pickedAt=null; }
-      else if (act==='pull'){ loc.task='pulled'; loc.pickedAt=now; loc.approvedBy=null; }
-      renderDetail();
+      if (act==='assign'){ loc.task='assigned'; loc.pickedBy='You'; loc.pickedAt=null; renderDetail(); }
+      else if (act==='scan'){ openPullScan(i); }
       return;
     }
     var w = e.target.closest('[data-wact]');

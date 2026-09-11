@@ -160,6 +160,8 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 
 /* ---- location chip (zone colored) ---- */
 .slotchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 7px;border-radius:8px;font-family:var(--fontMono);font-size:12px;font-weight:700;background:var(--surface3);color:var(--ink);border-left:4px solid var(--zc,var(--neutral));}
+.pmetachip{font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);}
+.pmetachip-row{margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .slotchip .zdot{display:none;}
 .qricon{width:13px;height:13px;flex:0 0 auto;color:var(--zc,var(--inkMute));}
 
@@ -261,15 +263,6 @@ table.boxtbl tr.row-loud{background:var(--badSoft);box-shadow:inset 3px 0 0 var(
 .reasoncell{font-size:10.5px;color:var(--inkMute);max-width:150px;line-height:1.3;}
 .reasoncell.r-loud{color:var(--bad);font-weight:800;}
 .batchflag{display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;}
-.expand-toggle{background:none;border:none;color:var(--info);font-size:var(--f-meta);font-weight:700;cursor:pointer;margin-top:8px;display:inline-flex;align-items:center;gap:4px;}
-.expand-toggle:hover{text-decoration:underline;}
-.batchdetail{margin-top:10px;overflow:hidden;max-height:0;transition:max-height .18s ease;}
-.batchdetail.open{max-height:400px;}
-table.batchtbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;margin-top:6px;}
-table.batchtbl th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--inkMute);padding:6px 8px;border-bottom:1px solid var(--hairline2);}
-table.batchtbl td{padding:7px 8px;border-bottom:1px solid var(--hairline);}
-table.batchtbl .older{color:var(--inkDim);}
-table.batchtbl .newer{font-weight:700;}
 
 .pickslip-wrap{padding:0 16px 16px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
 .pickslip{width:280px;border:1.5px dashed var(--hairline3);border-radius:var(--r10);background:var(--surface2);padding:14px 16px;font-family:var(--fontMono);}
@@ -342,7 +335,7 @@ table.batchtbl .newer{font-weight:700;}
         Design mockup — every product, batch, quantity and rack location on this screen is example data, not a live inventory feed.</div>
 
       <div style="font-size:12.5px;color:var(--inkDim);max-width:760px;">
-        Every rack shelf carries a QR / RFID label — an address like <b style="font-family:var(--fontMono);color:var(--ink);">A-03-2</b> (zone · rack · shelf), printed large and colored by zone. At receiving, the handheld proposes a slot, the clerk walks there, scans the label, reads the tagged units in bulk, and taps one button. A second batch of the same SKU is never proposed the same shelf as the first — it goes next to it, and the refill screen says so loudly.
+        Every rack shelf carries a QR / RFID label — an address like <b style="font-family:var(--fontMono);color:var(--ink);">A-03-2</b> (zone · rack · shelf), printed large and colored by zone. At receiving, the handheld proposes a slot, the clerk walks there, scans the label, reads the tagged units in bulk, and taps one button. A second batch of the same SKU is never proposed the same shelf as the first — it goes next to it, and the refill screen says so loudly. Every line on every screen below is one batch, never a SKU total — and every location is confirmed by scanning that rack's own QR/RFID label, never picked from a list.
       </div>
 
       <!-- ============ stepper ============ -->
@@ -386,7 +379,7 @@ table.batchtbl .newer{font-weight:700;}
           <div class="refill-row-wrap" id="refillRow"></div>
         </div>
         <div class="card">
-          <div class="card-head"><h2>Printable pick slip strip</h2><span class="hint">Prints with the kit — location, batch, THC and package date travel with the pick</span></div>
+          <div class="card-head"><h2>Printable pick slip strip — one per batch</h2><span class="hint">Location, batch, THC, package date, expiry and Metrc tag travel with the pick; scan its QR to close it</span></div>
           <div class="pickslip-wrap" id="pickslipWrap"></div>
         </div>
       </div>
@@ -497,29 +490,53 @@ table.batchtbl .newer{font-weight:700;}
     return '<span class="slotchip" style="--zc:'+zoneVar(z)+'">'+ICO.qr.replace('<svg ','<svg style="color:'+zoneVar(z)+'" ')+code+'</span>';
   }
 
+  /* ---------------- batch chip: number · THC · pkg · exp · age · Metrc ---------------- */
+  function shortDate(d){ return d ? d.replace(/,\s*\d{4}$/, '') : d; }
+  function chipText(b){
+    var parts = ['#'+String(b.batchNo).replace(/^#/, '')];
+    if (b.thc) parts.push('THC '+b.thc);
+    if (b.packageDate) parts.push('pkg '+shortDate(b.packageDate));
+    if (b.exp) parts.push('exp '+shortDate(b.exp));
+    if (b.age) parts.push(b.age+' on hand');
+    if (b.metrc) parts.push('Metrc '+b.metrc);
+    return parts.join(' · ');
+  }
+  function batchChip(b){ return '<span class="pmetachip">'+esc(chipText(b))+'</span>'; }
+
   /* ---------------- receiving ledger data: EXAMPLE ONLY ---------------- */
   var RECEIVING = [
-    { id:'r1', name:'Sour Diesel Live Rosin Cart 1g', kind:'new', qty:48, slot:'B-02-1', status:'pending' },
-    { id:'r2', name:'Wedding Cake Distillate Disposable 0.5g', kind:'new', qty:60, slot:'B-05-3', status:'pending' },
-    { id:'r3', name:'Mango Gelato Infused Pre-Roll 5-pack', kind:'new', qty:72, slot:'E-01-2', status:'pending' },
-    { id:'r4', name:'Blackberry Kush Rosin Gummies 100mg', kind:'new', qty:96, slot:'C-04-1', status:'pending' },
-    { id:'r5', name:'Runtz Bulk Flower 3.5g Jar', kind:'new', qty:120, slot:'A-06-4', status:'pending' },
+    { id:'r1', name:'Sour Diesel Live Rosin Cart 1g', kind:'new', qty:48, slot:'B-02-1', status:'pending',
+      batchNo:'C-2246', thc:'78.4%', packageDate:'Sep 9, 2026', exp:'Mar 9, 2027', age:'1 d', metrc:'1A4C…2C61' },
+    { id:'r2', name:'Wedding Cake Distillate Disposable 0.5g', kind:'new', qty:60, slot:'B-05-3', status:'pending',
+      batchNo:'C-2251', thc:'84.0%', packageDate:'Sep 9, 2026', exp:'Mar 9, 2027', age:'1 d', metrc:'1A4C…7E02' },
+    { id:'r3', name:'Mango Gelato Infused Pre-Roll 5-pack', kind:'new', qty:72, slot:'E-01-2', status:'pending',
+      batchNo:'P-3390', thc:'26.5%', packageDate:'Sep 8, 2026', exp:'Mar 8, 2027', age:'2 d', metrc:'1A4P…44A9' },
+    { id:'r4', name:'Blackberry Kush Rosin Gummies 100mg', kind:'new', qty:96, slot:'C-04-1', status:'pending',
+      batchNo:'E-1170', thc:'—', packageDate:'Sep 8, 2026', exp:'Sep 8, 2027', age:'2 d', metrc:'1A4E…9B10' },
+    { id:'r5', name:'Runtz Bulk Flower 3.5g Jar', kind:'new', qty:120, slot:'A-06-4', status:'pending',
+      batchNo:'F-5581', thc:'29.2%', packageDate:'Sep 9, 2026', exp:'Mar 9, 2027', age:'1 d', metrc:'1A4F…C312' },
 
-    { id:'s1', name:'Blue Dream 3.5g', kind:'restock', qty:84, slot:'A-02-1', status:'done' },
-    { id:'s2', name:'OG Kush 3.5g', kind:'restock', qty:60, slot:'A-02-3', status:'pending' },
-    { id:'s3', name:'Live Resin Cart 1g', kind:'restock', qty:40, slot:'B-01-2', status:'done' },
-    { id:'s4', name:'Gummies 10mg 10-pack', kind:'restock', qty:72, slot:'C-01-1', status:'pending' },
-    { id:'s5', name:'Indica PR 5-pack', kind:'restock', qty:96, slot:'E-02-1', status:'pending' },
-    { id:'s6', name:'THC Drink 10mg 4-pack', kind:'restock', qty:48, slot:'C-05-2', status:'pending' },
+    { id:'s1', name:'Blue Dream 3.5g', kind:'restock', qty:84, slot:'A-02-1', status:'done',
+      batchNo:'F-5420', thc:'22.4%', packageDate:'Aug 23, 2026', exp:'Feb 23, 2027', age:'18 d', metrc:'1A4F…5F70' },
+    { id:'s2', name:'OG Kush 3.5g', kind:'restock', qty:60, slot:'A-02-3', status:'pending',
+      batchNo:'F-5390', thc:'19.8%', packageDate:'Jul 20, 2026', exp:'Jan 20, 2027', age:'52 d', metrc:'1A4F…2210' },
+    { id:'s3', name:'Live Resin Cart 1g', kind:'restock', qty:40, slot:'B-01-2', status:'done',
+      batchNo:'C-2140', thc:'76.1%', packageDate:'Aug 5, 2026', exp:'Feb 5, 2027', age:'36 d', metrc:'1A4C…8A44' },
+    { id:'s4', name:'Gummies 10mg 10-pack', kind:'restock', qty:72, slot:'C-01-1', status:'pending',
+      batchNo:'E-1102', thc:'—', packageDate:'Jul 30, 2026', exp:'Jul 30, 2027', age:'42 d', metrc:'1A4E…3C09' },
+    { id:'s5', name:'Indica PR 5-pack', kind:'restock', qty:96, slot:'E-02-1', status:'pending',
+      batchNo:'P-3300', thc:'21.3%', packageDate:'Aug 30, 2026', exp:'Feb 28, 2027', age:'11 d', metrc:'1A4P…6D77' },
+    { id:'s6', name:'THC Drink 10mg 4-pack', kind:'restock', qty:48, slot:'C-05-2', status:'pending',
+      batchNo:'D-900', thc:'—', packageDate:'Aug 1, 2026', exp:'Feb 1, 2027', age:'40 d', metrc:'1A4D…F102' },
 
-    { id:'gmo-batch', name:'GMO 3.5g', kind:'newbatch', sku:'FLW-GMO-35', qty:40, batchNo:'B-24098', thc:'31.6%', packageDate:'Sep 8, 2026', slot:'A-03-3',
-      existing:{ batchNo:'B-24011', slot:'A-03-2', thc:'22.4%', packageDate:'Aug 2, 2026', qty:6 },
+    { id:'gmo-batch', name:'GMO 3.5g', kind:'newbatch', sku:'FLW-GMO-35', qty:40, batchNo:'B-24098', thc:'31.6%', packageDate:'Sep 8, 2026', exp:'Mar 8, 2027', age:'2 d', metrc:'1A4G…9C21', slot:'A-03-3',
+      existing:{ batchNo:'B-24011', slot:'A-03-2', thc:'22.4%', packageDate:'Aug 2, 2026', exp:'Feb 2, 2027', age:'39 d', metrc:'1A4G…B478', qty:6 },
       alt:'A-03-4', status:'pending' },
-    { id:'zk-batch', name:'Zkittlez Rosin 1g', kind:'newbatch', sku:'CNC-ZK-1G', qty:24, batchNo:'Z-1187', thc:'—', packageDate:'Sep 7, 2026', slot:'D-02-3',
-      existing:{ batchNo:'Z-1042', slot:'D-02-2', thc:'—', packageDate:'Jul 28, 2026', qty:4 },
+    { id:'zk-batch', name:'Zkittlez Rosin 1g', kind:'newbatch', sku:'CNC-ZK-1G', qty:24, batchNo:'Z-1187', thc:'68.9%', packageDate:'Sep 7, 2026', exp:'Mar 7, 2027', age:'3 d', metrc:'1A4Z…4B21', slot:'D-02-3',
+      existing:{ batchNo:'Z-1042', slot:'D-02-2', thc:'61.2%', packageDate:'Jul 28, 2026', exp:'Jan 28, 2027', age:'44 d', metrc:'1A4Z…0C18', qty:4 },
       alt:'D-02-4', status:'pending' },
-    { id:'lr-batch', name:'Live Resin Disposable 1g', kind:'newbatch', sku:'VPE-LR-1G', qty:36, batchNo:'LR-3391', thc:'—', packageDate:'Sep 9, 2026', slot:'B-04-2',
-      existing:{ batchNo:'LR-3120', slot:'B-04-1', thc:'—', packageDate:'Aug 14, 2026', qty:8 },
+    { id:'lr-batch', name:'Live Resin Disposable 1g', kind:'newbatch', sku:'VPE-LR-1G', qty:36, batchNo:'LR-3391', thc:'81.0%', packageDate:'Sep 9, 2026', exp:'Mar 9, 2027', age:'1 d', metrc:'1A4L…9E77', slot:'B-04-2',
+      existing:{ batchNo:'LR-3120', slot:'B-04-1', thc:'74.5%', packageDate:'Aug 14, 2026', exp:'Feb 14, 2027', age:'27 d', metrc:'1A4L…2F55', qty:8 },
       alt:'B-04-3', status:'pending' }
   ];
   var KINDLABEL = { new:'New SKU', restock:'Restock', newbatch:'New batch' };
@@ -578,9 +595,9 @@ table.batchtbl .newer{font-weight:700;}
     var host = document.getElementById('ledgerBody');
     var rows = RECEIVING.filter(function(r){ return activeKindFilter==='all' || r.kind===activeKindFilter; });
     host.innerHTML = rows.map(function(r){
-      var meta = r.kind==='newbatch' ? ('Batch '+r.batchNo+(r.existing?(' · older batch at '+r.existing.slot):'')) : (r.kind==='restock' ? 'Continuing existing batch' : 'First arrival of this SKU');
+      var kindNote = r.kind==='newbatch' ? (r.existing?(' · older batch '+r.existing.batchNo+' at '+r.existing.slot):'') : (r.kind==='restock' ? ' · continuing this batch' : ' · first arrival of this batch');
       return '<tr class="'+(r.status==='done'?'done':'')+'">'
-        + '<td><div class="pn">'+esc(r.name)+'</div><div class="pmeta">'+meta+'</div></td>'
+        + '<td><div class="pn">'+esc(r.name)+'</div><div class="pmetachip-row">'+batchChip(r)+'<span class="pmetachip">'+esc(kindNote)+'</span></div></td>'
         + '<td><span class="pill pill-kind-'+r.kind+'">'+KINDLABEL[r.kind]+'</span></td>'
         + '<td class="num">'+r.qty+'</td>'
         + '<td>'+slotChip(r.slot)+'</td>'
@@ -607,10 +624,9 @@ table.batchtbl .newer{font-weight:700;}
     host.innerHTML = ''
       + '<span class="pill kindpill pill-kind-'+line.kind+'">'+KINDLABEL[line.kind]+'</span>'
       + '<h3>'+esc(line.name)+'</h3>'
-      + '<div class="lmeta">'+(line.sku||'')+(line.batchNo?' · Batch '+line.batchNo:'')+'</div>'
+      + '<div class="lmeta">'+(line.sku||'')+'</div>'
+      + '<div class="pmetachip-row" style="margin-top:6px;">'+batchChip(line)+'</div>'
       + '<div class="lrow"><span>Quantity</span><b>'+line.qty+' units</b></div>'
-      + (line.thc ? '<div class="lrow"><span>THC</span><b>'+line.thc+'</b></div>' : '')
-      + (line.packageDate ? '<div class="lrow"><span>Package date</span><b>'+line.packageDate+'</b></div>' : '')
       + '<div class="lrow"><span>Status</span><b>'+(line.status==='done'?'Put away':'Pending')+'</b></div>'
       + '<div style="margin-top:14px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);font-weight:700;">Jump to another line</div>'
       + '<div class="pick-list">'+listHtml+'</div>';
@@ -643,7 +659,7 @@ table.batchtbl .newer{font-weight:700;}
       var pct = Math.round((s.used / s.cap) * 100);
       var hot = pct >= 85;
       return '<div class="ov-opt'+(work.scannedSlot===code?' sel':'')+'" data-code="'+code+'">'
-        + '<span class="oc" style="color:'+zoneVar(s.zone)+'">'+code+'</span>'
+        + '<span class="oc" style="color:'+zoneVar(s.zone)+'">'+ICO.qr.replace('<svg ','<svg style="color:'+zoneVar(s.zone)+';vertical-align:-2px;margin-right:3px;" ')+code+'</span>'
         + '<span class="ocap'+(hot?' hot':'')+'">'+s.used+' / '+s.cap+' used'+(hot?' — nearly full':'')+'</span>'
         + '<div class="capbar"><span class="'+(hot?'hot':'')+'" style="width:'+pct+'%"></span></div>'
         + '</div>';
@@ -671,7 +687,7 @@ table.batchtbl .newer{font-weight:700;}
       + '</div>'
       + '<div class="stepitem'+(readStepDone?' done':'')+'">'
       + '<div class="si-ico">'+(readStepDone?ICO.check:ICO.scan)+'</div>'
-      + '<div class="si-body"><div class="si-title">Read tagged units in bulk</div><div class="si-sub" id="readSub">'+work.unitsRead+' / '+line.qty+' units read</div><div class="readbar"><span style="width:'+Math.round((work.unitsRead/line.qty)*100)+'%"></span></div></div>'
+      + '<div class="si-body"><div class="si-title">Read tagged units — Batch '+line.batchNo+'</div><div class="si-sub" id="readSub">'+work.unitsRead+' of '+line.qty+' expected read (this batch only)</div><div class="readbar"><span style="width:'+Math.round((work.unitsRead/line.qty)*100)+'%"></span></div></div>'
       + (line.status==='done' ? '' : '<div class="si-action"><button class="btn btn-ghost btn-sm" id="simScanUnits" '+(work.reading?'disabled':'')+'>Simulate: bulk RFID read</button></div>')
       + '</div>'
       + '</div>'
@@ -725,9 +741,16 @@ table.batchtbl .newer{font-weight:700;}
 
   function renderScreen2(){ renderLineInfoCard(); renderProposalCard(); }
 
-  /* ---------------- screen 3: refill view ---------------- */
-  var expandOpen = false;
-  var showPickSlip = true;
+  /* ---------------- screen 3: refill view — every row below is one batch ---------------- */
+  function pickSlipCard(b, flagText, giveQty){
+    return '<div class="pickslip">'
+      + '<div class="ps-head"><span class="ps-title">Pick slip strip</span><span class="ps-flag">'+ICO.flag+' '+esc(flagText)+'</span></div>'
+      + '<div class="ps-loc" style="color:'+zoneVar(zoneOf(b.slot))+'">'+b.slot+'</div>'
+      + '<div class="ps-path">Zone '+b.slot.charAt(0)+' · '+zoneName(zoneOf(b.slot))+' · Rack '+b.slot.split('-')[1]+' · Shelf '+b.slot.split('-')[2]+'</div>'
+      + '<div class="ps-row"><span class="k">Batch</span>'+batchChip(b)+'</div>'
+      + '<div class="ps-row"><span class="k">Give from this batch</span><span>'+giveQty+' units</span></div>'
+      + '</div>';
+  }
   function renderScreen3(){
     var gmo = findLine('gmo-batch');
     var bannerHost = document.getElementById('refillBanner');
@@ -741,44 +764,28 @@ table.batchtbl .newer{font-weight:700;}
       return;
     }
 
-    bannerHost.innerHTML = '<div class="banner good">'+ICO.check+'<div><div class="b-title">Located and loud</div><div class="b-body">Both batches of GMO 3.5g now carry a shelf. The kit row below and the pick slip both flag the second batch — the refill person cannot miss it, and cannot claim "no stock" while either shelf holds units.</div></div></div>';
+    bannerHost.innerHTML = '<div class="banner good">'+ICO.check+'<div><div class="b-title">Located and loud — every row below is a batch, not a SKU</div><div class="b-body">Both batches of GMO 3.5g now carry a shelf. Each is its own row with its own Sold, Need, Cap and Give — the refill person cannot collapse them into one number, and cannot claim "no stock" while either shelf holds units.</div></div></div>';
 
-    var older = gmo.existing, newer = { batchNo:gmo.batchNo, slot:gmo.slot, thc:gmo.thc, packageDate:gmo.packageDate, qty:gmo.qty };
-    var give = 16, need = 16, cap = 20, sold = 14;
+    var older = gmo.existing, newer = { batchNo:gmo.batchNo, slot:gmo.slot, thc:gmo.thc, packageDate:gmo.packageDate, exp:gmo.exp, age:gmo.age, metrc:gmo.metrc, qty:gmo.qty };
 
     rowHost.innerHTML = ''
-      + '<div class="batchflag"><span class="pill pill-loud">'+ICO.flag+' 2 batches — do not mix silently</span></div>'
-      + '<table class="boxtbl"><thead><tr><th>Product</th><th>Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead><tbody>'
-      + '<tr class="row-loud"><td class="pn">GMO 3.5g</td><td class="num">'+sold+'</td><td class="num">'+need+'</td><td class="num">'+cap+'</td><td class="num">'+give+'</td>'
-      + '<td class="reasoncell r-loud">MIXED BATCH — see pick slip</td></tr>'
-      + '</tbody></table>'
-      + '<button class="expand-toggle" id="expandBtn">'+(expandOpen?'Hide batch breakdown ▲':'Show batch breakdown ▼')+'</button>'
-      + '<div class="batchdetail'+(expandOpen?' open':'')+'" id="batchDetail">'
-      + '<table class="batchtbl"><thead><tr><th>Batch</th><th>Location</th><th>THC</th><th>Package date</th><th style="text-align:right;">Qty on hand</th></tr></thead><tbody>'
-      + '<tr class="older"><td>'+older.batchNo+' (older)</td><td>'+slotChip(older.slot)+'</td><td>'+older.thc+'</td><td>'+older.packageDate+'</td><td style="text-align:right;font-family:var(--fontMono);">'+older.qty+'</td></tr>'
-      + '<tr class="newer"><td>'+newer.batchNo+' (new)</td><td>'+slotChip(newer.slot)+'</td><td>'+newer.thc+'</td><td>'+newer.packageDate+'</td><td style="text-align:right;font-family:var(--fontMono);">'+newer.qty+'</td></tr>'
-      + '</tbody></table>'
-      + '<div style="font-size:11.5px;color:var(--inkDim);margin-top:8px;">Oldest-first: the older batch (6 left on '+older.slot+') finishes before the newer batch (40 on '+newer.slot+') opens, unless the older batch cannot cover the line alone.</div>'
-      + '</div>';
-
-    document.getElementById('expandBtn').addEventListener('click', function(){
-      expandOpen = !expandOpen;
-      renderScreen3();
-    });
+      + '<div class="batchflag"><span class="pill pill-loud">'+ICO.flag+' 2 batches on this kit line — every row is a batch, oldest first</span></div>'
+      + '<table class="boxtbl"><thead><tr><th>Product · Batch</th><th>Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead><tbody>'
+      + '<tr class="row-loud"><td class="pn">GMO 3.5g<div class="pmetachip-row">'+batchChip(older)+slotChip(older.slot)+'</div></td><td class="num">4</td><td class="num">6</td><td class="num">20</td><td class="num">6</td>'
+      + '<td class="reasoncell r-loud">MIXED BATCH — oldest, deplete first</td></tr>'
+      + '<tr class="row-loud"><td class="pn">GMO 3.5g<div class="pmetachip-row">'+batchChip(newer)+slotChip(newer.slot)+'</div></td><td class="num">10</td><td class="num">10</td><td class="num">20</td><td class="num">10</td>'
+      + '<td class="reasoncell r-loud">MIXED BATCH — newer, after older is used</td></tr>'
+      + '</tbody></table>';
 
     slipHost.innerHTML = ''
-      + '<div class="pickslip">'
-      + '<div class="ps-head"><span class="ps-title">Pick slip strip</span><span class="ps-flag">'+ICO.flag+' 2 batches</span></div>'
-      + '<div class="ps-loc" style="color:'+zoneVar(zoneOf(newer.slot))+'">'+newer.slot+'</div>'
-      + '<div class="ps-path">Zone '+newer.slot.charAt(0)+' · '+zoneName(zoneOf(newer.slot))+' · Rack '+newer.slot.split('-')[1]+' · Shelf '+newer.slot.split('-')[2]+'</div>'
-      + '<div class="ps-row"><span class="k">Batch</span><span>'+newer.batchNo+'</span></div>'
-      + '<div class="ps-row"><span class="k">THC</span><span>'+newer.thc+'</span></div>'
-      + '<div class="ps-row"><span class="k">Package date</span><span>'+newer.packageDate+'</span></div>'
-      + '<div class="ps-row"><span class="k">Give from this batch</span><span>'+give+' units</span></div>'
-      + '<div class="ps-row"><span class="k">Also on shelf</span><span>'+older.slot+' · '+older.batchNo+'</span></div>'
-      + '</div>'
-      + '<button class="printbtn" id="printSlipBtn">'+ICO.print+' Print pick slip</button>';
+      + pickSlipCard(older, 'older · take first', 6)
+      + pickSlipCard(newer, 'newer · mixed batch', 10)
+      + '<div style="flex-basis:100%;display:flex;gap:10px;align-items:center;">'
+      + '<button class="printbtn" id="printSlipBtn">'+ICO.print+' Print both slips</button>'
+      + '<button class="printbtn" id="closeSlipBtn">'+ICO.qr+' Scan QR to close this pick</button>'
+      + '</div>';
     document.getElementById('printSlipBtn').addEventListener('click', function(){ window.print(); });
+    document.getElementById('closeSlipBtn').addEventListener('click', function(){ toast('Pick closed', 'Simulated scan of the pick-slip QR — this pick is now marked closed.'); });
   }
 
   /* ---------------- boot ---------------- */

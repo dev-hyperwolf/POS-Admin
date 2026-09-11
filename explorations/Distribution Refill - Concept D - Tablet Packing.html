@@ -6,11 +6,16 @@
 <title>Distribution Refill — Concept D — Tablet Packing</title>
 <style>
 /* ============================================================================
-   Concept D — Tablet Packing. One kit at a time, big targets, gloved-hand
-   friendly. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK) and the
-   table/pill/button shapes from shared/hd-ui.jsx, rail shell reproduced from
-   Hyperwolf Bounty.html. No build step, no external requests. All product
-   names, driver names, quantities and times below are EXAMPLE DATA.
+   Concept D — Tablet Packing (Round 2 revision). One kit at a time, big
+   targets, gloved-hand friendly. Tokens copied inline from pos/tokens.jsx and
+   hd-ui.jsx, rail shell from Hyperwolf Bounty.html. No build step, no
+   external requests. Revision: every row is a batch row (monospace chip);
+   a mixed-batch SKU shows two rows with a LOUD flag; "Box packed" becomes
+   "Read box" — a simulated RFID sweep shows read vs expected per batch,
+   mismatch rows (missing/extra/wrong batch/wrong box), and steppers now
+   appear only in a flagged exception row (dead tag or untagged category,
+   hand-counted); kit and box QR affordances close a pick slip by scan.
+   All names, quantities, batches and times below are EXAMPLE DATA.
    ========================================================================= */
 :root{
   --fontSans:"Inter",-apple-system,system-ui,sans-serif;
@@ -79,7 +84,6 @@ button,select,input,textarea{font-family:inherit;}
 ::-webkit-scrollbar-track{background:transparent;}
 button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
-
 .app{display:flex;min-height:100vh;}
 .rail{width:72px;flex:0 0 72px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;}
 .rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;color:var(--accentInk);flex:0 0 auto;}
@@ -90,7 +94,6 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .rail-item .lbl{font-size:10px;font-weight:600;white-space:nowrap;}
 .rail-spacer{flex:1;}
 .rail-bottom{width:100%;padding-top:6px;border-top:1px solid var(--railHair);}
-
 .main{flex:1;min-width:0;display:flex;flex-direction:column;}
 .topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap;}
 .topbar .titleblock{margin-right:auto;min-width:160px;}
@@ -100,7 +103,6 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .iconbtn:hover{background:var(--surface3);color:var(--ink);}
 .clock{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);text-align:right;line-height:1.35;}
 .clock b{color:var(--ink);font-size:var(--f-body);display:block;}
-
 /* day timeline (6 stage) — compact strip under topbar */
 .daytl{display:flex;align-items:center;gap:0;padding:9px 18px;background:var(--surface2);border-bottom:1px solid var(--hairline2);overflow-x:auto;}
 .dtl-step{display:flex;align-items:center;gap:6px;flex:0 0 auto;padding:0 12px;position:relative;font-size:var(--f-meta);color:var(--inkMute);white-space:nowrap;}
@@ -112,14 +114,12 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .dtl-step.active{color:var(--ink);font-weight:700;}
 .dtl-step.active .dtl-dot{background:var(--accent);box-shadow:0 0 0 3px var(--accentSoft);}
 .dtl-when{color:var(--inkFaint);font-family:var(--fontMono);}
-
 .banner{display:flex;align-items:flex-start;gap:10px;border-radius:var(--r12);padding:12px 16px;font-size:var(--f-body);margin:12px 18px 0;border:1px solid var(--hairline2);background:var(--surface2);}
 .banner.warn{background:var(--warnSoft);border-color:var(--warn);color:var(--warnText);}
 .banner .b-title{font-weight:700;margin-bottom:2px;}
 .banner .b-x{margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;}
 .example-banner{display:flex;align-items:center;gap:8px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 14px;font-size:var(--f-meta);font-weight:600;margin:12px 18px 0;}
 .tabletnote{font-size:var(--f-meta);color:var(--inkMute);margin:6px 18px 0;}
-
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--r10);font-size:var(--f-body);font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
 .btn-primary{background:var(--accent);color:var(--accentInk);}
 .btn-primary:hover{background:var(--accentHover);}
@@ -132,7 +132,6 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .pill-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
 .pill-neutral{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
 .dot-red{width:10px;height:10px;border-radius:50%;background:var(--bad);flex:0 0 auto;box-shadow:0 0 0 2px var(--surface);}
-
 /* ---- packing layout: two-pane wide, single-screen narrow ---- */
 .packing{flex:1;display:flex;min-height:0;overflow:hidden;}
 .pane-regions{width:380px;flex:0 0 380px;border-right:1px solid var(--hairline2);overflow-y:auto;background:var(--surface2);}
@@ -151,20 +150,16 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .kit-chip .kc-route{font-size:var(--f-meta);color:var(--inkMute);}
 .kit-chip .kc-prog{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);margin-top:2px;}
 .kit-chip.committed{opacity:.68;}
-
 .skips-summary{margin:0 12px 16px;border-top:1px solid var(--hairline2);padding-top:10px;}
 .skips-summary h3{font-size:var(--f-meta);text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);margin:0 4px 8px;}
 .skip-line{display:flex;align-items:center;gap:8px;padding:8px 6px;border-radius:var(--r8);font-size:var(--f-meta);}
 .skip-line:hover{background:var(--surface3);cursor:pointer;}
 .skip-line b{color:var(--ink);}
-
 .empty-kit{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--inkMute);padding:40px;text-align:center;}
-
 .kit-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;}
 .back-btn{display:none;}
 .kit-head .kh-name{font-size:var(--f-title);font-weight:700;}
 .kit-head .kh-route{font-size:var(--f-meta);color:var(--inkMute);}
-
 /* received lane */
 .lane-head{display:flex;align-items:center;gap:8px;padding:14px 20px 4px;}
 .lane-head h3{margin:0;font-size:var(--f-body);font-weight:700;}
@@ -178,7 +173,6 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .receipt .send-btn{margin-top:auto;height:44px;}
 .receipt.done{opacity:.55;}
 .receipt .sent-flag{font-size:var(--f-meta);font-weight:700;color:var(--good);}
-
 /* box pager */
 .pager-head{display:flex;align-items:center;gap:6px;padding:10px 20px;flex-wrap:wrap;border-bottom:1px solid var(--hairline2);background:var(--surface);}
 .pager-tab{background:none;border:none;font-size:var(--f-meta);color:var(--inkMute);cursor:pointer;padding:8px 4px;font-weight:600;white-space:nowrap;}
@@ -186,19 +180,22 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .pager-sep{color:var(--hairline3);}
 .manage-boxtypes{margin-left:auto;background:none;border:1px dashed var(--hairline3);border-radius:99px;color:var(--inkMute);font-size:var(--f-meta);cursor:pointer;padding:6px 12px;}
 .manage-boxtypes:hover{color:var(--ink);border-color:var(--inkMute);}
+.qrbtn{background:none;border:1px dashed var(--hairline3);border-radius:99px;color:var(--inkMute);font-size:var(--f-meta);font-weight:700;cursor:pointer;padding:6px 12px;}
+.qrbtn:hover{color:var(--ink);border-color:var(--inkMute);}
 .arrows{display:flex;gap:6px;padding:8px 20px;}
 .arrowbtn{width:52px;height:44px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);font-size:18px;cursor:pointer;}
 .arrowbtn:disabled{opacity:.35;cursor:not-allowed;}
-
 .box-scroller{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;}
 .box-panel{flex:0 0 100%;scroll-snap-align:start;padding:14px 20px 8px;min-width:100%;}
-.box-title{font-size:var(--f-title);font-weight:800;margin:0 0 10px;}
-.prow{display:flex;align-items:center;gap:14px;padding:12px 8px;border-radius:var(--r12);margin-bottom:8px;border:1px solid var(--hairline);background:var(--surface);}
+.box-title{font-size:var(--f-title);font-weight:800;margin:0 0 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.prow{display:flex;align-items:center;gap:14px;padding:12px 8px;border-radius:var(--r12);margin-bottom:8px;border:1px solid var(--hairline);background:var(--surface);flex-wrap:wrap;}
 .prow.amber{background:var(--warnSoft);border-color:var(--warn);}
-.prow .pname{flex:1 1 180px;min-width:140px;}
+.prow .pname{flex:1 1 220px;min-width:180px;}
 .prow .pname b{font-size:var(--f-body);font-weight:700;display:block;}
 .prow .pname .sub{font-size:var(--f-meta);color:var(--inkMute);}
-.prow .stat3{display:flex;gap:14px;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);flex:0 0 auto;}
+.batchchip{font-family:var(--fontMono);font-size:11px;color:var(--inkMute);display:block;margin-top:2px;}
+.loudflag{display:inline-flex;align-items:center;gap:4px;background:var(--badSoft);color:var(--bad);border:1px solid var(--bad);border-radius:7px;padding:2px 7px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-left:8px;}
+.prow .stat3{display:flex;gap:14px;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);flex:0 0 auto;align-items:center;}
 .prow .stat3 div{text-align:center;}
 .prow .stat3 .k{font-size:10px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
 .stepper{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
@@ -206,11 +203,13 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .stepbtn:hover{background:var(--hairline2);}
 .stepbtn:disabled{opacity:.35;cursor:not-allowed;}
 .stepval{width:52px;text-align:center;font-family:var(--fontMono);font-size:20px;font-weight:800;}
-.reasonline{flex-basis:100%;font-size:var(--f-meta);color:var(--warnText);margin-top:4px;display:flex;align-items:center;gap:8px;}
+.reasonline{flex-basis:100%;font-size:var(--f-meta);color:var(--warnText);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .fixbtn{height:32px;padding:0 12px;border-radius:99px;border:1px solid var(--warn);background:var(--surface);color:var(--warnText);font-size:var(--f-meta);font-weight:700;cursor:pointer;}
 .pack-btn{width:100%;height:48px;margin-top:6px;border-radius:var(--r12);border:1px solid var(--good);background:var(--goodSoft);color:var(--good);font-weight:800;font-size:var(--f-body);cursor:pointer;}
 .pack-btn.done{background:var(--good);color:#fff;}
-
+.pack-btn.waiting{border-color:var(--warn);background:var(--warnSoft);color:var(--warnText);cursor:not-allowed;}
+.qrgrid{width:150px;height:150px;margin:10px auto;display:grid;grid-template-columns:repeat(9,1fr);gap:2px;}
+.qrgrid div{background:var(--ink);}
 /* bottom bar */
 .kitbar{position:sticky;bottom:0;display:flex;align-items:center;gap:20px;padding:12px 20px;border-top:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;}
 .kitbar .sum{display:flex;gap:20px;flex-wrap:wrap;}
@@ -221,7 +220,6 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .ktl .d.done{background:var(--good);}
 .ktl .d.active{background:var(--accent);box-shadow:0 0 0 3px var(--accentSoft);}
 .kitbar .btn{margin-left:auto;}
-
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:flex-end;justify-content:center;z-index:80;}
 .overlay.top{align-items:center;}
@@ -235,13 +233,10 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .mtinput{width:100%;height:44px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 12px;font-size:var(--f-body);margin-top:8px;}
 .mtchip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:99px;background:var(--surface3);margin:0 6px 6px 0;font-size:var(--f-meta);}
 .mtchip button{background:none;border:none;color:var(--inkMute);cursor:pointer;font-size:14px;}
-
 .toast{position:fixed;right:18px;bottom:20px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:320px;}
-
 .footer{padding:10px 20px;font-size:var(--f-meta);color:var(--inkMute);border-top:1px solid var(--hairline2);}
 .legend{display:flex;flex-wrap:wrap;gap:10px 18px;padding:0 20px 10px;font-size:var(--f-meta);color:var(--inkDim);}
 .legend .li{display:flex;align-items:center;gap:6px;}
-
 @media (min-width: 901px){ .back-btn{display:none !important;} }
 @media (max-width: 900px){
   .rail{width:58px;flex-basis:58px;}
@@ -282,12 +277,12 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 
     <div class="daytl" id="dayTimeline"></div>
 
-    <div class="example-banner">Design mockup — every product, driver name, quantity and time on this screen is example data.</div>
+    <div class="example-banner">Design mockup — every product, driver name, batch, quantity and time on this screen is example data.</div>
     <div class="banner warn" id="alreadyRanBanner">
       <div><div class="b-title">Refill already ran today for Orange County</div>Completed 6:12 AM PT by System (auto), business day Thu Sep 10 (Pacific). Committing a kit below supersedes that run for its region, not add to it.</div>
       <button class="b-x" id="dismissRan" aria-label="Dismiss">×</button>
     </div>
-    <div class="tabletnote">Built for a 10″ tablet at the packing bench (portrait or landscape) — narrows to one screen at a time under 900px, widens to a region list + kit pane on desktop.</div>
+    <div class="tabletnote">Built for a 10″ tablet at the packing bench (portrait or landscape) — narrows to one screen at a time under 900px, widens to a region list + kit pane on desktop. Every row is a batch; "Read box" simulates the handheld RFID sweep.</div>
 
     <div class="packing" id="packing">
       <section class="pane-regions" id="paneRegions"></section>
@@ -300,10 +295,11 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
     </div>
 
     <div class="legend">
-      <span class="li"><span class="dot-red"></span> Kit has a skip or shortfall</span>
-      <span class="li"><span class="pill pill-warn">amber row</span> Product needs attention — reason + Fix</span>
+      <span class="li"><span class="dot-red"></span> Kit has a skip, shortfall or open read</span>
+      <span class="li"><span class="pill pill-warn">amber row</span> Reason, mismatch or hand-count needed — Fix / Confirm</span>
+      <span class="li"><span class="loudflag" style="margin-left:0;">Mixed batch</span> two batches of one SKU share this box line — oldest ships first</span>
+      <span class="li">▦ <b>QR</b> — scan a kit or box pick slip to close it; the printed slip matches</span>
       <span class="li"><span class="pill pill-good">green dot</span> Timeline stage complete</span>
-      <span class="li"><span class="pill pill-neutral">gray</span> Not yet reached</span>
     </div>
     <div class="footer">Concept D of 4 — Tablet Packing</div>
   </div>
@@ -353,69 +349,80 @@ function renderDayTL(){
 }
 renderDayTL();
 
-/* ---------- data ---------- */
-var REASON_TEXT = {
-  shortstock: 'Short stock', belowsub: 'Below subregion count', notemplate: 'Not in template',
-  nosales: 'No sales counted', capped: 'Capped'
-};
-var FIX_LABEL = {
-  shortstock: 'Fix', belowsub: 'Fix', notemplate: 'Add to template', nosales: 'Force include', capped: 'Raise cap'
-};
+/* ---------- data — batch is the unit; RFID read drives the box state ---------- */
+var REASON_TEXT = { shortstock:'Short stock', belowsub:'Below subregion count', notemplate:'Not in template', nosales:'No sales counted', capped:'Capped' };
+var FIX_LABEL = { shortstock:'Fix', belowsub:'Fix', notemplate:'Add to template', nosales:'Force include', capped:'Raise cap' };
 var pid = 0;
-function P(name, sold, need, cap, given, reason){
-  return {id:'p'+(++pid), name:name, sold:sold, need:need, cap:cap, given:given, reason:reason||null, packed:false};
+function bt(num,thc,pkg,exp,age){ return {num:num,thc:thc,pkg:pkg,exp:exp,age:age}; }
+function chip(b){ return b.num+' · THC '+b.thc+'% · pkg '+b.pkg+' · exp '+b.exp+' · '+b.age+' d on hand'; }
+function P(name,b,sold,need,cap,given,reason,flags){
+  flags = flags||{};
+  return {id:'p'+(++pid), name:name, b:b, sold:sold, need:need, cap:cap, given:given, reason:reason||null,
+    mismatch:flags.mismatch||null, untagged:!!flags.untagged, deadtag:!!flags.deadtag, read:null, pending:false};
 }
-function box(name, products){ return {name:name, packed:false, products:products}; }
+function box(name, products){ return {name:name, state:'unread', products:products}; }
 function kit(driver, route, boxes){ return {id:'k'+(++pid), driver:driver, route:route, committed:false, boxes:boxes}; }
+
+/* batch pool — one per SKU, reused where the same batch ships to more than one kit.
+   Sunset OG 3.5g carries the standard mixed pair wherever both are on hand in a kit. */
+var B1=bt('#HW-2408-05','23.6','Aug 5','Jan 31',36), B2=bt('#HW-2408-12','20.1','Aug 12','Feb 7',29), B3=bt('#HW-2408-18','27.3','Aug 18','Feb 14',23), B4=bt('#HW-2409-02','25.9','Sep 2','Feb 28',8);
+var B5=bt('#HW-2408-25','21.0','Aug 25','Feb 20',16), B6=bt('#HW-2407-29','18.4','Jul 29','Jan 24',43), B7=bt('#HW-2408-09','80.2','Aug 9','Feb 4',32), B8=bt('#HW-2408-15','76.8','Aug 15','Feb 10',26);
+var B9=bt('#HW-2409-05','2.6','Sep 1','Mar 1',9), B10=bt('#HW-2407-20','2.1','Jul 20','Jan 16',52), B11=bt('#HW-2407-25','9.4','Jul 25','Jan 21',47), B12=bt('#HW-2407-15','9.6','Jul 15','Jan 11',57);
+var B13=bt('#HW-2408-08','25.2','Aug 8','Feb 3',33), B14=bt('#HW-2408-28','19.8','Aug 28','Feb 23',13), B15=bt('#HW-2408-19','74.1','Aug 19','Feb 14',22), B16=bt('#HW-2408-22','81.0','Aug 22','Feb 17',19);
+var B17=bt('#HW-2408-10','24.7','Aug 10','Feb 5',31), B18=bt('#HW-2407-31','20.6','Jul 31','Jan 26',41), B19=bt('#HW-2409-06','26.0','Sep 6','Mar 4',4), B20=bt('#HW-2408-13','83.4','Aug 13','Feb 8',28);
+var B21=bt('#HW-2408-27b','79.5','Aug 27','Feb 22',14), B22=bt('#HW-2408-06b','88.2','Aug 6','Feb 1',35), B23=bt('#HW-2408-30','75.0','Aug 30','Feb 25',11), B24=bt('#HW-2408-16','22.9','Aug 16','Feb 11',25);
+var B25=bt('#HW-2408-24','20.3','Aug 24','Feb 19',17), B26=bt('#HW-2408-17','28.6','Aug 17','Feb 12',24), B27=bt('#HW-2407-27','17.9','Jul 27','Jan 22',45), B28=bt('#HW-2408-21','19.1','Aug 21','Feb 16',20);
+var B29=bt('#HW-2408-23','77.4','Aug 23','Feb 18',18), B30=bt('#HW-2407-17','9.2','Jul 17','Jan 13',55);
+var B_BDA=bt('#HW-2409-01','24.1','Aug 28','Feb 24',13), B_BDB=bt('#HW-2411-07','31.6','Sep 6','Apr 6',4);
 
 var REGIONS = [
   { name:'West LA', kits:[
     kit('Marcus R.','Route 3', [
-      box('Flower Box 1', [ P('Sunset OG 3.5g',18,20,24,20), P('Blue Dream 3.5g',9,10,10,10), P('GMO 7g',4,6,6,6,'shortstock') ]),
-      box('Flower Box 2', [ P('Wedding Cake 1g',22,24,30,24), P('Runtz 3.5g',3,3,3,3) ]),
-      box('Pre-Roll Box 1', [ P('Indica 5-pack',12,14,14,14), P('Hybrid Singles',30,32,32,0,'notemplate') ]),
-      box('Vape Box 1', [ P('Live Resin Cart 1g',15,16,18,16), P('Rosin Cart 0.5g',6,8,8,8,'capped') ]),
-      box('Cooler', [ P('THC Seltzer 4-pack',10,12,12,12), P('Cold Brew 100mg',0,4,4,0,'nosales') ]),
-      box('Edible Bin', [ P('Gummies 100mg',20,22,24,22), P('Chocolate Bar 100mg',8,8,10,8) ])
+      box('Flower Box 1', [ P('Sunset OG 3.5g',B_BDA,10,10,12,10), P('Sunset OG 3.5g',B_BDB,8,10,12,10), P('Blue Dream 3.5g',B1,9,10,10,10,null,{mismatch:'missing'}), P('GMO 7g',B2,4,6,6,6,'shortstock') ]),
+      box('Flower Box 2', [ P('Wedding Cake 1g',B3,22,24,30,24), P('Runtz 3.5g',B4,3,3,3,3) ]),
+      box('Pre-Roll Box 1', [ P('Indica 5-pack',B5,12,14,14,14), P('Hybrid Singles',B6,30,32,32,0,'notemplate') ]),
+      box('Vape Box 1', [ P('Live Resin Cart 1g',B7,15,16,18,16), P('Rosin Cart 0.5g',B8,6,8,8,8,'capped') ]),
+      box('Cooler', [ P('THC Seltzer 4-pack',B9,10,12,12,12), P('Cold Brew 100mg',B10,0,4,4,0,'nosales') ]),
+      box('Edible Bin', [ P('Gummies 100mg',B11,20,22,24,22), P('Chocolate Bar 100mg',B12,8,8,10,8) ])
     ]),
     kit('Priya K.','Route 5', [
-      box('Flower Box 1', [ P('Sunset OG 3.5g',10,12,12,12), P('Zkittlez 7g',5,5,5,5) ]),
-      box('Pre-Roll Box 1', [ P('Indica 5-pack',8,8,10,8), P('Sativa Singles',14,16,16,10,'shortstock') ]),
-      box('Concentrate Bin 1', [ P('Live Rosin 1g',6,6,8,6), P('Sauce 1g',3,4,4,4) ])
+      box('Flower Box 1', [ P('Sunset OG 3.5g',B_BDB,10,12,12,12), P('Zkittlez 7g',B13,5,5,5,5,null,{deadtag:true}) ]),
+      box('Pre-Roll Box 1', [ P('Indica 5-pack',B5,8,8,10,8), P('Sativa Singles',B14,14,16,16,10,'shortstock') ]),
+      box('Concentrate Bin 1', [ P('Live Rosin 1g',B15,6,6,8,6), P('Sauce 1g',B16,3,4,4,4) ])
     ])
   ]},
   { name:'Inland Empire', kits:[
     kit('DeShawn T.','Route 1', [
-      box('Flower Box 1', [ P('OG Kush 3.5g',16,18,20,18), P('Trainwreck 7g',7,8,8,8) ]),
-      box('Flower Box 2', [ P('Gelato 1g',20,20,24,20) ]),
-      box('Vape Box 1', [ P('Distillate Cart 1g',12,14,14,14) ]),
-      box('Vape Box 2', [ P('Live Resin Cart 0.5g',5,6,6,0,'belowsub') ]),
-      box('Concentrate Bin 1', [ P('Shatter 1g',4,4,6,4) ]),
-      box('Concentrate Bin 2', [ P('Diamonds 1g',2,3,3,3) ]),
-      box('Edible Bin', [ P('Gummies 100mg',18,20,20,20) ])
+      box('Flower Box 1', [ P('OG Kush 3.5g',B17,16,18,20,18), P('Trainwreck 7g',B18,7,8,8,8,null,{mismatch:'wrongbatch'}) ]),
+      box('Flower Box 2', [ P('Gelato 1g',B19,20,20,24,20) ]),
+      box('Vape Box 1', [ P('Distillate Cart 1g',B20,12,14,14,14) ]),
+      box('Vape Box 2', [ P('Live Resin Cart 0.5g',B21,5,6,6,0,'belowsub') ]),
+      box('Concentrate Bin 1', [ P('Shatter 1g',B22,4,4,6,4) ]),
+      box('Concentrate Bin 2', [ P('Diamonds 1g',B23,2,3,3,3,null,{mismatch:'wrongbox'}) ]),
+      box('Edible Bin', [ P('Gummies 100mg',B11,18,20,20,20) ])
     ]),
     kit('Alicia N.','Route 2', [
-      box('Flower Box 1', [ P('Sour Diesel 3.5g',14,14,16,14) ]),
-      box('Pre-Roll Box 1', [ P('Hybrid 5-pack',10,12,12,12) ]),
-      box('Cooler', [ P('THC Seltzer 4-pack',6,8,8,4,'shortstock') ])
+      box('Flower Box 1', [ P('Sour Diesel 3.5g',B24,14,14,16,14) ]),
+      box('Pre-Roll Box 1', [ P('Hybrid 5-pack',B25,10,12,12,12,null,{mismatch:'extra'}) ]),
+      box('Cooler', [ P('THC Seltzer 4-pack',B9,6,8,8,4,'shortstock') ])
     ])
   ]},
   { name:'Orange County', kits:[
     kit('Tommy V.','Route 4', [
-      box('Flower Box 1', [ P('Wedding Cake 3.5g',20,22,24,22) ]),
-      box('Pre-Roll Box 1', [ P('Indica Singles',24,24,28,24) ]),
-      box('Pre-Roll Box 2', [ P('Sativa 5-pack',9,10,10,10) ]),
-      box('Vape Box 1', [ P('Rosin Cart 1g',10,12,12,8,'capped') ]),
-      box('Edible Bin', [ P('Chocolate Bar 100mg',6,8,8,8), P('Gummies 50mg',12,12,14,0,'notemplate') ])
+      box('Flower Box 1', [ P('Wedding Cake 3.5g',B26,20,22,24,22) ]),
+      box('Pre-Roll Box 1', [ P('Indica Singles',B27,24,24,28,24,null,{untagged:true}) ]),
+      box('Pre-Roll Box 2', [ P('Sativa 5-pack',B28,9,10,10,10) ]),
+      box('Vape Box 1', [ P('Rosin Cart 1g',B29,10,12,12,8,'capped') ]),
+      box('Edible Bin', [ P('Chocolate Bar 100mg',B12,6,8,8,8), P('Gummies 50mg',B30,12,12,14,0,'notemplate') ])
     ])
   ]}
 ];
 
 /* ---------- received lane (per kit, example) ---------- */
 var RECEIPTS = [
-  {name:'Rainbow Sherbet Live Resin 1g', received:'Sep 8', avail:12, box:'Vape Box 1'},
-  {name:'Cosmic Gummies 10-pack', received:'Sep 9', avail:8, box:'Edible Bin'},
-  {name:'Papaya Pre-Roll 3-pack', received:'Sep 9', avail:20, box:'Pre-Roll Box 1'}
+  {name:'Rainbow Sherbet Live Resin 1g', b:bt('#HW-2409-09','79.8','Sep 9','Mar 9',1), received:'Sep 8', avail:12, box:'Vape Box 1'},
+  {name:'Cosmic Gummies 10-pack', b:bt('#HW-2409-08','9.5','Sep 8','Mar 6',2), received:'Sep 9', avail:8, box:'Edible Bin'},
+  {name:'Papaya Pre-Roll 3-pack', b:bt('#HW-2409-11','21.7','Sep 9','Mar 7',1), received:'Sep 9', avail:20, box:'Pre-Roll Box 1'}
 ];
 
 /* ---------- state ---------- */
@@ -425,32 +432,40 @@ function findKit(id){
   for(var r=0;r<REGIONS.length;r++) for(var k=0;k<REGIONS[r].kits.length;k++) if(REGIONS[r].kits[k].id===id) return REGIONS[r].kits[k];
   return null;
 }
+function openIssues(b){ return b.products.filter(function(p){ return p.pending; }).length; }
 function kitTotals(k){
-  var given=0, sold=0, boxesPacked=0, skips=0;
-  k.boxes.forEach(function(b){ if(b.packed) boxesPacked++; b.products.forEach(function(p){ given+=p.given; sold+=p.sold; if(p.reason) skips++; }); });
-  return {given:given, sold:sold, boxesPacked:boxesPacked, boxesTotal:k.boxes.length, skips:skips};
+  var given=0, sold=0, boxesPacked=0, skips=0, openReads=0;
+  k.boxes.forEach(function(b){ if(b.state==='packed') boxesPacked++; openReads+=openIssues(b); b.products.forEach(function(p){ given+=p.given; sold+=p.sold; if(p.reason) skips++; }); });
+  return {given:given, sold:sold, boxesPacked:boxesPacked, boxesTotal:k.boxes.length, skips:skips, openReads:openReads};
+}
+function readBox(b){
+  b.products.forEach(function(p){
+    if(p.untagged||p.deadtag){ p.read=p.given; p.pending=true; }
+    else if(p.mismatch==='missing'){ p.read=Math.max(0,p.given-2); p.pending=true; }
+    else if(p.mismatch==='extra'){ p.read=p.given+1; p.pending=true; }
+    else if(p.mismatch==='wrongbatch'||p.mismatch==='wrongbox'){ p.read=p.given; p.pending=true; }
+    else { p.read=p.given; p.pending=false; }
+  });
+  b.state='read';
 }
 
 /* ---------- render: region list ---------- */
 function renderRegions(){
   var html = '<div class="regions-head"><h2>Regions</h2></div>';
   REGIONS.forEach(function(region){
-    var packed=0, total=0, skipTotal=0;
     html += '<div class="region-block"><div class="region-head">'+region.name+'<span class="cnt">'+region.kits.length+' kit'+(region.kits.length===1?'':'s')+'</span></div>';
     region.kits.forEach(function(k){
       var t = kitTotals(k);
-      packed += t.boxesPacked; total += t.boxesTotal; skipTotal += t.skips;
       var initials = k.driver.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
       html += '<button class="kit-chip'+(k.id===selectedKitId?' selected':'')+(k.committed?' committed':'')+'" data-kit="'+k.id+'">'+
         '<span class="kc-av">'+initials+'</span>'+
         '<span class="kc-mid"><span class="kc-name">'+k.driver+'</span><span class="kc-route">'+k.route+'</span>'+
         '<div class="kc-prog">'+t.boxesPacked+' / '+t.boxesTotal+' boxes packed'+(k.committed?' · Committed':'')+'</div></span>'+
-        (t.skips>0 && !k.committed ? '<span class="dot-red" title="'+t.skips+' item(s) need attention"></span>' : '')+
+        ((t.skips+t.openReads)>0 && !k.committed ? '<span class="dot-red" title="'+(t.skips+t.openReads)+' item(s) need attention"></span>' : '')+
         '</button>';
     });
     html += '</div>';
   });
-  // skips & shortfalls panel, plain words
   var lines = [];
   REGIONS.forEach(function(region){ region.kits.forEach(function(k){ k.boxes.forEach(function(b){ b.products.forEach(function(p){
     if(p.reason) lines.push({kit:k, box:b, p:p, region:region});
@@ -459,7 +474,7 @@ function renderRegions(){
     html += '<div class="skips-summary"><h3>Skips &amp; shortfalls today ('+lines.length+')</h3>';
     lines.forEach(function(L){
       html += '<div class="skip-line" data-kit="'+L.kit.id+'" data-box="'+L.box.name+'">'+
-        '<span class="dot-red"></span><span><b>'+L.p.name+'</b> in '+L.box.name+' for '+L.kit.driver+' ('+L.kit.route+') — '+REASON_TEXT[L.p.reason]+'.</span></div>';
+        '<span class="dot-red"></span><span><b>'+L.p.name+'</b> '+L.p.b.num+' in '+L.box.name+' for '+L.kit.driver+' ('+L.kit.route+') — '+REASON_TEXT[L.p.reason]+'.</span></div>';
     });
     html += '</div>';
   }
@@ -485,19 +500,53 @@ function selectKit(id, boxIdx){
 }
 function backToRegions(){ $('#packing').classList.remove('showing-kit'); }
 
+function groupByName(products){
+  var groups = [];
+  products.forEach(function(p){
+    var g = groups[groups.length-1];
+    if(!g || g.name!==p.name){ g={name:p.name, ps:[]}; groups.push(g); }
+    g.ps.push(p);
+  });
+  return groups;
+}
+
+function prowHtml(p, b, showName, loud){
+  var unread = b.state==='unread', exception = p.untagged||p.deadtag;
+  var mismatched = !unread && !exception && (p.read!==p.given || p.mismatch);
+  var cls = (exception||mismatched) ? ' amber' : '';
+  var nameCell = '<div class="pname">'+(showName?'<b>'+showName+(loud?'<span class="loudflag">Mixed batch</span>':'')+'</b><span class="sub">'+b.name+'</span>':'')+'<span class="batchchip">'+chip(p.b)+'</span></div>';
+  var right, tail = '';
+  if(unread){
+    right = '<div class="stat3"><div><div class="k">Sold</div>'+p.sold+'</div><div><div class="k">Need</div>'+p.need+'</div><div><div class="k">Given</div>'+p.given+'</div></div>';
+    if(p.reason) tail = '<div class="reasonline">Reason: '+REASON_TEXT[p.reason]+'. <button class="fixbtn" data-fix="'+p.id+'">'+FIX_LABEL[p.reason]+'</button></div>';
+  } else if(exception){
+    right = '<div class="stepper"><button class="stepbtn" data-act="dec" data-p="'+p.id+'" aria-label="Decrease">−</button><span class="stepval">'+p.read+'</span><button class="stepbtn" data-act="inc" data-p="'+p.id+'" aria-label="Increase">+</button></div>';
+    tail = '<div class="reasonline">Hand-counted — '+(p.untagged?'untagged category, no RFID tag':'dead tag, could not be read')+'.'+
+      (p.pending ? ' <button class="fixbtn" data-confirm="'+p.id+'">Confirm count</button>' : ' <span class="pill pill-good">✓ Counted</span>')+'</div>';
+  } else if(mismatched){
+    var diff = p.read-p.given;
+    var label = p.mismatch==='wrongbatch' ? 'wrong batch read in this box' : (p.mismatch==='wrongbox' ? 'read here, expected in another box' : (diff<0 ? 'missing '+(-diff) : 'extra '+diff));
+    right = '<div class="stat3"><div><div class="k">Given</div>'+p.given+'</div><div><div class="k">Read</div>'+p.read+'</div></div>';
+    tail = '<div class="reasonline">Mismatch — '+label+'. <button class="fixbtn" data-fix2="'+p.id+'">Fix</button></div>';
+  } else {
+    right = '<div class="stat3"><div><div class="k">Given</div>'+p.given+'</div><div><div class="k">Read</div>'+p.read+'</div></div><span class="pill pill-good">✓ Match</span>';
+  }
+  return '<div class="prow'+cls+'" data-p="'+p.id+'">'+nameCell+right+tail+'</div>';
+}
+
 function renderKit(){
   var k = findKit(selectedKitId);
   var pane = $('#paneKit');
   if(!k){ pane.innerHTML = '<div class="empty-kit">Tap a kit on the left to start packing.</div>'; return; }
   var t = kitTotals(k);
   var boxNamesHtml = k.boxes.map(function(b,i){
-    return (i>0?'<span class="pager-sep">▸</span>':'')+'<button class="pager-tab'+(i===selectedBoxIdx?' active':'')+'" data-i="'+i+'">'+b.name+(b.packed?' ✓':'')+'</button>';
+    return (i>0?'<span class="pager-sep">▸</span>':'')+'<button class="pager-tab'+(i===selectedBoxIdx?' active':'')+'" data-i="'+i+'">'+b.name+(b.state==='packed'?' ✓':'')+'</button>';
   }).join('');
 
   var receiptsHtml = RECEIPTS.map(function(r,i){
     var sent = r._sent||0, left = r.avail - sent;
     return '<div class="receipt'+(left<=0?' done':'')+'">'+
-      '<span class="tag">New</span><div class="rname">'+r.name+'</div>'+
+      '<span class="tag">New</span><div class="rname">'+r.name+'</div><span class="batchchip">'+chip(r.b)+'</span>'+
       '<div class="rmeta">Received '+r.received+' · suggests '+r.box+'</div>'+
       '<div class="ravail">'+(left<=0?'All sent':(left+' of '+r.avail+' left'))+'</div>'+
       (left<=0
@@ -507,19 +556,15 @@ function renderKit(){
   }).join('');
 
   var b = k.boxes[selectedBoxIdx];
-  var rowsHtml = b.products.map(function(p){
-    var amber = !!p.reason;
-    return '<div class="prow'+(amber?' amber':'')+'" data-p="'+p.id+'">'+
-      '<div class="pname"><b>'+p.name+'</b><span class="sub">'+b.name+'</span></div>'+
-      '<div class="stat3"><div><div class="k">Sold</div>'+p.sold+'</div><div><div class="k">Need</div>'+p.need+'</div><div><div class="k">Cap</div>'+p.cap+'</div></div>'+
-      '<div class="stepper">'+
-        '<button class="stepbtn" data-act="dec" data-p="'+p.id+'" aria-label="Decrease">−</button>'+
-        '<span class="stepval">'+p.given+'</span>'+
-        '<button class="stepbtn" data-act="inc" data-p="'+p.id+'" aria-label="Increase">+</button>'+
-      '</div>'+
-      (amber ? '<div class="reasonline">Reason: '+REASON_TEXT[p.reason]+'. <button class="fixbtn" data-fix="'+p.id+'">'+FIX_LABEL[p.reason]+'</button></div>' : '')+
-      '</div>';
+  var rowsHtml = groupByName(b.products).map(function(g){
+    var loud = g.ps.length>1;
+    return g.ps.map(function(p,i){ return prowHtml(p, b, i===0?g.name:null, loud); }).join('');
   }).join('');
+
+  var issues = openIssues(b);
+  var btnLabel = b.state==='unread' ? 'Read box (RFID sweep)' : (issues>0 ? 'Resolve '+issues+' to pack' : (b.state==='packed' ? '✓ Box packed' : 'Mark box packed'));
+  var btnCls = b.state==='packed' ? 'done' : (b.state==='read' && issues>0 ? 'waiting' : '');
+  var btnDisabled = (b.state==='read' && issues>0) || b.state==='packed';
 
   var dotsHtml = ['Packed','Frozen','Synced','Dispatched','Refilled'].map(function(lbl,i){
     var stageIdx = k.committed ? 5 : (t.boxesPacked===t.boxesTotal ? 1 : 0);
@@ -530,19 +575,21 @@ function renderKit(){
   pane.innerHTML =
     '<div class="kit-head"><button class="btn btn-ghost btn-sm back-btn" id="backBtn">‹ Regions</button>'+
       '<div><div class="kh-name">'+k.driver+'</div><div class="kh-route">'+k.route+' · '+t.boxesPacked+'/'+t.boxesTotal+' boxes packed'+(k.committed?' · Committed':'')+'</div></div>'+
+      '<button class="qrbtn" id="kitQrBtn" style="margin-left:auto;">▦ Kit QR</button>'+
     '</div>'+
     '<div class="lane-head"><h3>New this week</h3><span class="hint">Tap Send today to place part of the shipment into this kit</span></div>'+
     '<div class="lane">'+receiptsHtml+'</div>'+
-    '<div class="pager-head">'+boxNamesHtml+'<button class="manage-boxtypes" id="manageBoxTypes">⚙ Manage box types</button></div>'+
+    '<div class="pager-head">'+boxNamesHtml+'<button class="qrbtn" id="boxQrBtn">▦ Box QR</button><button class="manage-boxtypes" id="manageBoxTypes">⚙ Manage box types</button></div>'+
     '<div class="arrows"><button class="arrowbtn" id="prevBox" '+(selectedBoxIdx===0?'disabled':'')+'>‹</button><button class="arrowbtn" id="nextBox" '+(selectedBoxIdx===k.boxes.length-1?'disabled':'')+'>›</button></div>'+
-    '<div class="box-scroller"><div class="box-panel"><h4 class="box-title">'+b.name+(b.packed?' — Packed':'')+'</h4>'+rowsHtml+
-      '<button class="pack-btn'+(b.packed?' done':'')+'" id="packBoxBtn">'+(b.packed?'✓ Box packed':'Box packed')+'</button>'+
+    '<div class="box-scroller"><div class="box-panel"><h4 class="box-title">'+b.name+(b.state==='packed'?' — Packed':(b.state==='read'?' — Read':''))+'</h4>'+rowsHtml+
+      '<button class="pack-btn '+btnCls+'" id="packBoxBtn" '+(btnDisabled?'disabled':'')+'>'+btnLabel+'</button>'+
     '</div></div>'+
     '<div class="kitbar"><div class="sum">'+
       '<div class="sumitem"><div class="k">Sold since last</div><div class="v">'+t.sold+'</div></div>'+
       '<div class="sumitem"><div class="k">Will give (total)</div><div class="v">'+t.given+'</div></div>'+
       '<div class="sumitem"><div class="k">Boxes</div><div class="v">'+t.boxesPacked+'/'+t.boxesTotal+'</div></div>'+
       (t.skips>0?'<div class="sumitem"><div class="k">Open items</div><div class="v" style="color:var(--warnText)">'+t.skips+'</div></div>':'')+
+      (t.openReads>0?'<div class="sumitem"><div class="k">Open reads</div><div class="v" style="color:var(--warnText)">'+t.openReads+'</div></div>':'')+
       '</div><div class="ktl">'+dotsHtml+'</div>'+
       '<button class="btn btn-primary" id="commitKitBtn" '+(k.committed?'disabled':'')+'>'+(k.committed?'Kit committed':'Commit kit')+'</button>'+
     '</div>';
@@ -557,27 +604,53 @@ function wireKitPane(k, b){
   $$('.pager-tab').forEach(function(el){ el.addEventListener('click', function(){ selectedBoxIdx = parseInt(el.getAttribute('data-i'),10); renderKit(); }); });
   $$('.stepbtn').forEach(function(el){
     el.addEventListener('click', function(){
-      var pid = el.getAttribute('data-p'), act = el.getAttribute('data-act');
-      var p = b.products.find(function(x){ return x.id===pid; });
+      var pid2 = el.getAttribute('data-p'), act = el.getAttribute('data-act');
+      var p = b.products.find(function(x){ return x.id===pid2; });
       if(!p) return;
-      if(act==='inc' && p.given < p.cap) p.given++;
-      if(act==='dec' && p.given > 0) p.given--;
+      if(act==='inc') p.read++;
+      if(act==='dec' && p.read>0) p.read--;
       renderKit();
     });
   });
-  $$('.fixbtn').forEach(function(el){
+  $$('.fixbtn[data-fix]').forEach(function(el){
     el.addEventListener('click', function(){
-      var pid = el.getAttribute('data-fix');
-      var p = b.products.find(function(x){ return x.id===pid; });
+      var p = b.products.find(function(x){ return x.id===el.getAttribute('data-fix'); });
       if(!p) return;
-      p.given = Math.min(p.need, p.cap);
-      p.reason = null;
+      p.given = Math.min(p.need, p.cap); p.reason = null;
       toast('Fixed', p.name+' set to '+p.given+' and cleared from skips.');
       renderKit(); renderRegions();
     });
   });
+  $$('.fixbtn[data-fix2]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var p = b.products.find(function(x){ return x.id===el.getAttribute('data-fix2'); });
+      if(!p) return;
+      p.given = p.read; p.mismatch = null; p.pending = false;
+      toast('Mismatch resolved', p.name+' '+p.b.num+' accepted at '+p.read+' read.');
+      renderKit(); renderRegions();
+    });
+  });
+  $$('.fixbtn[data-confirm]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var p = b.products.find(function(x){ return x.id===el.getAttribute('data-confirm'); });
+      if(!p) return;
+      p.given = p.read; p.pending = false;
+      toast('Count confirmed', p.name+' '+p.b.num+' hand-counted at '+p.read+'.');
+      renderKit(); renderRegions();
+    });
+  });
   var packBtn = $('#packBoxBtn');
-  if(packBtn) packBtn.addEventListener('click', function(){ b.packed = !b.packed; renderKit(); renderRegions(); });
+  if(packBtn) packBtn.addEventListener('click', function(){
+    if(b.state==='unread'){
+      readBox(b);
+      var n = openIssues(b);
+      toast('Box read', b.name+' — RFID sweep complete. '+(n>0 ? n+' row'+(n===1?'':'s')+' need attention.' : 'Everything matches, oldest batch first.'));
+    } else if(b.state==='read' && openIssues(b)===0){
+      b.state='packed';
+      toast('Box packed', b.name+' confirmed packed and matched.');
+    }
+    renderKit(); renderRegions();
+  });
   $$('.send-btn').forEach(function(el){
     el.addEventListener('click', function(){
       var i = parseInt(el.getAttribute('data-r'),10);
@@ -585,13 +658,15 @@ function wireKitPane(k, b){
       var sendQty = Math.min(6, r.avail - (r._sent||0));
       r._sent = (r._sent||0) + sendQty;
       var targetBox = b_findOrCreate(k, r.box);
-      targetBox.products.push(P(r.name, 0, sendQty, sendQty, sendQty));
+      targetBox.products.push(P(r.name, r.b, 0, sendQty, sendQty, sendQty));
       var left = r.avail - r._sent;
-      toast('Sent today', 'Added '+sendQty+' × '+r.name+' to '+r.box+(left>0?' — '+left+' left to place.':' — fully placed.'));
+      toast('Sent today', 'Added '+sendQty+' × '+r.name+' ('+r.b.num+') to '+r.box+(left>0?' — '+left+' left to place.':' — fully placed.'));
       renderKit(); renderRegions();
     });
   });
   var manageBtn = $('#manageBoxTypes'); if(manageBtn) manageBtn.addEventListener('click', function(){ openManageBoxTypes(k); });
+  var kitQrBtn = $('#kitQrBtn'); if(kitQrBtn) kitQrBtn.addEventListener('click', function(){ openQr('Pick slip — '+k.driver+' · '+k.route, k.id); });
+  var boxQrBtn = $('#boxQrBtn'); if(boxQrBtn) boxQrBtn.addEventListener('click', function(){ openQr('Pick slip — '+b.name+' · '+k.driver, k.id+b.name); });
   var commitKitBtn = $('#commitKitBtn');
   if(commitKitBtn && !k.committed) commitKitBtn.addEventListener('click', function(){ openCommitKit(k); });
 }
@@ -601,6 +676,21 @@ function b_findOrCreate(k, boxName){
   var nb = box(boxName, []);
   k.boxes.push(nb);
   return nb;
+}
+
+/* ---------- kit/box pick-slip QR — paper equivalent, closes by scan ---------- */
+function qrBit(seed,i){ var h=0; for(var c=0;c<seed.length;c++) h=(h*31+seed.charCodeAt(c))|0; return ((h>>(i%24))&1)===1 || i%9===0 || i%9===8 || i<9 || i>71; }
+function openQr(title, seed){
+  var overlay = document.createElement('div'); overlay.className='overlay top';
+  var cells=''; for(var i=0;i<81;i++) cells += '<div style="'+(qrBit(seed,i)?'':'background:transparent;')+'"></div>';
+  overlay.innerHTML = '<div class="modal"><h2>'+title+'</h2>'+
+    '<p style="color:var(--inkMute);font-size:var(--f-body);margin-top:0;">Scan at the bench to close this pick slip by QR — the printed sheet carries the same lines, batch numbers and flags.</p>'+
+    '<div class="qrgrid">'+cells+'</div>'+
+    '<div class="modal-actions"><button class="btn btn-ghost" id="qrClose">Close</button><button class="btn btn-primary" id="qrPrint">Print pick slip</button></div></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  $('#qrClose', overlay).addEventListener('click', function(){ overlay.remove(); });
+  $('#qrPrint', overlay).addEventListener('click', function(){ window.print(); });
 }
 
 /* ---------- manage box types modal ---------- */
@@ -637,11 +727,12 @@ function openCommitKit(k){
   overlay.innerHTML = '<div class="modal"><h2>Commit kit — '+k.driver+'</h2><div class="crumb">'+k.route+'</div>'+
     k.boxes.map(function(b){
       var given = b.products.reduce(function(s,p){return s+p.given;},0);
-      return '<div class="mrow"><span>'+b.name+(b.packed?' (packed)':' (not marked packed)')+'</span><b>'+given+' units</b></div>';
+      return '<div class="mrow"><span>'+b.name+' ('+b.state+')</span><b>'+given+' units</b></div>';
     }).join('')+
     '<div class="mrow"><span>Open skips / shortfalls</span><b style="color:'+(t.skips>0?'var(--warnText)':'var(--good)')+'">'+t.skips+'</b></div>'+
+    '<div class="mrow"><span>Open reads (mismatch / hand-count)</span><b style="color:'+(t.openReads>0?'var(--warnText)':'var(--good)')+'">'+t.openReads+'</b></div>'+
     '<div class="mrow"><span>Total units to give</span><b>'+t.given+'</b></div>'+
-    (t.skips>0 ? '<p style="font-size:var(--f-meta);color:var(--warnText);">This kit still has '+t.skips+' item(s) needing a reason review. You can commit anyway — they will ship as shown.</p>' : '')+
+    ((t.skips+t.openReads)>0 ? '<p style="font-size:var(--f-meta);color:var(--warnText);">This kit still has open items. You can commit anyway — they will ship as shown.</p>' : '')+
     '<div class="modal-actions"><button class="btn btn-ghost" id="cancelCommit">Cancel</button><button class="btn btn-primary" id="confirmCommit">Commit kit</button></div></div>';
   document.body.appendChild(overlay);
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
@@ -655,9 +746,9 @@ function openCommitKit(k){
 
 /* ---------- commit refill (day-level) modal ---------- */
 $('#commitRefillBtn').addEventListener('click', function(){
-  var totalKits=0, totalGiven=0, totalSkips=0, committedKits=0;
+  var totalKits=0, totalGiven=0, totalSkips=0, totalOpenReads=0, committedKits=0;
   REGIONS.forEach(function(region){ region.kits.forEach(function(k){
-    var t = kitTotals(k); totalKits++; totalGiven += t.given; totalSkips += t.skips; if(k.committed) committedKits++;
+    var t = kitTotals(k); totalKits++; totalGiven += t.given; totalSkips += t.skips; totalOpenReads += t.openReads; if(k.committed) committedKits++;
   }); });
   var overlay = document.createElement('div'); overlay.className='overlay top';
   overlay.innerHTML = '<div class="modal"><h2>Commit refill — all regions</h2>'+
@@ -665,6 +756,7 @@ $('#commitRefillBtn').addEventListener('click', function(){
     '<div class="mrow"><span>Kits</span><b>'+committedKits+' / '+totalKits+' committed</b></div>'+
     '<div class="mrow"><span>Total units across all kits</span><b>'+totalGiven+'</b></div>'+
     '<div class="mrow"><span>Open skips / shortfalls</span><b style="color:'+(totalSkips>0?'var(--warnText)':'var(--good)')+'">'+totalSkips+'</b></div>'+
+    '<div class="mrow"><span>Open reads (mismatch / hand-count)</span><b style="color:'+(totalOpenReads>0?'var(--warnText)':'var(--good)')+'">'+totalOpenReads+'</b></div>'+
     (committedKits<totalKits ? '<p style="font-size:var(--f-meta);color:var(--warnText);">'+(totalKits-committedKits)+' kit(s) are not committed yet. Commit them individually first, or continue to lock the whole day as-is.</p>' : '<p style="font-size:var(--f-meta);color:var(--good);">All kits committed.</p>')+
     '<div class="modal-actions"><button class="btn btn-ghost" id="cancelDay">Cancel</button><button class="btn btn-primary" id="confirmDay">Commit refill</button></div></div>';
   document.body.appendChild(overlay);

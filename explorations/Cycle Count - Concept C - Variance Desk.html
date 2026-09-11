@@ -14,7 +14,11 @@
    Hyperwolf Bounty.html (rail active "Distribution"). Row schema and tinted
    rows reproduce the Concept B kit-column look; the stepper look reproduces
    the Concept D box panel. No build step, no external scripts or fonts.
-   Every name, product, quantity and time below is EXAMPLE DATA.
+   Round 2 revision: RFID first (every line is a proposed read vs expected;
+   a hand count exists only as a flagged exception for a dead tag or an
+   untagged category) and batch level everywhere (every row is one batch,
+   with a monospace batch chip; a SKU with two batches on hand shows two
+   LOUD rows). Every name, product, quantity and time below is EXAMPLE DATA.
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -138,6 +142,15 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 .pill-info{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
 .pill-neutral{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
 
+/* ---- RFID-first / batch-level additions ---- */
+.batchline{font-family:var(--fontMono);font-size:9.5px;color:var(--inkMute);margin-top:1px;}
+.loudflag{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;color:var(--bad);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+.loudnote{font-family:var(--fontMono);font-size:9px;color:var(--bad);margin-top:1px;}
+.methodpill{display:inline-flex;align-items:center;gap:4px;height:16px;padding:0 6px;border-radius:99px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-top:3px;}
+.methodpill.rfid{background:var(--infoSoft);color:var(--info);}
+.methodpill.hand{background:var(--warnSoft);color:var(--warnText);}
+.qrmini{display:inline-block;width:12px;height:12px;background:repeating-conic-gradient(currentColor 0% 25%, transparent 0% 50%) 0/4px 4px;border-radius:2px;flex:0 0 auto;vertical-align:-2px;}
+
 /* ---- thresholds card ---- */
 .thresh-row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;padding:2px 0 4px;}
 .thresh-field{display:flex;flex-direction:column;gap:5px;}
@@ -155,6 +168,7 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 .sess-card.selected{border-color:var(--accentBorder);box-shadow:0 0 0 2px var(--accentSoft) inset;}
 .sess-loc{font-size:var(--f-strong);font-weight:700;}
 .sess-scope{font-size:var(--f-meta);color:var(--inkMute);}
+.sess-qr{font-size:9.5px;color:var(--inkMute);display:flex;align-items:center;gap:5px;}
 .sess-meta{font-size:var(--f-meta);color:var(--inkDim);display:flex;justify-content:space-between;font-family:var(--fontMono);}
 .sess-bar{height:6px;border-radius:99px;background:var(--hairline2);overflow:hidden;}
 .sess-bar>span{display:block;height:100%;border-radius:99px;background:var(--info);}
@@ -171,28 +185,24 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 /* ---- variance table (row schema: reproduces the box-card boxtbl look) ---- */
 table.vartbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
 table.vartbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:8px 8px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
-table.vartbl th:first-child,table.vartbl th:nth-child(2),table.vartbl th:nth-child(7){text-align:left;}
+table.vartbl th:first-child,table.vartbl th:nth-child(2),table.vartbl th:nth-child(8){text-align:left;}
 table.vartbl td{padding:9px 8px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
 table.vartbl tr:last-child td{border-bottom:none;}
 .vartbl .pn{font-weight:700;font-size:12px;}
-.vartbl .psub{font-size:9.5px;color:var(--inkMute);margin-top:1px;}
 .vartbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.vartbl .num.dim{color:var(--inkFaint);}
 .vartbl .num.varunits{font-weight:700;}
 .vartbl tr.row-warn{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
 .vartbl tr.row-bad{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 .vartbl tr.row-resolved{opacity:.55;}
-.batchchip{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;color:var(--bad);}
 .reasonsel{width:100%;min-width:150px;height:30px;border-radius:6px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:11px;padding:0 6px;}
 .rowactions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
 
-/* ---- who cell: counted / recount / approved attribution per line ---- */
+/* ---- who cell: read / hand-counted / recount / approved attribution per line ---- */
 .whocell{display:flex;flex-direction:column;gap:3px;min-width:170px;}
 .whorow{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--ink);}
 .whorow .wholbl{flex:0 0 54px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--inkFaint);}
 .whorow .whoval-empty{color:var(--inkFaint);}
-
-.flash{animation:flashbox 1.6s ease;}
-@keyframes flashbox{0%,100%{box-shadow:var(--shadowSm);}20%,60%{box-shadow:0 0 0 3px var(--accentBorder), var(--shadowMd);}}
 
 /* ---- accuracy trend (inline bar charts, no chart library) ---- */
 .trendgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:4px 16px 16px;}
@@ -212,7 +222,6 @@ table.vartbl tr:last-child td{border-bottom:none;}
 .modal .mrow b{font-family:var(--fontMono);text-align:right;}
 .modal-actions{display:flex;gap:10px;margin-top:16px;}
 .modal-actions .btn{flex:1;}
-.mtinput{width:100%;height:38px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 12px;font-size:var(--f-body);margin-top:8px;}
 
 .footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
 
@@ -268,8 +277,8 @@ table.vartbl tr:last-child td{border-bottom:none;}
 
       <div class="banner">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;color:var(--info);"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-        <div><div class="b-title">Counts propose. Nothing adjusts stock until you approve.</div>
-        <div class="b-body">Every row below is a proposed correction from a hand count or an RFID read. Approving posts the counted quantity as the new on-hand for that batch and location, and records who approved it; rejecting sends it back for a blind recount by a second, named person. No automated process ever writes an adjustment.</div></div>
+        <div><div class="b-title">Every session starts with an RFID read. Nothing adjusts stock until you approve.</div>
+        <div class="b-body">Each row is one batch: a proposed read-vs-expected from the handheld, or — only for a dead tag or an untagged category — a flagged hand count. Approving posts the read (or hand-counted) quantity as the new on-hand for that batch at that location, and records who approved it; rejecting sends it back for a blind recount by a second, named person. No automated process ever writes an adjustment.</div></div>
       </div>
 
       <!-- ============ thresholds ============ -->
@@ -287,7 +296,7 @@ table.vartbl tr:last-child td{border-bottom:none;}
             </div>
             <button class="btn btn-primary btn-sm" id="saveThresh">Save thresholds</button>
             <span class="thresh-saved" id="threshSaved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Saved — table re-tinted below</span>
-            <div class="thresh-note">Below the recount line, a variance is informational only. Between the two lines it holds the line for a second, blind count. Above the escalate line the location/SKU is held from further automated allocation until a manager investigates (industry pattern: 2–3% recount, 2–10% supervisor review, 10%+ freeze).</div>
+            <div class="thresh-note">Below the recount line, a variance is informational only. Between the two lines it holds the line for a second, blind count. Above the escalate line the batch/location is held from further automated allocation until a manager investigates (industry pattern: 2–3% recount, 2–10% supervisor review, 10%+ freeze).</div>
           </div>
         </div>
       </div>
@@ -309,7 +318,7 @@ table.vartbl tr:last-child td{border-bottom:none;}
         <div class="card-body">
           <div style="overflow-x:auto;">
             <table class="vartbl">
-              <thead><tr><th>Product / batch</th><th>Location</th><th>Expected</th><th>Counted</th><th>Variance</th><th>Value</th><th>Who — counted / recounted / approved</th><th>Reason</th><th></th></tr></thead>
+              <thead><tr><th>Product / batch</th><th>Location</th><th>Expected</th><th>Read</th><th>Counted</th><th>Variance</th><th>Value</th><th>Who — read / hand-counted / recounted / approved</th><th>Reason</th><th></th></tr></thead>
               <tbody id="varBody"></tbody>
             </table>
           </div>
@@ -318,7 +327,7 @@ table.vartbl tr:last-child td{border-bottom:none;}
 
       <!-- ============ accuracy trend ============ -->
       <div class="card">
-        <div class="card-head"><h2>Accuracy trend — last 30 days</h2><span class="hint">Counted-correct rate, EXAMPLE data</span></div>
+        <div class="card-head"><h2>Accuracy trend — last 30 days</h2><span class="hint">Read/counted-correct rate, EXAMPLE data</span></div>
         <div class="trendgrid">
           <div>
             <div class="card-head" style="padding:0 0 8px;"><h2 style="font-size:var(--f-strong);">By location</h2></div>
@@ -366,6 +375,8 @@ table.vartbl tr:last-child td{border-bottom:none;}
   tickClock(); setInterval(tickClock, 30000);
 
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function batchLine(l){ return l.batch+' · THC '+l.thc+' · pkg '+l.pkg+' · exp '+l.exp+' · '+l.age+' on hand'; }
+  function loudHtml(l){ return l.mixed ? '<div class="loudflag">⚠ LOUD · MIXED BATCH</div><div class="loudnote">also '+esc(l.mixed.batch)+' · THC '+esc(l.mixed.thc)+' · pkg '+esc(l.mixed.pkg)+'</div>' : ''; }
 
   /* ---------------- data: EXAMPLE ONLY ---------------- */
   var CURRENT_MANAGER = 'Alicia T. (Inventory Manager)';
@@ -379,21 +390,25 @@ table.vartbl tr:last-child td{border-bottom:none;}
   var activeSession = 'all';
 
   var COUNTERS = ['Priya S.','Jordan P.','Dana K.','Marcus R.','Whitney L.'];
-  var REASONS = ['', 'Count variance', 'Batch mismatch — wrong batch pulled', 'Misplaced — found in another location', 'Damaged, moved to quarantine', 'No cause found — escalate as shrink'];
+  var REASONS = ['', 'Count variance', 'Batch mismatch — wrong batch pulled', 'Misplaced — found in another location', 'Damaged, moved to quarantine', 'No RFID tag — untagged edible category', 'No cause found — escalate as shrink'];
 
+  // Every line is one batch. method:'rfid' -> readQty is the proposal. method:'hand' -> handQty
+  // is the proposal (dead tag / untagged category exception, always flagged). mixed carries the
+  // other batch's number/THC/pkg date when two batches of one SKU share this kit line/location (LOUD).
   var LINES = [
-    { id:'v1', session:'s1', name:'GMO 3.5g', batch:'B-88214', loc:'Rack F2-B-03', exp:96, cnt:81, unitVal:9.5, counter:'Priya S.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
-    { id:'v2', session:'s1', name:'Wedding Cake 1g', batch:'B-88301 / B-88477', loc:'Rack F2-C-01', exp:64, cnt:58, unitVal:14.0, counter:'Priya S.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:true, resolved:false },
-    { id:'v3', session:'s1', name:'Blue Dream 3.5g', batch:'B-87990', loc:'Rack F2-B-05', exp:40, cnt:39, unitVal:9.0, counter:'Priya S.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
-    { id:'v4', session:'s2', name:'Live Resin Cart 1g', batch:'B-91002', loc:'Vape Case A', exp:22, cnt:14, unitVal:32.0, counter:'Jordan P.', recount:'requested', recountBy:'Dana K.', approvedBy:'', reason:'', mixed:false, resolved:false },
-    { id:'v5', session:'s2', name:'Distillate Cart 0.5g', batch:'B-90711', loc:'Vape Case A', exp:18, cnt:17, unitVal:18.0, counter:'Jordan P.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
-    { id:'v6', session:'s2', name:'Disposable Vape 1g', batch:'B-90455', loc:'Vape Case B', exp:30, cnt:22, unitVal:22.0, counter:'Jordan P.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
-    { id:'v7', session:'s3', name:'THC Seltzer 4-pack', batch:'B-89112', loc:'Cooler 1', exp:16, cnt:16, unitVal:16.0, counter:'Dana K.', recount:'confirmed', recountBy:'Marcus R.', approvedBy:'Alicia T. (Inventory Manager)', reason:'Count variance', mixed:false, resolved:true },
-    { id:'v8', session:'s3', name:'Cold Brew 100mg', batch:'B-89340', loc:'Cooler 1', exp:12, cnt:9, unitVal:11.0, counter:'Dana K.', recount:'confirmed', recountBy:'Priya S.', approvedBy:'', reason:'', mixed:false, resolved:false },
-    { id:'v9', session:'s4', name:'Sour Diesel 3.5g', batch:'B-86020', loc:'Rack B1-A-02', exp:20, cnt:20, unitVal:9.0, counter:'Marcus R.', recount:'confirmed', recountBy:'Whitney L.', approvedBy:'Alicia T. (Inventory Manager)', reason:'Count variance', mixed:false, resolved:true },
-    { id:'v10', session:'s1', name:'Chocolate Bar 100mg', batch:'B-88900', loc:'Rack F2-E-01', exp:24, cnt:11, unitVal:13.5, counter:'Priya S.', recount:'requested', recountBy:'Jordan P.', approvedBy:'', reason:'', mixed:false, resolved:false },
-    { id:'v11', session:'s2', name:'Rosin Cart 0.5g', batch:'B-90980', loc:'Vape Case B', exp:14, cnt:13, unitVal:26.0, counter:'Jordan P.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
-    { id:'v12', session:'s3', name:'Gummies 100mg', batch:'B-89577', loc:'Cooler 2', exp:20, cnt:18, unitVal:12.0, counter:'Dana K.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false }
+    { id:'v1', session:'s1', name:'GMO 3.5g', batch:'#HW-2402-14', thc:'22.8%', pkg:'Jul 30', exp:'Jan 26', age:'42 d', loc:'Rack F2-B-03', method:'rfid', expQty:96, readQty:81, handQty:null, unitVal:9.5, counter:'Priya S.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:null, resolved:false },
+    { id:'v2a', session:'s1', name:'Wedding Cake 1g', batch:'#HW-2409-01', thc:'24.1%', pkg:'Aug 28', exp:'Feb 24', age:'13 d', loc:'Rack F2-C-01', method:'rfid', expQty:32, readQty:30, handQty:null, unitVal:14.0, counter:'Priya S.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:{batch:'#HW-2411-07',thc:'31.6%',pkg:'Sep 6'}, resolved:false },
+    { id:'v2b', session:'s1', name:'Wedding Cake 1g', batch:'#HW-2411-07', thc:'31.6%', pkg:'Sep 6', exp:'Mar 6', age:'4 d', loc:'Rack F2-C-01', method:'rfid', expQty:32, readQty:28, handQty:null, unitVal:14.0, counter:'Priya S.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:{batch:'#HW-2409-01',thc:'24.1%',pkg:'Aug 28'}, resolved:false },
+    { id:'v3', session:'s1', name:'Blue Dream 3.5g', batch:'#HW-2398-22', thc:'19.5%', pkg:'Jul 2', exp:'Dec 29', age:'70 d', loc:'Rack F2-B-05', method:'rfid', expQty:40, readQty:39, handQty:null, unitVal:9.0, counter:'Priya S.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:null, resolved:false },
+    { id:'v4', session:'s2', name:'Live Resin Cart 1g', batch:'#HW-2405-19', thc:'78.2%', pkg:'Aug 12', exp:'Aug 2027', age:'29 d', loc:'Vape Case A', method:'rfid', expQty:22, readQty:14, handQty:null, unitVal:32.0, counter:'Jordan P.', recount:'requested', recountBy:'Dana K.', approvedBy:'', reason:'', mixed:null, resolved:false },
+    { id:'v5', session:'s2', name:'Distillate Cart 0.5g', batch:'#HW-2403-11', thc:'82.0%', pkg:'Jul 20', exp:'Jul 2027', age:'52 d', loc:'Vape Case A', method:'rfid', expQty:18, readQty:17, handQty:null, unitVal:18.0, counter:'Jordan P.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:null, resolved:false },
+    { id:'v6', session:'s2', name:'Disposable Vape 1g', batch:'#HW-2406-27', thc:'74.5%', pkg:'Aug 15', exp:'Aug 2027', age:'26 d', loc:'Vape Case B', method:'rfid', expQty:30, readQty:22, handQty:null, unitVal:22.0, counter:'Jordan P.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:null, resolved:false },
+    { id:'v11', session:'s2', name:'Rosin Cart 0.5g', batch:'#HW-2407-03', thc:'68.9%', pkg:'Aug 20', exp:'Aug 2027', age:'21 d', loc:'Vape Case B', method:'rfid', expQty:14, readQty:13, handQty:null, unitVal:26.0, counter:'Jordan P.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:null, resolved:false },
+    { id:'v7', session:'s3', name:'THC Seltzer 4-pack', batch:'#HW-2408-40', thc:'5 mg', pkg:'Aug 25', exp:'Feb 20', age:'16 d', loc:'Cooler 1', method:'rfid', expQty:16, readQty:16, handQty:null, unitVal:16.0, counter:'Dana K.', recount:'confirmed', recountBy:'Marcus R.', approvedBy:'Alicia T. (Inventory Manager)', reason:'Count variance', mixed:null, resolved:true },
+    { id:'v8', session:'s3', name:'Cold Brew 100mg', batch:'#HW-2408-55', thc:'10 mg', pkg:'Aug 26', exp:'Feb 21', age:'15 d', loc:'Cooler 1', method:'rfid', expQty:12, readQty:9, handQty:null, unitVal:11.0, counter:'Dana K.', recount:'confirmed', recountBy:'Priya S.', approvedBy:'', reason:'', mixed:null, resolved:false },
+    { id:'v9', session:'s4', name:'Sour Diesel 3.5g', batch:'#HW-2401-08', thc:'21.0%', pkg:'Jul 10', exp:'Jan 6', age:'62 d', loc:'Rack B1-A-02', method:'rfid', expQty:20, readQty:20, handQty:null, unitVal:9.0, counter:'Marcus R.', recount:'confirmed', recountBy:'Whitney L.', approvedBy:'Alicia T. (Inventory Manager)', reason:'Count variance', mixed:null, resolved:true },
+    { id:'v10', session:'s1', name:'Chocolate Bar 100mg', batch:'#HW-2404-33', thc:'10 mg', pkg:'Aug 5', exp:'Feb 1', age:'36 d', loc:'Rack F2-E-01', method:'hand', expQty:24, readQty:null, handQty:11, unitVal:13.5, counter:'Priya S.', recount:'requested', recountBy:'Jordan P.', approvedBy:'', reason:'No RFID tag — untagged edible category', mixed:null, resolved:false },
+    { id:'v12', session:'s3', name:'Gummies 100mg', batch:'#HW-2409-66', thc:'10 mg', pkg:'Aug 30', exp:'Feb 25', age:'11 d', loc:'Cooler 2', method:'rfid', expQty:20, readQty:18, handQty:null, unitVal:12.0, counter:'Dana K.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:null, resolved:false }
   ];
 
   var TREND_LOC = [
@@ -418,6 +433,7 @@ table.vartbl tr:last-child td{border-bottom:none;}
       return '<div class="sess-card'+(activeSession===s.id?' selected':'')+'" data-id="'+s.id+'">'
         + '<div class="sess-loc">'+esc(s.loc)+'</div>'
         + '<div class="sess-scope">Scope: '+esc(s.scope)+' · '+(s.blind?'Blind':'Informed')+'</div>'
+        + '<div class="sess-qr"><span class="qrmini"></span>Opened by scanning the location QR</div>'
         + '<div class="sess-bar"><span style="width:'+pct+'%"></span></div>'
         + '<div class="sess-meta"><span>'+s.done+' / '+s.lines+' lines</span><span>'+esc(s.counter)+'</span></div>'
         + '<div class="sess-foot"><span class="pill '+statusClass+'">'+esc(s.status)+'</span></div>'
@@ -433,9 +449,10 @@ table.vartbl tr:last-child td{border-bottom:none;}
     });
   }
 
-  /* ---------------- variance math ---------------- */
-  function varUnits(l){ return l.cnt - l.exp; }
-  function varPct(l){ return l.exp ? Math.abs(varUnits(l)) / l.exp * 100 : 0; }
+  /* ---------------- variance math (per batch: read for RFID lines, hand count for exceptions) ---------------- */
+  function actualQty(l){ return l.method === 'hand' ? l.handQty : l.readQty; }
+  function varUnits(l){ return actualQty(l) - l.expQty; }
+  function varPct(l){ return l.expQty ? Math.abs(varUnits(l)) / l.expQty * 100 : 0; }
   function varValue(l){ return Math.abs(varUnits(l)) * l.unitVal; }
   function severity(l){
     if (l.resolved) return 'resolved';
@@ -445,7 +462,7 @@ table.vartbl tr:last-child td{border-bottom:none;}
     return 'ok';
   }
 
-  /* ---------------- who cell: counted / recounted / approved ---------------- */
+  /* ---------------- who cell: read / hand-counted, recounted, approved ---------------- */
   function whoCell(l){
     var recountHtml;
     if (l.resolved) recountHtml = l.recountBy ? '<span class="pill pill-good">'+esc(l.recountBy)+'</span>' : '<span class="pill pill-good">Confirmed</span>';
@@ -454,8 +471,9 @@ table.vartbl tr:last-child td{border-bottom:none;}
     else if (l.recount === 'pending') recountHtml = '<span class="pill pill-warn">Blind recount pending</span>';
     else recountHtml = '<span class="pill pill-neutral">Not needed</span>';
     var approvedHtml = l.approvedBy ? esc(l.approvedBy) : '<span class="whoval-empty">—</span>';
+    var firstLbl = l.method === 'hand' ? 'Hand ct' : 'Read';
     return '<div class="whocell">'
-      + '<div class="whorow"><span class="wholbl">Counted</span>'+esc(l.counter)+'</div>'
+      + '<div class="whorow"><span class="wholbl">'+firstLbl+'</span>'+esc(l.counter)+'</div>'
       + '<div class="whorow"><span class="wholbl">Recount</span>'+recountHtml+'</div>'
       + '<div class="whorow"><span class="wholbl">Approved</span>'+approvedHtml+'</div>'
       + '</div>';
@@ -476,7 +494,7 @@ table.vartbl tr:last-child td{border-bottom:none;}
     hint.textContent = activeSession === 'all' ? 'All open sessions' : findSession(activeSession).loc;
     var lines = visibleLines();
     var host = document.getElementById('varBody');
-    if (!lines.length){ host.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--inkMute);">No variance lines for this filter.</td></tr>'; return; }
+    if (!lines.length){ host.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--inkMute);">No variance lines for this filter.</td></tr>'; return; }
     host.innerHTML = lines.map(function(l){
       var sev = severity(l);
       var rowClass = sev === 'bad' ? 'row-bad' : sev === 'warn' ? 'row-warn' : sev === 'resolved' ? 'row-resolved' : '';
@@ -484,11 +502,13 @@ table.vartbl tr:last-child td{border-bottom:none;}
       var vuStr = (vu > 0 ? '+' : '') + vu;
       var reasonOptions = REASONS.map(function(r){ return '<option'+(r===l.reason?' selected':'')+'>'+(r||'Select a reason…')+'</option>'; }).join('');
       var canAct = !l.resolved;
+      var methodPill = l.method === 'hand' ? '<span class="methodpill hand">Hand count · exception</span>' : '<span class="methodpill rfid">RFID read</span>';
       return '<tr class="'+rowClass+'" data-id="'+l.id+'">'
-        + '<td><div class="pn">'+esc(l.name)+'</div><div class="psub">'+esc(l.batch)+(l.mixed?' <span class="batchchip">⚠ MIXED BATCH</span>':'')+'</div></td>'
-        + '<td class="psub" style="text-align:left;">'+esc(l.loc)+'</td>'
-        + '<td class="num">'+l.exp+'</td>'
-        + '<td class="num">'+l.cnt+'</td>'
+        + '<td><div class="pn">'+esc(l.name)+'</div><div class="batchline">'+esc(l.batch)+' · THC '+esc(l.thc)+' · pkg '+esc(l.pkg)+' · exp '+esc(l.exp)+' · '+esc(l.age)+' on hand</div>'+loudHtml(l)+methodPill+'</td>'
+        + '<td style="text-align:left;"><span class="qrmini"></span> '+esc(l.loc)+'</td>'
+        + '<td class="num">'+l.expQty+'</td>'
+        + '<td class="num'+(l.method==='hand'?' dim':'')+'">'+(l.method==='hand' ? 'no tag' : l.readQty)+'</td>'
+        + '<td class="num'+(l.method==='rfid'?' dim':'')+'">'+(l.method==='rfid' ? '—' : l.handQty)+'</td>'
         + '<td class="num varunits" style="color:'+(vu<0?'var(--bad)':vu>0?'var(--info)':'var(--inkMute)')+'">'+vuStr+' <span style="font-weight:400;color:var(--inkMute);">('+varPct(l).toFixed(1)+'%)</span></td>'
         + '<td class="num">$'+varValue(l).toFixed(2)+'</td>'
         + '<td style="text-align:left;">'+whoCell(l)+'</td>'
@@ -520,24 +540,26 @@ table.vartbl tr:last-child td{border-bottom:none;}
     var second = pool[Math.floor(Math.random()*pool.length)];
     l.recount = 'requested';
     l.recountBy = second;
-    toast('Blind recount requested', second+' will recount '+l.name+' at '+l.loc+' without seeing '+l.counter+'’s number.');
+    toast('Blind recount requested', second+' will recount '+l.name+' ('+l.batch+') at '+l.loc+' without seeing '+l.counter+'’s number.');
     renderTable();
   }
 
   function openApprove(id){
     var l = LINES.find(function(x){ return x.id === id; });
     if (!l.reason){ toast('Add a reason first', 'Every approved adjustment needs a plain-words reason recorded with it.'); return; }
+    var actual = actualQty(l);
     var overlay = document.createElement('div'); overlay.className = 'overlay';
     overlay.innerHTML = '<div class="modal"><h2>Approve adjustment</h2>'
       + '<div class="mrow"><span>Product</span><b>'+esc(l.name)+'</b></div>'
       + '<div class="mrow"><span>Batch</span><b>'+esc(l.batch)+'</b></div>'
       + '<div class="mrow"><span>Location</span><b>'+esc(l.loc)+'</b></div>'
-      + '<div class="mrow"><span>Expected → counted</span><b>'+l.exp+' → '+l.cnt+'</b></div>'
-      + '<div class="mrow"><span>Counted by</span><b>'+esc(l.counter)+'</b></div>'
+      + '<div class="mrow"><span>Method</span><b>'+(l.method==='hand'?'Hand count (exception)':'RFID read')+'</b></div>'
+      + '<div class="mrow"><span>Expected → actual</span><b>'+l.expQty+' → '+actual+'</b></div>'
+      + '<div class="mrow"><span>'+(l.method==='hand'?'Counted by':'Read by')+'</span><b>'+esc(l.counter)+'</b></div>'
       + (l.recountBy ? '<div class="mrow"><span>Recounted by</span><b>'+esc(l.recountBy)+'</b></div>' : '')
       + '<div class="mrow"><span>Reason</span><b>'+esc(l.reason)+'</b></div>'
       + '<div class="mrow"><span>Approved by</span><b>'+esc(CURRENT_MANAGER)+' (you)</b></div>'
-      + '<p style="font-size:var(--f-meta);color:var(--inkMute);">This posts '+l.cnt+' as the new on-hand for this batch at this location. It cannot be undone automatically.</p>'
+      + '<p style="font-size:var(--f-meta);color:var(--inkMute);">This posts '+actual+' as the new on-hand for this batch at this location. It cannot be undone automatically.</p>'
       + '<div class="modal-actions"><button class="btn btn-ghost" id="cancelApprove">Cancel</button><button class="btn btn-primary" id="confirmApprove">Confirm approve</button></div></div>';
     document.body.appendChild(overlay);
     overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
@@ -545,7 +567,7 @@ table.vartbl tr:last-child td{border-bottom:none;}
     overlay.querySelector('#confirmApprove').addEventListener('click', function(){
       l.resolved = true; l.recount = l.recount === 'none' ? 'none' : 'confirmed'; l.approvedBy = CURRENT_MANAGER;
       overlay.remove();
-      toast('Adjustment approved', l.name+' at '+l.loc+' is now '+l.cnt+' on hand. Approved by '+CURRENT_MANAGER+'.');
+      toast('Adjustment approved', l.name+' ('+l.batch+') at '+l.loc+' is now '+actual+' on hand. Approved by '+CURRENT_MANAGER+'.');
       renderTable();
     });
   }

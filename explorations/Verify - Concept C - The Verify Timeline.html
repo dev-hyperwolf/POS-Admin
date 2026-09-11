@@ -6,13 +6,17 @@
 <title>Verify — Concept C — The Verify Timeline</title>
 <style>
 /* ============================================================================
-   Verify — Concept C — The Verify Timeline
+   Verify — Concept C — The Verify Timeline (Round 2 revision)
    Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); rail
    and topbar shape copied from Hyperwolf Bounty.html; kit-column timeline dot
-   pattern and box-row schema (PRODUCT/SOLD/NEED/CAP/GIVE/REASON, tinted
-   shortfall rows) reproduced from the Concept B (Box Cards) keeper. No build
-   step, no external scripts or fonts. Every name, batch, quantity and time on
-   this screen is EXAMPLE DATA — see the banner below the header.
+   pattern and box-row schema reproduced from the Concept B (Box Cards) keeper.
+   Round 2 rules: RFID first — every read is an RFID read vs expected per
+   batch; typed steppers appear only in a flagged hand-count exception row for
+   a dead tag or untagged category. Batch level everywhere — every product
+   line is a batch line: name on top, monospace batch chip below (number ·
+   THC · pkg · exp · days on hand · Metrc). A SKU with two batches on hand is
+   two batch rows with the LOUD mixed-batch flag. No build step, no external
+   scripts or fonts. Every name, batch, quantity and time is EXAMPLE DATA.
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -126,10 +130,13 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .kit-banner{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);padding:14px 18px;box-shadow:var(--shadowSm);flex-wrap:wrap;margin-bottom:18px;}
 .kit-banner .kb-name{font-size:var(--f-h2);font-weight:700;}
 .kit-banner .kb-route{font-size:var(--f-body);color:var(--inkMute);}
-.kit-banner .kb-stat{margin-left:auto;display:flex;gap:22px;flex-wrap:wrap;}
+.kit-banner .kb-stat{margin-left:auto;display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
 .kb-stat .si .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
 .kb-stat .si .v{font-family:var(--fontMono);font-weight:700;font-size:var(--f-strong);}
 .kb-stat .si .v.warn{color:var(--warnText);}
+.qrclose{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 13px;border-radius:99px;border:1px solid var(--hairline2);background:var(--surface);cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink2);}
+.qrclose:hover{background:var(--surface3);}
+.qrglyph{width:16px;height:16px;flex:0 0 auto;background:repeating-linear-gradient(0deg,var(--ink) 0 2px,transparent 2px 4px),repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px);background-blend-mode:multiply;}
 
 .tl{position:relative;padding-left:6px;}
 .tlstep{position:relative;padding:0 0 6px 34px;}
@@ -152,7 +159,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .tlbody.collapsed{display:none;}
 .stagenote{font-size:var(--f-body);color:var(--inkDim);margin:0 0 8px;}
 
-table.vtbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);overflow:hidden;}
+table.vtbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);overflow:hidden;margin-bottom:8px;}
 table.vtbl th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:6px 8px;border-bottom:1px solid var(--hairline);background:var(--surface2);}
 table.vtbl td{padding:7px 8px;border-bottom:1px solid var(--hairline);vertical-align:top;color:var(--ink);}
 table.vtbl tr:last-child td{border-bottom:none;}
@@ -161,16 +168,25 @@ table.vtbl tr:last-child td{border-bottom:none;}
 .vtbl tr.row-extra{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
 .vtbl tr.row-wrongbatch{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 .vtbl tr.row-wrongbox{background:var(--infoSoft);box-shadow:inset 3px 0 0 var(--info);}
+.vtbl tr.row-match{background:var(--surface);}
+.vtbl tr.row-hand{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
 .typetag{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;}
-.typetag.bad{color:var(--bad);} .typetag.warn{color:var(--warnText);} .typetag.info{color:var(--info);}
-.reasoncell{font-size:10.5px;color:var(--inkMute);}
-.batchtag{font-family:var(--fontMono);font-size:10px;background:var(--surface3);border-radius:5px;padding:1px 5px;}
+.typetag.bad{color:var(--bad);} .typetag.warn{color:var(--warnText);} .typetag.info{color:var(--info);} .typetag.good{color:var(--good);}
+.reasoncell{font-size:10.5px;color:var(--inkMute);max-width:220px;}
+.lineprod{font-weight:700;font-size:var(--f-body);color:var(--ink);}
+.batchchip{font-family:var(--fontMono);font-size:9.8px;color:var(--inkMute);margin-top:2px;line-height:1.4;letter-spacing:-.01em;}
+.methodtag{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:99px;white-space:nowrap;}
+.methodtag.rfid{background:var(--infoSoft);color:var(--info);}
+.methodtag.hand{background:var(--warnSoft);color:var(--warnText);}
+.stepper{display:inline-flex;align-items:center;gap:6px;}
+.stepbtn{width:22px;height:22px;border-radius:6px;border:1px solid var(--hairline3);background:var(--surface);cursor:pointer;font-weight:800;font-size:13px;line-height:1;color:var(--ink);}
+.stepbtn:hover{background:var(--surface3);}
+.stepval{font-family:var(--fontMono);font-weight:700;min-width:18px;display:inline-block;text-align:center;}
 
-.mixedbatch{display:flex;gap:8px;align-items:flex-start;background:var(--badSoft);border:1.5px solid var(--bad);border-radius:var(--r10);padding:9px 11px;margin:8px 0;}
+.mixedbatch{display:flex;gap:8px;align-items:flex-start;background:var(--badSoft);border:1.5px solid var(--bad);border-radius:var(--r10);padding:9px 11px;margin:2px 0 8px;}
 .mixedbatch .mb-icon{color:var(--bad);flex:0 0 auto;margin-top:1px;}
 .mixedbatch .mb-title{font-weight:800;font-size:var(--f-meta);color:var(--bad);text-transform:uppercase;letter-spacing:.03em;}
-.mixedbatch .mb-body{font-size:var(--f-body);color:var(--ink);margin-top:2px;}
-.mixedbatch .mb-body b{font-family:var(--fontMono);}
+.mixedbatch .mb-body{font-size:var(--f-body);color:var(--ink);margin-top:2px;font-family:var(--fontMono);font-size:10.5px;}
 
 .closeout{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;}
 .closeout .cc{flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px 14px;}
@@ -183,6 +199,7 @@ table.vtbl tr:last-child td{border-bottom:none;}
 .checklist svg{color:var(--good);flex:0 0 auto;}
 
 .footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:16px 0 30px;}
+.toast{position:fixed;right:18px;bottom:20px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;}
 
 @media (max-width: 980px){
   .rail{width:60px;flex-basis:60px;}
@@ -249,68 +266,105 @@ function tick(){
   $('#clockNow').textContent = h+':'+String(d.getMinutes()).padStart(2,'0')+' '+(d.getHours()<12?'AM':'PM')+' PT';
 }
 tick(); setInterval(tick,30000);
+function toast(msg){
+  var t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 3600);
+}
 
 /* ---------- the eight stages ---------- */
 var STAGES = ['Built','Pack-verified','Dispatched','Refilled','Pack-verified','Returned','Return-verified','Closed'];
+
+/* ---------- batch registry — batch is the unit, SKU is only a label ---------- */
+var BX = {
+  A:{num:'#HW-2405-14',thc:'22.6%',pkg:'Jul 30',exp:'Jan 26',days:64,metrc:'1A40…2E9'},
+  B:{num:'#HW-2409-01',thc:'24.1%',pkg:'Aug 28',exp:'Feb 24',days:42,metrc:'1A40…7F3'},
+  C:{num:'#HW-2411-07',thc:'31.6%',pkg:'Sep 6',exp:'Mar 5',days:4,metrc:'1A40…9D1'},
+  D:{num:'#HW-2403-22',thc:'82.4%',pkg:'Jul 2',exp:'Jun 30',days:68,metrc:'1A40…1E5'},
+  E:{num:'#HW-2404-11',thc:'19.8%',pkg:'Jul 25',exp:'Jan 21',days:70,metrc:'1A40…4B6'},
+  F:{num:'#HW-2401-09',thc:'74.2%',pkg:'Jul 1',exp:'Jun 28',days:71,metrc:'1A40…5C2'},
+  G:{num:'#HW-2406-03',thc:'—',pkg:'Aug 1',exp:'Jan 29',days:40,metrc:'1A40…6A7'},
+  H:{num:'#HW-2410-02',thc:'27.3%',pkg:'Sep 1',exp:'Mar 1',days:9,metrc:'1A40…8B3'},
+  I:{num:'#HW-2407-19',thc:'—',pkg:'Aug 12',exp:'Feb 9',days:29,metrc:'1A40…3F0'},
+  J:{num:'#HW-2408-15',thc:'23.0%',pkg:'Aug 20',exp:'Feb 17',days:21,metrc:'1A40…2C4'}
+};
 
 /* ---------- example data ---------- */
 var KITS = [
   { id:'mr3', region:'West LA', driver:'Marcus R.', route:'Route 3', units:142, boxes:6, stageIdx:4, discrepancies:1,
     stages:[
-      { time:'5:12 AM', who:'System', boxes:[
-          {name:'Flower Box 1', product:'Sunset OG 3.5g', batch:'B-88214', qty:20},
-          {name:'Flower Box 1', product:'GMO 7g', batch:'B-88301', qty:6},
-          {name:'Vape Box 1', product:'Live Resin Cart 1g', batch:'B-88190', qty:16}
+      { time:'5:12 AM', who:'System', lines:[
+          {box:'Flower Box 1', product:'Sunset OG 3.5g', entries:[{batch:BX.A, qty:20}]},
+          {box:'Flower Box 1', product:'GMO 7g', entries:[{batch:BX.B, qty:6}]},
+          {box:'Vape Box 1', product:'Live Resin Cart 1g', entries:[{batch:BX.D, qty:16}]}
         ]},
-      { time:'5:34 AM', who:'Warehouse — handheld #2', read:'match', note:'Scanned 142 / 142 planned units. Every tag matched its box and batch.' },
+      { time:'5:34 AM', who:'Warehouse — RFID handheld #2', read:'match', note:'RFID scan read 142 of 142 planned units. Every tag matched its box and batch — read vs expected shown per batch below.', rows:[
+          {product:'Sunset OG 3.5g', batch:BX.A, expected:20, read:20, type:'match', method:'rfid', reason:'—'},
+          {product:'GMO 7g', batch:BX.B, expected:6, read:6, type:'match', method:'rfid', reason:'—'},
+          {product:'Live Resin Cart 1g', batch:BX.D, expected:16, read:16, type:'match', method:'rfid', reason:'—'}
+        ]},
       { time:'6:05 AM', who:'System' },
-      { time:'11:40 AM', who:'System', boxes:[
-          {name:'Flower Box 1', product:'GMO 7g', batch:'B-88301 + B-88355', qty:4, mixed:{a:'B-88301', athc:'24.1%', adate:'Aug 22', b:'B-88355', bthc:'31.6%', bdate:'Sep 5'}}
-        ], note:'New arrival pushed in: 4 × GMO 7g, batch B-88355 — the older B-88301 line still has stock, so this line now spans two batches.' },
-      { time:'11:52 AM', who:'Warehouse — handheld #1', read:'mismatch', rows:[
-          {product:'GMO 7g', planned:'B-88301 (4)', read:'B-88301 (3) + B-88355 (1)', type:'wrongbatch', reason:'Both batches present — flagged, not a shortfall'}
-        ], note:'1 of 4 refill units read from the newer batch instead of the older one. Matches the just-received mixed-batch note above — nothing missing.' }
+      { time:'11:40 AM', who:'System', lines:[
+          {box:'Flower Box 1', product:'GMO 7g', entries:[{batch:BX.B, qty:3},{batch:BX.C, qty:4}]}
+        ], note:'New arrival pushed in: 4 × GMO 7g on batch #HW-2411-07 — the older #HW-2409-01 line still has 3 on hand, so this box line now spans two batches (oldest first, always).' },
+      { time:'11:52 AM', who:'Warehouse — RFID handheld #1', read:'mismatch', rows:[
+          {product:'GMO 7g', batch:BX.B, expected:3, read:2, type:'wrongbatch', method:'rfid', reason:'1 of 3 units on the older batch actually read from the newer batch — see mixed-batch flag above.'},
+          {product:'GMO 7g', batch:BX.C, expected:4, read:5, type:'wrongbatch', method:'rfid', reason:'Newer batch overrepresented by 1 unit vs plan. Both batches present and LOUD — nothing missing overall, 7 read / 7 expected.'}
+        ] }
     ]},
-  { id:'dk1', region:'West LA', driver:'Dana K.', route:'Route 1', units:96, boxes:5, stageIdx:7, discrepancies:0,
+  { id:'dk1', region:'West LA', driver:'Dana K.', route:'Route 1', units:96, boxes:5, stageIdx:7, discrepancies:1,
     stages:[
-      { time:'5:09 AM', who:'System', boxes:[
-          {name:'Flower Box 1', product:'Pineapple Express 3.5g', batch:'B-88110', qty:14},
-          {name:'Concentrate Bin 1', product:'Rosin 1g', batch:'B-88072', qty:6}
+      { time:'5:09 AM', who:'System', lines:[
+          {box:'Flower Box 1', product:'Pineapple Express 3.5g', entries:[{batch:BX.E, qty:14}]},
+          {box:'Concentrate Bin 1', product:'Rosin 1g', entries:[{batch:BX.F, qty:6}]},
+          {box:'Pre-Roll Box 1', product:'Indica 5-pack', entries:[{batch:BX.G, qty:8}]}
         ]},
-      { time:'5:31 AM', who:'Warehouse — handheld #2', read:'match', note:'Scanned 96 / 96 planned units. Match.' },
+      { time:'5:31 AM', who:'Warehouse — RFID handheld #2', read:'match', note:'RFID scan read the Flower and Concentrate lines clean. The Pre-Roll batch carries a dead tag on this case — hand-counted and flagged, not skipped.', rows:[
+          {product:'Pineapple Express 3.5g', batch:BX.E, expected:14, read:14, type:'match', method:'rfid', reason:'—'},
+          {product:'Rosin 1g', batch:BX.F, expected:6, read:6, type:'match', method:'rfid', reason:'—'},
+          {product:'Indica 5-pack', batch:BX.G, expected:8, read:8, type:'match', method:'hand', reason:'Dead tag on this case — RFID unreadable, hand-counted and flagged for review.', id:'dk1-pv1-preroll'}
+        ]},
       { time:'6:02 AM', who:'System' },
-      { time:'12:15 PM', who:'System', note:'No new arrivals or shortfalls this refill — need fully covered from existing stock.' },
-      { time:'12:24 PM', who:'Warehouse — handheld #1', read:'match', note:'Scanned refill units. Match.' },
+      { time:'12:15 PM', who:'System', note:'No new arrivals or shortfalls this refill — need fully covered from existing stock. Nothing to read.' },
+      { time:'12:24 PM', who:'Warehouse — RFID handheld #1', read:'match', note:'No refill units this cycle — no batch reads recorded.' },
       { time:'4:48 PM', who:'Dana K.', read:'mismatch', rows:[
-          {product:'Rosin 1g', planned:'B-88072 (6)', read:'B-88072 (5)', type:'missing', reason:'1 tag not read at the door — see LP note below'}
-        ], note:'93 of 96 dispatched tags read back; 3 sold per Blaze (2 ASAP, 1 scheduled).' },
+          {product:'Rosin 1g', batch:BX.F, expected:6, read:5, type:'missing', method:'rfid', reason:'1 tag not read at the door — 2 ASAP + 1 scheduled sale logged in Blaze; reconciled at return-verify below.'}
+        ], note:'93 of 96 dispatched tags read back at the door. The Pineapple Express and Indica lines both matched — only the Rosin batch below carries a gap.' },
       { time:'4:55 PM', who:'LP — Priya S.', read:'mismatch', returnverify:{expected:'96 − 3 sold + 4 refilled = 97', read:'96 read + 3 sold = 99 accounted, 1 gap', rows:[
-          {product:'Rosin 1g', batch:'B-88072', expected:1, read:0, type:'missing', reason:'Not returned, not in Blaze sales — held as discrepancy pending Dana confirmation'}
+          {product:'Rosin 1g', batch:BX.F, expected:1, read:0, type:'missing', method:'rfid', reason:'Not returned, not in Blaze sales — held as a discrepancy pending Dana confirmation. Nothing adjusts stock until a manager approves.'}
         ]}, closeout:{cash:'$1,284.00 — matches manifest', notes:'Driver reports no known loss; discrepancy opened for LP.'} },
-      { time:'5:20 PM', who:'Manager — J. Ferris', closeCheck:['95 of 96 tags sold or returned','1 tag open as a discrepancy — case DK1-0910-A, not blocking close','Day close approved with 1 open case carried to tomorrow'] }
+      { time:'5:20 PM', who:'Manager — J. Ferris', closeCheck:['95 of 96 tags sold or returned, all read by RFID except one dead-tagged case that was hand-counted and flagged','1 tag open as a discrepancy — case DK1-0910-A, not blocking close','Day close approved with 1 open case carried to tomorrow'] }
     ]},
   { id:'ps5', region:'West LA', driver:'Priya S.', route:'Route 5', units:0, boxes:4, stageIdx:0, discrepancies:0,
     stages:[
-      { time:'5:52 AM', who:'System', boxes:[
-          {name:'Flower Box 1', product:'Ice Cream Cake 3.5g', batch:'B-88240', qty:12},
-          {name:'Pre-Roll Box 1', product:'Sativa PR 5-pack', batch:'B-88066', qty:10}
+      { time:'5:52 AM', who:'System', lines:[
+          {box:'Flower Box 1', product:'Ice Cream Cake 3.5g', entries:[{batch:BX.H, qty:12}]},
+          {box:'Pre-Roll Box 1', product:'Sativa PR 5-pack', entries:[{batch:BX.I, qty:10}]}
         ]}
     ]},
   { id:'tg2', region:'Inland Empire', driver:'Tomás G.', route:'Route 2', units:64, boxes:3, stageIdx:5, discrepancies:0,
     stages:[
-      { time:'5:02 AM', who:'System', boxes:[{name:'Flower Box 1', product:'GMO 3.5g', batch:'B-88112', qty:16}]},
-      { time:'5:20 AM', who:'Warehouse — handheld #1', read:'match', note:'Scanned 64 / 64 planned units. Match.' },
+      { time:'5:02 AM', who:'System', lines:[{box:'Flower Box 1', product:'GMO 3.5g', entries:[{batch:BX.J, qty:16}]}]},
+      { time:'5:20 AM', who:'Warehouse — RFID handheld #1', read:'match', rows:[
+          {product:'GMO 3.5g', batch:BX.J, expected:16, read:16, type:'match', method:'rfid', reason:'—'}
+        ]},
       { time:'5:41 AM', who:'System' },
-      { time:'8:15 AM', who:'Tomás G.', note:'No refill requested — kit ran full through the morning route.' },
+      { time:'8:15 AM', who:'Tomás G.', note:'No refill requested — kit ran full through the morning route. Nothing to read.' },
       { time:'8:16 AM', who:'System', note:'No pack-verify needed — no refill units to check.' },
-      { time:'1:48 PM', who:'Tomás G.', read:'match', note:'58 units returned; matches dispatched − sold exactly.' }
+      { time:'1:48 PM', who:'Tomás G.', read:'match', rows:[
+          {product:'GMO 3.5g', batch:BX.J, expected:58, read:58, type:'match', method:'rfid', reason:'—'}
+        ], note:'RFID read at return matches dispatched minus sold exactly.' }
     ]}
 ];
 
 var selectedKitId = 'mr3';
 var openStage = {};
+var handCounts = {};
 
 function stageStatus(kit, i){ return i < kit.stageIdx ? 'done' : (i === kit.stageIdx ? 'active' : 'pending'); }
+function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+function chipHTML(b){
+  return '<div class="batchchip">'+esc(b.num)+' · THC '+esc(b.thc)+' · pkg '+esc(b.pkg)+' · exp '+esc(b.exp)+' · '+b.days+' d on hand · Metrc '+esc(b.metrc)+'</div>';
+}
 
 /* ---------- render: kit list ---------- */
 function renderKits(){
@@ -333,26 +387,41 @@ function renderKits(){
   $$('.kit-chip', host).forEach(function(el){ el.addEventListener('click', function(){ selectedKitId = el.getAttribute('data-kit'); openStage = {}; renderKits(); renderTimeline(); }); });
 }
 
-function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
-
-/* ---------- render: box list (Built / Refilled) using the keeper row schema ---------- */
-function renderBoxes(boxes){
-  var rows = boxes.map(function(b){
-    var mixedRow = b.mixed ? '<tr><td colspan="4" style="padding:0;border:none;"><div class="mixedbatch"><span class="mb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg></span><div><div class="mb-title">Mixed batch — loud on the pick slip too</div><div class="mb-body"><b>'+b.mixed.a+'</b> · THC '+b.mixed.athc+' · packaged '+b.mixed.adate+'  vs.  <b>'+b.mixed.b+'</b> · THC '+b.mixed.bthc+' · packaged '+b.mixed.bdate+'</div></div></div></td></tr>' : '';
-    return '<tr><td>'+esc(b.name)+'</td><td>'+esc(b.product)+'</td><td><span class="batchtag">'+esc(b.batch)+'</span></td><td class="num">'+b.qty+'</td></tr>'+mixedRow;
+/* ---------- render: batch lines (Built / Refilled) — one row per batch, LOUD if mixed ---------- */
+function mixedBanner(entries){
+  var a=entries[0].batch, b=entries[1].batch;
+  return '<div class="mixedbatch"><span class="mb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg></span><div><div class="mb-title">Mixed batch — loud here and on the pick slip, oldest batch first</div><div class="mb-body">'+esc(a.num)+' · THC '+esc(a.thc)+' · pkg '+esc(a.pkg)+'  vs.  '+esc(b.num)+' · THC '+esc(b.thc)+' · pkg '+esc(b.pkg)+'</div></div></div>';
+}
+function renderLines(lines){
+  var rows = lines.map(function(line){
+    var isMixed = line.entries.length>1;
+    var entryRows = line.entries.map(function(en,i){
+      return '<tr'+(isMixed?' class="row-wrongbox"':'')+'>'
+        + (i===0 ? '<td rowspan="'+line.entries.length+'">'+esc(line.box)+'</td>' : '')
+        + '<td><div class="lineprod">'+esc(line.product)+'</div>'+chipHTML(en.batch)+'</td>'
+        + '<td class="num">'+en.qty+'</td></tr>';
+    }).join('');
+    var loud = isMixed ? '<tr><td colspan="3" style="padding:0;border:none;">'+mixedBanner(line.entries)+'</td></tr>' : '';
+    return entryRows + loud;
   }).join('');
-  return '<table class="vtbl"><thead><tr><th>Box</th><th>Product</th><th>Batch</th><th>Qty</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  return '<table class="vtbl"><thead><tr><th>Box</th><th>Product / batch</th><th>Qty</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-/* ---------- render: scan / discrepancy table (Pack-verified / Returned) ---------- */
+/* ---------- render: RFID read rows, per batch, with a flagged hand-count exception ---------- */
+function stepperHTML(r){
+  var val = (handCounts[r.id] !== undefined) ? handCounts[r.id] : r.read;
+  return '<span class="stepper" data-id="'+r.id+'"><button type="button" class="stepbtn" data-d="-1">−</button><span class="stepval">'+val+'</span><button type="button" class="stepbtn" data-d="1">+</button></span>';
+}
 function renderScanRows(rows){
+  var typeLbl = {match:'Match', missing:'Missing', extra:'Extra', wrongbatch:'Wrong batch', wrongbox:'Wrong box'};
   var trs = rows.map(function(r){
     var cls = 'row-'+r.type;
-    var typeLbl = {missing:'Missing',extra:'Extra',wrongbatch:'Wrong batch',wrongbox:'Wrong box'}[r.type];
-    var typeCls = (r.type==='extra')?'warn':(r.type==='wrongbox'?'info':'bad');
-    return '<tr class="'+cls+'"><td>'+esc(r.product)+'</td><td>'+esc(r.planned)+'</td><td>'+esc(r.read)+'</td><td><span class="typetag '+typeCls+'">'+typeLbl+'</span></td><td class="reasoncell">'+esc(r.reason)+'</td></tr>';
+    var typeCls = r.type==='match' ? 'good' : (r.type==='extra' ? 'warn' : (r.type==='wrongbox' ? 'info' : 'bad'));
+    var method = r.method==='hand' ? '<span class="methodtag hand">HAND COUNT</span>' : '<span class="methodtag rfid">RFID</span>';
+    var readCell = r.method==='hand' ? stepperHTML(r) : ('<span class="num">'+r.read+'</span>');
+    return '<tr class="'+cls+(r.method==='hand'?' row-hand':'')+'"><td><div class="lineprod">'+esc(r.product)+'</div>'+chipHTML(r.batch)+'</td><td class="num">'+r.expected+'</td><td class="num">'+readCell+'</td><td>'+method+'</td><td><span class="typetag '+typeCls+'">'+typeLbl[r.type]+'</span></td><td class="reasoncell">'+esc(r.reason||'')+'</td></tr>';
   }).join('');
-  return '<table class="vtbl"><thead><tr><th>Product</th><th>Planned / batch</th><th>Read</th><th>Type</th><th>Reason</th></tr></thead><tbody>'+trs+'</tbody></table>';
+  return '<table class="vtbl"><thead><tr><th>Product / batch</th><th>Expected</th><th>Read</th><th>Method</th><th>Type</th><th>Reason</th></tr></thead><tbody>'+trs+'</tbody></table>';
 }
 
 /* ---------- render: return-verify block ---------- */
@@ -372,13 +441,13 @@ function renderStage(kit, i, stage){
   var cls = 'tlstep '+status+(hasMismatch?' discrepancy':'');
   var dotIcon = status==='done' ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>' : (hasMismatch ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' : '');
   var when = stage ? stage.time+' · '+stage.who : '—';
-  var readpill = stage && stage.read ? '<span class="readpill '+(stage.read==='match'?'match':'mismatch')+'">'+(stage.read==='match'?'Read: matched':'Read: discrepancy')+'</span>' : '';
+  var readpill = stage && stage.read ? '<span class="readpill '+(stage.read==='match'?'match':'mismatch')+'">'+(stage.read==='match'?'RFID read: matched':'RFID read: discrepancy')+'</span>' : '';
   var key = kit.id+'-'+i;
   var isOpen = openStage[key] !== undefined ? openStage[key] : (status !== 'pending');
   var body = '';
   if (stage){
     if (stage.note) body += '<p class="stagenote">'+esc(stage.note)+'</p>';
-    if (stage.boxes) body += renderBoxes(stage.boxes);
+    if (stage.lines) body += renderLines(stage.lines);
     if (stage.rows && !stage.returnverify) body += renderScanRows(stage.rows);
     if (stage.returnverify) body += renderReturnVerify(stage.returnverify, stage.closeout);
     if (stage.closeCheck) body += '<ul class="checklist">'+stage.closeCheck.map(function(c){ return '<li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'+esc(c)+'</li>'; }).join('')+'</ul>';
@@ -399,6 +468,7 @@ function renderTimeline(){
     + '<div class="kb-stat">'
     + '<div class="si"><div class="k">Currently at</div><div class="v">'+stageLbl+'</div></div>'
     + '<div class="si"><div class="k">Open discrepancies</div><div class="v'+(kit.discrepancies>0?' warn':'')+'">'+kit.discrepancies+'</div></div>'
+    + '<button class="qrclose" id="qrCloseBtn" title="Scan to close this kit"><span class="qrglyph"></span>Close by QR</button>'
     + '</div></div>'
     + '<div class="tl">' + STAGES.map(function(_,i){ return renderStage(kit, i, kit.stages[i]); }).join('') + '</div>'
     + '<div class="footerline">Verify — Concept C of 4 — The Verify Timeline</div>';
@@ -413,6 +483,18 @@ function renderTimeline(){
       el.querySelector('.chev').textContent = nowOpen ? '▾' : '▸';
     });
   });
+  $$('.stepbtn', host).forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var wrap = btn.closest('.stepper'); var id = wrap.getAttribute('data-id');
+      var d = parseInt(btn.getAttribute('data-d'),10);
+      var cur = handCounts[id] !== undefined ? handCounts[id] : parseInt(wrap.querySelector('.stepval').textContent,10);
+      handCounts[id] = Math.max(0, cur+d);
+      wrap.querySelector('.stepval').textContent = handCounts[id];
+    });
+  });
+  var qrBtn = $('#qrCloseBtn', host);
+  if (qrBtn) qrBtn.addEventListener('click', function(){ toast('Kit '+kit.driver+' · '+kit.route+' closed by QR scan (mock).'); });
 }
 
 renderKits();

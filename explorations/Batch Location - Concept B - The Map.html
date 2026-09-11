@@ -173,6 +173,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .batchrow:last-child{border-bottom:none;}
 .batchrow .bname{font-weight:700;font-size:var(--f-body);flex:1 1 160px;}
 .batchrow .bmeta{font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);}
+.bmeta{font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);}
 .age-chip{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:700;background:var(--neutralSoft);color:var(--neutral);}
 .age-chip.oldest{background:var(--warnSoft);color:var(--warnText);}
 .age-chip.newest{background:var(--goodSoft);color:var(--good);}
@@ -206,7 +207,9 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .confirm-panel{border-top:1px solid var(--hairline2);padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
 .confirm-panel .ctitle{font-size:var(--f-strong);font-weight:700;}
 .confirm-panel .csub{font-size:var(--f-body);color:var(--inkDim);}
-.confirm-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.confirm-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.readbar2{height:7px;border-radius:99px;background:var(--hairline2);overflow:hidden;margin:6px 0;max-width:280px;}
+.readbar2>span{display:block;height:100%;border-radius:99px;background:var(--info);}
 
 /* ---- refill / pick slip ---- */
 .pickline{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;margin:0 16px 10px;}
@@ -319,7 +322,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
         <div class="view" id="view-receive">
           <div class="card-head" style="padding-bottom:0;">
             <h2>Today's receiving — 4 lines</h2>
-            <span class="hint">Tap a delivery line: the map proposes a shelf, the clerk confirms or scans it</span>
+            <span class="hint">Tap a delivery line: read the tagged units, then scan the shelf's own QR to confirm it — never picked from a list</span>
           </div>
           <div id="receiveList"></div>
           <div class="floor" id="receiveFloor" style="border-top:1px solid var(--hairline2);"></div>
@@ -330,15 +333,19 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
         <div class="view" id="view-refill">
           <div class="card-head" style="padding-bottom:0;">
             <h2>Refill row — Route 3, Flower Box 1</h2>
-            <span class="hint">A kit line spanning two batches is flagged loud, here and on the printed pick slip</span>
+            <span class="hint">Every row below is one batch, never a SKU total — two batches on one kit line are flagged loud, here and on the printed pick slip</span>
+          </div>
+          <div style="margin:0 16px 10px;"><span class="mixed-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>2 batches on this kit line — oldest first</span></div>
+          <div class="pickline mixed">
+            <div class="pname">GMO 3.5g<span class="sub">#4471 · THC 24.1% · pkg Jul 31 · exp Jan 31 · 41 d on hand · Metrc 1A4G…4471</span></div>
+            <div class="stat3"><div><div class="k">Sold</div>6</div><div><div class="k">Need</div>8</div><div><div class="k">Cap</div>20</div></div>
           </div>
           <div class="pickline mixed">
-            <span class="mixed-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>2 batches</span>
-            <div class="pname">GMO 3.5g<span class="sub">Batch #4471 (older, 41d) + Batch #5108 (newer, 6d) — take oldest first</span></div>
-            <div class="stat3"><div><div class="k">Sold</div>15</div><div><div class="k">Need</div>20</div><div><div class="k">Cap</div>20</div></div>
+            <div class="pname">GMO 3.5g<span class="sub">#5108 · THC 31.6% · pkg Sep 4 · exp Mar 4 · 6 d on hand · Metrc 1A4G…5108</span></div>
+            <div class="stat3"><div><div class="k">Sold</div>9</div><div><div class="k">Need</div>12</div><div><div class="k">Cap</div>20</div></div>
           </div>
           <div class="pickline">
-            <div class="pname">Blue Dream 3.5g<span class="sub">Batch #4820 — single batch, no flag</span></div>
+            <div class="pname">Blue Dream 3.5g<span class="sub">#4820 · THC 22.4% · pkg Aug 23 · exp Feb 23 · 18 d on hand · Metrc 1A4B…4820</span></div>
             <div class="stat3"><div><div class="k">Sold</div>9</div><div><div class="k">Need</div>10</div><div><div class="k">Cap</div>12</div></div>
           </div>
           <div class="mini-wrap">
@@ -347,9 +354,12 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
           </div>
           <div class="pickslip">
             <div class="pickslip-head"><span>Pick slip — Route 3 · Flower Box 1</span><span>Printed 7:41 AM PT</span></div>
-            <div class="pickslip-stop"><span class="stopdot">1</span><span class="sloc">A-R1-S2</span><span class="sprod">GMO 3.5g — Batch #4471 <span class="sflag">older · take first</span></span><span class="sqty">12 u</span></div>
-            <div class="pickslip-stop"><span class="stopdot">2</span><span class="sloc">A-R2-S1</span><span class="sprod">GMO 3.5g — Batch #5108 <span class="sflag">newer · mixed batch</span></span><span class="sqty">8 u</span></div>
-            <div class="pickslip-stop"><span class="stopdot">3</span><span class="sloc">A-R1-S1</span><span class="sprod">Blue Dream 3.5g — Batch #4820</span><span class="sqty">10 u</span></div>
+            <div class="pickslip-stop"><span class="stopdot">1</span><span class="sloc">A-R1-S2</span><span class="sprod">GMO 3.5g<br><span class="bmeta">#4471 · THC 24.1% · pkg Jul 31 · exp Jan 31</span> <span class="sflag">older · take first</span></span><span class="sqty">6 u</span></div>
+            <div class="pickslip-stop"><span class="stopdot">2</span><span class="sloc">A-R2-S1</span><span class="sprod">GMO 3.5g<br><span class="bmeta">#5108 · THC 31.6% · pkg Sep 4 · exp Mar 4</span> <span class="sflag">newer · mixed batch</span></span><span class="sqty">9 u</span></div>
+            <div class="pickslip-stop"><span class="stopdot">3</span><span class="sloc">A-R1-S1</span><span class="sprod">Blue Dream 3.5g<br><span class="bmeta">#4820 · THC 22.4% · pkg Aug 23</span></span><span class="sqty">9 u</span></div>
+          </div>
+          <div style="display:flex;gap:8px;padding:0 16px 16px;">
+            <button class="btn btn-ghost btn-sm" id="closePickBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V4a1 1 0 011-1h3M17 3h3a1 1 0 011 1v3M21 17v3a1 1 0 01-1 1h-3M7 21H4a1 1 0 01-1-1v-3"/><path d="M4 12h16"/></svg>Scan QR to close this pick</button>
           </div>
         </div>
       </div>
@@ -424,28 +434,45 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 
   // shelfId -> array of batches
   var BATCHES = {};
-  function addBatch(sid, sku, batchNo, qty, ageDays, thc, pkgDate){
-    (BATCHES[sid] = BATCHES[sid] || []).push({ sku:sku, batchNo:batchNo, qty:qty, age:ageDays, thc:thc, pkg:pkgDate, loc:sid });
+  function addBatch(sid, sku, batchNo, qty, ageDays, thc, pkgDate, expDate, metrc){
+    (BATCHES[sid] = BATCHES[sid] || []).push({ sku:sku, batchNo:batchNo, qty:qty, age:ageDays, thc:thc, pkg:pkgDate, exp:expDate, metrc:metrc, loc:sid });
   }
-  addBatch('A-R1-S1', 'Blue Dream 3.5g', '#4820', 60, 18, '22.4%', 'Aug 23');
-  addBatch('A-R1-S2', 'GMO 3.5g', '#4471', 12, 41, '24.1%', 'Jul 31');
-  addBatch('A-R2-S1', 'GMO 3.5g', '#5108', 60, 6, '31.6%', 'Sep 4');
-  addBatch('A-R3-S1', 'OG Kush 3.5g', '#4390', 44, 52, '19.8%', 'Jul 20');
-  addBatch('A-R2-S3', 'Wedding Cake 3.5g', '#5001', 10, 9, '27.0%', 'Sep 1');
-  addBatch('B-R1-S1', 'Live Resin Cart 1g', '#3310', 8, 63, null, null);
-  addBatch('B-R1-S2', 'Live Resin Cart 1g', '#3612', 50, 6, null, null);
-  addBatch('B-R2-S2', 'Rosin 1g', '#2290', 22, 15, null, null);
-  addBatch('C-R1-S1', 'Indica PR 5-pack', '#1180', 34, 12, null, null);
-  addBatch('C-R1-S2', 'Cereal Milk Pre-Roll 5-pack', '#1201', 180, 0, null, null);
-  addBatch('D-R1-S2', 'Chocolate Bar 100mg', '#900', 18, 22, null, null);
+  addBatch('A-R1-S1', 'Blue Dream 3.5g', '#4820', 60, 18, '22.4%', 'Aug 23', 'Feb 23', '1A4B…4820');
+  addBatch('A-R1-S2', 'GMO 3.5g', '#4471', 12, 41, '24.1%', 'Jul 31', 'Jan 31', '1A4G…4471');
+  addBatch('A-R2-S1', 'GMO 3.5g', '#5108', 60, 6, '31.6%', 'Sep 4', 'Mar 4', '1A4G…5108');
+  addBatch('A-R3-S1', 'OG Kush 3.5g', '#4390', 44, 52, '19.8%', 'Jul 20', 'Jan 20', '1A4O…4390');
+  addBatch('A-R2-S3', 'Wedding Cake 3.5g', '#5001', 10, 9, '27.0%', 'Sep 1', 'Mar 1', '1A4W…5001');
+  addBatch('B-R1-S1', 'Live Resin Cart 1g', '#3310', 8, 63, '73.0%', 'Jul 9', 'Jan 9', '1A4L…3310');
+  addBatch('B-R1-S2', 'Live Resin Cart 1g', '#3612', 50, 6, '76.8%', 'Sep 4', 'Mar 4', '1A4L…3612');
+  addBatch('B-R2-S2', 'Rosin 1g', '#2290', 22, 15, '64.5%', 'Aug 26', 'Feb 26', '1A4R…2290');
+  addBatch('C-R1-S1', 'Indica PR 5-pack', '#1180', 34, 12, '21.0%', 'Aug 29', 'Feb 28', '1A4I…1180');
+  addBatch('C-R1-S2', 'Cereal Milk Pre-Roll 5-pack', '#1201', 180, 0, '24.8%', 'Sep 10', 'Mar 10', '1A4C…1201');
+  addBatch('D-R1-S2', 'Chocolate Bar 100mg', '#900', 18, 22, '—', 'Aug 19', 'Aug 19, 2027', '1A4E…0900');
+
+  /* ---------------- batch chip: number · THC · pkg · exp · age · Metrc ---------------- */
+  function chipText(b){
+    var parts = ['#'+String(b.batchNo).replace(/^#/, '')];
+    if (b.thc) parts.push('THC '+b.thc);
+    if (b.pkg) parts.push('pkg '+b.pkg);
+    if (b.exp) parts.push('exp '+b.exp);
+    if (b.age != null) parts.push(b.age+' d on hand');
+    if (b.metrc) parts.push('Metrc '+b.metrc);
+    return parts.join(' · ');
+  }
 
   var RECEIVE = [
-    { id:'rc1', name:'Papaya Punch 3.5g', kind:'new', kindLabel:'New SKU', qty:240, proposed:'A-R3-S3', older:null, done:false },
-    { id:'rc2', name:'Cereal Milk Pre-Roll 5-pack', kind:'restock', kindLabel:'Restock', qty:180, proposed:'C-R1-S2', older:null, done:false },
-    { id:'rc3', name:'GMO 3.5g', kind:'newbatch', kindLabel:'New batch', qty:90, proposed:'A-R2-S2', older:'A-R1-S2', done:false, batchNo:'#5188' },
-    { id:'rc4', name:'Live Resin Cart 1g', kind:'newbatch', kindLabel:'New batch', qty:50, proposed:'B-R1-S3', older:'B-R1-S1', done:false, batchNo:'#3714' }
+    { id:'rc1', name:'Papaya Punch 3.5g', kind:'new', kindLabel:'New SKU', qty:240, proposed:'A-R3-S3', older:null, done:false,
+      batchNo:'5240', thc:'23.7%', pkg:'Sep 9', exp:'Mar 9', metrc:'1A4P…5240' },
+    { id:'rc2', name:'Cereal Milk Pre-Roll 5-pack', kind:'restock', kindLabel:'Restock', qty:180, proposed:'C-R1-S2', older:null, done:false,
+      batchNo:'1201', thc:'24.8%', pkg:'Sep 10', exp:'Mar 10', metrc:'1A4C…1201' },
+    { id:'rc3', name:'GMO 3.5g', kind:'newbatch', kindLabel:'New batch', qty:90, proposed:'A-R2-S2', older:'A-R1-S2', done:false,
+      batchNo:'5188', thc:'29.4%', pkg:'Sep 9', exp:'Mar 9', metrc:'1A4G…5188' },
+    { id:'rc4', name:'Live Resin Cart 1g', kind:'newbatch', kindLabel:'New batch', qty:50, proposed:'B-R1-S3', older:'B-R1-S1', done:false,
+      batchNo:'3714', thc:'79.2%', pkg:'Sep 9', exp:'Mar 9', metrc:'1A4L…3714' }
   ];
   var selectedReceive = null;
+  var receiveWork = {};
+  function getReceiveWork(id){ if (!receiveWork[id]) receiveWork[id] = { read:0 }; return receiveWork[id]; }
   var editorOn = false, editorSelectedZone = 'A';
 
   /* ---------------- floor map rendering ---------------- */
@@ -482,7 +509,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
     var sorted = list.slice().sort(function(a,b){ return b.age - a.age; });
     return '<div class="detail-head"><span class="dtitle">'+sid+'</span></div>' + sorted.map(function(b, i){
       var chipClass = i === 0 && sorted.length > 1 ? 'age-chip oldest' : (i === sorted.length-1 && sorted.length > 1 ? 'age-chip newest' : 'age-chip');
-      return '<div class="batchrow"><span class="bname">'+esc(b.sku)+'</span><span class="bmeta">Batch '+b.batchNo+' · '+b.qty+' u'+(b.thc?' · THC '+b.thc:'')+(b.pkg?' · pkg '+b.pkg:'')+'</span><span class="'+chipClass+'">'+ageLabel(b.age)+'</span></div>';
+      return '<div class="batchrow"><span class="bname">'+esc(b.sku)+'</span><span class="bmeta">'+esc(chipText(b))+' · '+b.qty+' u</span><span class="'+chipClass+'">'+ageLabel(b.age)+'</span></div>';
     }).join('');
   }
 
@@ -566,7 +593,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
     document.getElementById('mapDetail').innerHTML = '<div class="detail-head"><span class="dtitle">'+hits.length+' '+(hits.length>1?'shelves':'shelf')+' lit — oldest batch first</span></div>' +
       hits.map(function(h, i){
         var chip = i === 0 && hits.length > 1 ? 'age-chip oldest' : (i === hits.length-1 && hits.length > 1 ? 'age-chip newest' : 'age-chip');
-        return '<button type="button" class="result-item" data-jump="'+h.loc+'"><span class="rloc">'+h.loc+'</span><span class="bname" style="flex:1;">'+esc(h.sku)+' — Batch '+h.batchNo+'</span><span class="'+chip+'">'+ageLabel(h.age)+'</span><span class="rqty">'+h.qty+' u</span></button>';
+        return '<button type="button" class="result-item" data-jump="'+h.loc+'"><span class="rloc">'+h.loc+'</span><span class="bname" style="flex:1;">'+esc(h.sku)+'<span class="bmeta" style="display:block;font-weight:500;">'+esc(chipText(h))+'</span></span><span class="'+chip+'">'+ageLabel(h.age)+'</span><span class="rqty">'+h.qty+' u</span></button>';
       }).join('');
   }
   document.getElementById('skuSearch').addEventListener('input', function(){ runSearch(this.value); });
@@ -600,8 +627,8 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
       var cls = 'receive-item' + (r.id===selectedReceive?' selected':'') + (r.done?' done':'');
       return '<button type="button" class="'+cls+'" data-rc="'+r.id+'">'
         + '<span class="kind-tag kind-'+r.kind+'">'+r.kindLabel+'</span>'
-        + '<span class="rname">'+esc(r.name)+'</span>'
-        + '<span class="rqty2">'+r.qty+' u'+(r.older?' · older batch on hand':'')+'</span>'
+        + '<span class="rname">'+esc(r.name)+'<span class="bmeta" style="display:block;font-weight:500;">'+esc(chipText(r))+(r.older?' · older batch on hand':'')+'</span></span>'
+        + '<span class="rqty2">'+r.qty+' u</span>'
         + (r.done ? '<span class="rdone"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>' : '')
         + '</button>';
     }).join('');
@@ -618,18 +645,28 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
       panel.innerHTML = '<div class="csub">Confirmed at '+r.proposed+'.</div>';
       return;
     }
+    var work = getReceiveWork(id);
+    var readDone = work.read >= r.qty;
     var olderNote = r.older ? '<div class="csub">Older batch of this SKU is already on hand at <b style="font-family:var(--fontMono);">'+r.older+'</b> (glowing blue) — the proposed shelf sits beside it so the refill team finds both without asking.</div>' : '';
-    panel.innerHTML = '<div class="ctitle">Confirm shelf '+r.proposed+' for '+esc(r.name)+(r.batchNo?' — Batch '+r.batchNo:'')+'</div>' + olderNote
-      + '<div class="confirm-actions"><button class="btn btn-primary" id="confirmShelfBtn">Confirm '+r.proposed+'</button><button class="btn btn-ghost" id="scanShelfBtn">Scan shelf QR instead</button></div>';
-    document.getElementById('confirmShelfBtn').addEventListener('click', function(){ confirmReceive(r); });
+    panel.innerHTML = '<div class="ctitle">'+esc(r.name)+'</div><div class="csub" style="font-family:var(--fontMono);">'+esc(chipText(r))+'</div>' + olderNote
+      + '<div class="csub" style="margin-top:8px;">Step 1 — read tagged units in bulk (Batch '+esc(r.batchNo)+')</div>'
+      + '<div class="readbar2"><span style="width:'+Math.round((work.read/r.qty)*100)+'%"></span></div>'
+      + '<div class="csub">'+work.read+' of '+r.qty+' expected read</div>'
+      + '<div class="confirm-actions">'
+      + (readDone ? '' : '<button class="btn btn-ghost" id="simReadBtn">Simulate: bulk RFID read</button>')
+      + '<button class="btn btn-primary" id="scanShelfBtn"'+(readDone?'':' disabled')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V4a1 1 0 011-1h3M17 3h3a1 1 0 011 1v3M21 17v3a1 1 0 01-1 1h-3M7 21H4a1 1 0 01-1-1v-3"/><path d="M4 12h16"/></svg> Scan shelf '+r.proposed+' QR to confirm</button>'
+      + '</div>';
+    var simBtn = document.getElementById('simReadBtn');
+    if (simBtn) simBtn.addEventListener('click', function(){ work.read = r.qty; selectReceive(id); });
     document.getElementById('scanShelfBtn').addEventListener('click', function(){
+      if (!readDone) return;
       toast('Shelf scanned', 'Handheld read the QR at '+r.proposed+' — matches the proposed shelf.');
       confirmReceive(r);
     });
   }
   function confirmReceive(r){
     r.done = true;
-    addBatch(r.proposed, r.name, r.batchNo || ('#'+(4000+Math.floor(Math.random()*999))), r.qty, 0, null, null);
+    addBatch(r.proposed, r.name, r.batchNo, r.qty, 0, r.thc, r.pkg, r.exp, r.metrc);
     toast('Location set', esc(r.name)+' recorded to '+r.proposed+' — findable from the Map tab immediately.');
     selectReceive(r.id);
   }
@@ -651,6 +688,9 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
   renderReceiveList();
   renderFloor('receiveFloor', {});
   renderFloor('refillFloor', { route:['A-R1-S2','A-R2-S1','A-R1-S1'] });
+  document.getElementById('closePickBtn').addEventListener('click', function(){
+    toast('Pick closed', 'Simulated scan of the pick-slip QR — this pick is now marked closed.');
+  });
 })();
 </script>
 </body>

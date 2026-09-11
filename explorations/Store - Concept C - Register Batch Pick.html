@@ -6,16 +6,22 @@
 <title>Store — Concept C — Register Batch Pick</title>
 <style>
 /* ============================================================================
-   Store — Concept C — Register Batch Pick. The register always defaults to
-   the oldest batch (FEFO); an associate can name a specific batch for a
-   customer who asks, but must give a reason; a sale that would ship two
-   batches on one line is never quiet — it turns LOUD (red) before the sale
-   completes. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); row/card
-   shapes echo pos/screen-cart.jsx and pos/sales-panel.jsx (surface2 rows,
-   hairline borders, r10 radius, JetBrains Mono for money) so this reads like
-   the same register. Rail/header shape from Hyperwolf Bounty.html. No build
-   step, no external requests. Every name, product, quantity and time below
-   is EXAMPLE DATA — see the banner under the header.
+   Store — Concept C — Register Batch Pick. RFID first: every line starts as
+   a tag read (tap a product = the associate reading the tag on the unit they
+   just grabbed); the oldest batch is the one that gets read by default,
+   because that is the unit staff should be reaching for. A customer's
+   specific batch request means reading a different unit's tag and recording
+   a reason. Batch level everywhere: every cart line is a batch line with a
+   monospace chip — number · THC · pkg · exp — and a sale that would ship two
+   batches on one line turns LOUD before it can complete. One category with
+   no RFID tag (bulk edibles) is the exception row: hand-counted, flagged as
+   such, THC read from the product label instead of a tag. Tokens copied
+   inline from pos/tokens.jsx (LIGHT/DARK); row/card shapes echo
+   pos/screen-cart.jsx and pos/sales-panel.jsx (surface2 rows, hairline
+   borders, r10 radius, JetBrains Mono for money) so this reads like the same
+   register. Rail/header shape from Hyperwolf Bounty.html. No build step, no
+   external requests. Every name, product, quantity and time below is
+   EXAMPLE DATA — see the banner under the header.
    ========================================================================= */
 :root{
   --fontSans:"Inter",-apple-system,system-ui,sans-serif;
@@ -114,6 +120,8 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 
 .example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;margin:14px 24px 0;}
 .example-banner svg{flex:0 0 auto;}
+.rfid-note{font-size:var(--f-meta);color:var(--inkMute);margin:0 0 2px;display:flex;align-items:center;gap:6px;}
+.rfid-note svg{flex:0 0 auto;color:var(--inkFaint);}
 
 .register{flex:1;display:flex;min-height:0;padding:14px 24px 0;gap:16px;}
 .catalog{flex:1 1 58%;min-width:0;display:flex;flex-direction:column;gap:12px;}
@@ -129,6 +137,8 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .tile .tmeta{font-size:var(--f-meta);color:var(--inkMute);}
 .tile .tprice{font-family:var(--fontMono);font-size:var(--f-numRow);font-weight:800;margin-top:auto;}
 .tile .tbatches{font-size:var(--f-micro);color:var(--inkFaint);}
+.tile .tscan{display:flex;align-items:center;gap:4px;font-size:var(--f-micro);color:var(--inkFaint);}
+.tile .tscan svg{flex:0 0 auto;}
 
 .cartpane{flex:1 1 42%;min-width:340px;max-width:460px;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);overflow:hidden;}
 .cart-head{padding:14px 16px 10px;border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:10px;}
@@ -152,11 +162,13 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .qval{width:22px;text-align:center;font-family:var(--fontMono);font-weight:700;font-size:var(--f-body);}
 .linetot{font-family:var(--fontMono);font-weight:800;font-size:var(--f-numRow);}
 
-.batchchip{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:var(--f-meta);color:var(--inkDim);background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r8);padding:6px 9px;}
+.batchchip{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:var(--f-meta);color:var(--inkDim);background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r8);padding:6px 9px;font-family:var(--fontMono);}
+.batchchip svg{flex:0 0 auto;color:var(--inkMute);}
 .batchchip b{font-family:var(--fontMono);color:var(--ink);}
-.batchchip .oldest-tag{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;background:var(--goodSoft);color:var(--good);font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
-.batchchip .override-tag{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;background:var(--infoSoft);color:var(--info);font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
-.changebatch-link{background:none;border:none;color:var(--info);font-size:var(--f-meta);font-weight:600;cursor:pointer;padding:0;margin-left:auto;}
+.batchchip .oldest-tag{font-family:var(--fontSans);display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;background:var(--goodSoft);color:var(--good);font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
+.batchchip .override-tag{font-family:var(--fontSans);display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;background:var(--infoSoft);color:var(--info);font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
+.batchchip .handcount-tag{font-family:var(--fontSans);display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;background:var(--neutralSoft);color:var(--neutral);font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
+.changebatch-link{font-family:var(--fontSans);background:none;border:none;color:var(--info);font-size:var(--f-meta);font-weight:600;cursor:pointer;padding:0;margin-left:auto;}
 .changebatch-link:hover{text-decoration:underline;}
 
 .mixedbox{background:var(--surface);border:1px solid var(--bad);border-radius:var(--r10);padding:9px 10px;display:flex;flex-direction:column;gap:6px;}
@@ -196,7 +208,8 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .batchopt.sel{border-color:var(--info);background:var(--infoSoft);}
 .batchopt input{margin-top:3px;}
 .batchopt .bo-body{flex:1;}
-.batchopt .bo-title{font-weight:700;font-size:var(--f-body);display:flex;gap:8px;align-items:center;}
+.batchopt .bo-title{font-weight:700;font-size:var(--f-body);display:flex;gap:6px;align-items:center;}
+.batchopt .bo-title svg{color:var(--inkMute);flex:0 0 auto;}
 .batchopt .bo-meta{font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);margin-top:2px;}
 .popover label.flabel{font-size:var(--f-meta);font-weight:700;color:var(--inkDim);display:block;margin:12px 0 5px;}
 .popover select{width:100%;height:40px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 10px;font-size:var(--f-body);}
@@ -266,6 +279,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 
     <div class="register">
       <div class="catalog">
+        <div class="rfid-note"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0120 0"/><path d="M5.5 12a10 10 0 0113 0"/><circle cx="12" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg>Every line starts with a tag read. Oldest batch is suggested · a customer's specific request needs a reason · two batches on one line turn LOUD.</div>
         <div class="search"><input id="searchBox" type="text" placeholder="Search products…" /></div>
         <div class="catfilter" id="catFilter"></div>
         <div class="grid" id="productGrid"></div>
@@ -333,25 +347,28 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
   }
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
   function money(n){ return '$'+n.toFixed(2); }
+  function rfidIcon(size){
+    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0120 0"/><path d="M5.5 12a10 10 0 0113 0"/><circle cx="12" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg>';
+  }
 
-  /* ---------------- catalog: EXAMPLE ONLY, batches oldest-first ---------------- */
+  /* ---------------- catalog: EXAMPLE ONLY, batches oldest-first, exp per batch ---------------- */
   var CATCOLOR = { flower:'var(--cat-flower)', preroll:'var(--cat-preroll)', vape:'var(--cat-vape)', concentrate:'var(--cat-concentrate)', edible:'var(--cat-edible)' };
   var PRODUCTS = [
     { sku:'BD35', name:'Blue Dream 3.5g', cat:'flower', price:38, batches:[
-      { no:'B-2291', thc:22.4, packaged:'Jun 28', qty:14 },
-      { no:'B-2350', thc:24.9, packaged:'Aug 02', qty:40 } ] },
+      { no:'B-2291', thc:22.4, packaged:'Jun 28', exp:'Dec 28', qty:14 },
+      { no:'B-2350', thc:24.9, packaged:'Aug 02', exp:'Feb 02', qty:40 } ] },
     { sku:'LRC1', name:'Live Resin Cart 1g', cat:'vape', price:44, batches:[
-      { no:'B-1042', thc:84.2, packaged:'Jul 10', qty:3 },
-      { no:'B-1090', thc:88.1, packaged:'Aug 20', qty:22 } ] },
+      { no:'B-1042', thc:84.2, packaged:'Jul 10', exp:'Jan 10', qty:3 },
+      { no:'B-1090', thc:88.1, packaged:'Aug 20', exp:'Feb 20', qty:22 } ] },
     { sku:'GMOPR5', name:'GMO Pre-Roll 5-pack', cat:'preroll', price:32, batches:[
-      { no:'B-3311', thc:26.0, packaged:'Jul 01', qty:6 } ] },
-    { sku:'GUM10', name:'Gummies 10mg 10-pack', cat:'edible', price:20, batches:[
-      { no:'B-4410', thc:null, packaged:'May 15', qty:30 } ] },
+      { no:'B-3311', thc:26.0, packaged:'Jul 01', exp:'Jan 01', qty:6 } ] },
+    { sku:'GUM10', name:'Gummies 10mg 10-pack', cat:'edible', price:20, rfid:false, batches:[
+      { no:'B-4410', thc:null, packaged:'May 15', exp:'Nov 15', qty:30 } ] },
     { sku:'ROS1', name:'Rosin 1g', cat:'concentrate', price:55, batches:[
-      { no:'B-5501', thc:71.3, packaged:'Jun 02', qty:2 },
-      { no:'B-5540', thc:74.0, packaged:'Jul 28', qty:18 } ] },
+      { no:'B-5501', thc:71.3, packaged:'Jun 02', exp:'Dec 02', qty:2 },
+      { no:'B-5540', thc:74.0, packaged:'Jul 28', exp:'Jan 28', qty:18 } ] },
     { sku:'WCK35', name:'Wedding Cake 3.5g', cat:'flower', price:40, batches:[
-      { no:'B-2402', thc:27.6, packaged:'Aug 12', qty:26 } ] }
+      { no:'B-2402', thc:27.6, packaged:'Aug 12', exp:'Feb 12', qty:26 } ] }
   ];
   var CATS = [['all','All'],['flower','Flower'],['vape','Vape'],['preroll','Pre-Roll'],['concentrate','Concentrate'],['edible','Edible']];
   var activeCat = 'all', searchQ = '';
@@ -362,24 +379,26 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
   var sold = false;
 
   function findProduct(sku){ for (var i=0;i<PRODUCTS.length;i++) if (PRODUCTS[i].sku===sku) return PRODUCTS[i]; }
+  function sortedBatches(product){ return product.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); }); }
 
   // Oldest-first allocation across a product's batches for a given quantity.
-  // Returns [{no, thc, packaged, take}] using as many batches as required.
+  // Returns [{no, thc, packaged, exp, take}] using as many batches as required.
   function allocateFEFO(product, qty){
-    var sorted = product.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); });
+    var sorted = sortedBatches(product);
     var remaining = qty, out = [];
     for (var i=0;i<sorted.length && remaining>0;i++){
       var take = Math.min(sorted[i].qty, remaining);
       if (take <= 0) continue;
-      out.push({ no:sorted[i].no, thc:sorted[i].thc, packaged:sorted[i].packaged, take:take });
+      out.push({ no:sorted[i].no, thc:sorted[i].thc, packaged:sorted[i].packaged, exp:sorted[i].exp, take:take });
       remaining -= take;
     }
     return out;
   }
-  // Allocation when the associate has pinned a specific batch: fill from that
-  // batch first, then spill into the next oldest if it still runs short.
+  // Allocation when the associate has read a specific batch's tag for a
+  // customer request: fill from that batch first, then spill into the next
+  // oldest if it still runs short.
   function allocatePinned(product, qty, pinnedNo){
-    var sorted = product.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); });
+    var sorted = sortedBatches(product);
     var pinned = sorted.filter(function(b){ return b.no === pinnedNo; });
     var rest = sorted.filter(function(b){ return b.no !== pinnedNo; });
     var ordered = pinned.concat(rest);
@@ -387,7 +406,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
     for (var i=0;i<ordered.length && remaining>0;i++){
       var take = Math.min(ordered[i].qty, remaining);
       if (take <= 0) continue;
-      out.push({ no:ordered[i].no, thc:ordered[i].thc, packaged:ordered[i].packaged, take:take });
+      out.push({ no:ordered[i].no, thc:ordered[i].thc, packaged:ordered[i].packaged, exp:ordered[i].exp, take:take });
       remaining -= take;
     }
     return out;
@@ -416,11 +435,16 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
       return true;
     });
     document.getElementById('productGrid').innerHTML = list.map(function(p){
-      var oldest = p.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); })[0];
+      var oldest = sortedBatches(p)[0];
+      var batchLine = p.rfid === false
+        ? 'No tag on file · hand-counted'
+        : (p.batches.length>1 ? p.batches.length+' tagged batches · oldest '+oldest.packaged : '1 tagged batch · '+oldest.packaged);
+      var scanLine = p.rfid === false ? 'Tap to add — hand count' : 'Tap to read a unit’s tag';
       return '<button class="tile" data-sku="'+p.sku+'" style="--tc:'+CATCOLOR[p.cat]+'">'
         + '<div class="tname">'+esc(p.name)+'</div>'
         + '<div class="tmeta">'+p.cat.charAt(0).toUpperCase()+p.cat.slice(1)+'</div>'
-        + '<div class="tbatches">'+(p.batches.length>1 ? p.batches.length+' batches on hand · oldest '+oldest.packaged : '1 batch · '+oldest.packaged)+'</div>'
+        + '<div class="tbatches">'+batchLine+'</div>'
+        + '<div class="tscan">'+(p.rfid===false?'':rfidIcon(11))+scanLine+'</div>'
         + '<div class="tprice">'+money(p.price)+'</div>'
         + '</button>';
     }).join('') || '<div style="color:var(--inkMute);padding:20px;">No products match.</div>';
@@ -433,9 +457,15 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
   /* ---------------- cart ---------------- */
   function addToCart(sku){
     if (sold) return;
+    var p = findProduct(sku);
     var existing = cart.filter(function(l){ return l.sku===sku; })[0];
-    if (existing) existing.qty += 1;
-    else { var p = findProduct(sku); cart.push({ sku:sku, name:p.name, cat:p.cat, price:p.price, qty:1, batchNo:null, reason:null }); }
+    if (existing) { existing.qty += 1; }
+    else {
+      cart.push({ sku:sku, name:p.name, cat:p.cat, price:p.price, qty:1, batchNo:null, reason:null });
+      var oldest = sortedBatches(p)[0];
+      if (p.rfid === false) toast('No tag found', p.name+' has no RFID tag — hand-counted, THC entered from the product label.');
+      else toast('Tag read', oldest.no+' confirmed — oldest batch on hand.');
+    }
     checkoutAck = null;
     renderCart();
   }
@@ -451,13 +481,14 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
   function renderCart(){
     var body = document.getElementById('cartBody');
     if (!cart.length){
-      body.innerHTML = '<div class="empty-cart">Tap a product to start a sale.</div>';
+      body.innerHTML = '<div class="empty-cart">Read a product’s tag to start a sale.</div>';
       document.getElementById('cartSummary').style.display = 'none';
       document.getElementById('checkoutBtnWrap').innerHTML = '';
       document.getElementById('warnBody').innerHTML = '';
       return;
     }
     var linesHtml = cart.map(function(line){
+      var product = findProduct(line.sku);
       var alloc = lineAllocation(line);
       var mixed = alloc.length > 1;
       var html = '<div class="line'+(mixed?' mixed':'')+'" data-sku="'+line.sku+'">';
@@ -472,19 +503,23 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 
       if (!mixed){
         var b = alloc[0];
-        var isOldest = !line.batchNo;
-        html += '<div class="batchchip"><b>'+b.no+'</b><span>THC '+(b.thc!=null?b.thc+'%':'n/a')+'</span><span>Packaged '+b.packaged+'</span>'
-          + (isOldest ? '<span class="oldest-tag">Oldest</span>' : '<span class="override-tag">Requested</span>')
-          + (findProduct(line.sku).batches.length>1 ? '<button class="changebatch-link" data-changebatch="'+line.sku+'">Change batch</button>' : '')
-          + '</div>';
+        if (product.rfid === false){
+          html += '<div class="batchchip"><b>'+b.no+'</b><span>THC n/a</span><span>pkg '+b.packaged+'</span><span>exp '+b.exp+'</span><span class="handcount-tag">No tag — hand-counted</span></div>';
+        } else {
+          var isOldest = !line.batchNo;
+          html += '<div class="batchchip">'+rfidIcon(12)+'<b>'+b.no+'</b><span>THC '+(b.thc!=null?b.thc+'%':'n/a')+'</span><span>pkg '+b.packaged+'</span><span>exp '+b.exp+'</span>'
+            + (isOldest ? '<span class="oldest-tag">Oldest — read</span>' : '<span class="override-tag">Requested — read</span>')
+            + (product.batches.length>1 ? '<button class="changebatch-link" data-changebatch="'+line.sku+'">Read a different tag</button>' : '')
+            + '</div>';
+        }
         if (line.reason) html += '<div class="reasonpicked">Reason: '+esc(line.reason)+'</div>';
       } else {
-        html += '<div class="mixedbox"><div class="mtitle"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>Mixed batch — this line ships from two batches</div>';
+        html += '<div class="mixedbox"><div class="mtitle"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>LOUD — mixed batch: this line ships from two batches</div>';
         alloc.forEach(function(a){
-          html += '<div class="mixedrow"><span>'+a.no+' × '+a.take+'</span><span>THC '+(a.thc!=null?a.thc+'%':'n/a')+' · '+a.packaged+'</span></div>';
+          html += '<div class="mixedrow"><span>'+a.no+' × '+a.take+'</span><span>THC '+(a.thc!=null?a.thc+'%':'n/a')+' · pkg '+a.packaged+' · exp '+a.exp+'</span></div>';
         });
-        html += '<div class="reasonline">Not enough of the oldest batch alone — the newer batch fills the rest. Flagged for the register and the receipt.</div>';
-        html += (findProduct(line.sku).batches.length>1 ? '<button class="changebatch-link" data-changebatch="'+line.sku+'" style="margin-left:0;">Pin one batch instead</button>' : '');
+        html += '<div class="reasonline">Not enough of the oldest batch alone — reading the next tag fills the rest. Flagged for the register and the receipt.</div>';
+        html += (product.batches.length>1 ? '<button class="changebatch-link" data-changebatch="'+line.sku+'" style="margin-left:0;">Read one tag instead</button>' : '');
         html += '</div>';
       }
       html += '</div>';
@@ -512,8 +547,8 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
     var wrap = document.getElementById('checkoutBtnWrap');
     if (hasMixedLine() && checkoutAck !== 'continue'){
       warnHost.innerHTML = '<div class="checkout-warn">'
-        + '<div class="cw-title">Mixed-batch order — confirm before selling</div>'
-        + '<div>One or more lines will hand the customer product from two batches. Choose how to proceed.</div>'
+        + '<div class="cw-title">LOUD — mixed-batch order: confirm before selling</div>'
+        + '<div>One or more lines will hand the customer product read from two batches. Choose how to proceed.</div>'
         + '<div class="cw-actions">'
         + '<select id="mixedAction"><option value="">Choose an action…</option><option value="continue">Continue anyway — tell the customer</option><option value="substitute">Substitute a single-batch item instead</option><option value="hold">Hold this line, sell the rest</option></select>'
         + '</div></div>';
@@ -521,7 +556,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
       var sel = document.getElementById('mixedAction');
       sel.addEventListener('change', function(){
         if (sel.value === 'continue'){ checkoutAck = 'continue'; toast('Noted', 'Customer will be told the order mixes two batches.'); renderCart(); }
-        else if (sel.value === 'substitute'){ toast('Substitute', 'Pick a single-batch item from the catalog to replace the mixed line.'); }
+        else if (sel.value === 'substitute'){ toast('Substitute', 'Read a single-batch item’s tag from the catalog to replace the mixed line.'); }
         else if (sel.value === 'hold'){ toast('Held', 'That line is set aside; the rest of the sale can still complete (demo does not remove it).'); }
       });
     } else {
@@ -531,27 +566,27 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
     }
   }
 
-  /* ---------------- batch popover ---------------- */
+  /* ---------------- batch popover: reading a different unit's tag ---------------- */
   function openBatchPopover(sku){
     var product = findProduct(sku);
     var line = cart.filter(function(l){ return l.sku===sku; })[0];
-    var sorted = product.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); });
+    var sorted = sortedBatches(product);
     var host = document.getElementById('overlayHost');
     var pending = line.batchNo || sorted[0].no;
     function draw(){
       host.innerHTML = '<div class="overlay" id="batchOverlay"><div class="popover">'
-        + '<h3>Choose a batch</h3><div class="phint">'+esc(product.name)+' — oldest batch is picked automatically. Naming a different one needs a reason.</div>'
+        + '<h3>Read a different tag</h3><div class="phint">'+esc(product.name)+' — the oldest batch is what you should be reaching for. Reading a different unit for a customer needs a reason.</div>'
         + sorted.map(function(b,i){
             var sel = b.no === pending;
             return '<label class="batchopt'+(sel?' sel':'')+'" data-opt="'+b.no+'">'
               + '<input type="radio" name="batchopt" value="'+b.no+'" '+(sel?'checked':'')+' />'
-              + '<div class="bo-body"><div class="bo-title">'+b.no+(i===0?' <span class="oldest-tag">Oldest</span>':'')+'</div>'
-              + '<div class="bo-meta">THC '+(b.thc!=null?b.thc+'%':'n/a')+' · Packaged '+b.packaged+' · '+b.qty+' on hand</div></div>'
+              + '<div class="bo-body"><div class="bo-title">'+rfidIcon(12)+b.no+(i===0?' <span class="oldest-tag">Oldest</span>':'')+'</div>'
+              + '<div class="bo-meta">THC '+(b.thc!=null?b.thc+'%':'n/a')+' · pkg '+b.packaged+' · exp '+b.exp+' · '+b.qty+' on hand</div></div>'
               + '</label>';
           }).join('')
-        + '<label class="flabel">Reason for the customer’s request</label>'
+        + '<label class="flabel">Reason this tag was read instead of the oldest</label>'
         + '<select id="reasonSelect">'+REASONS.map(function(r){ return '<option'+(line.reason===r?' selected':'')+'>'+r+'</option>'; }).join('')+'</select>'
-        + '<div class="popover-actions"><button class="btn btn-ghost" id="popCancel">Cancel</button><button class="btn btn-primary" id="popApply">Use this batch</button></div>'
+        + '<div class="popover-actions"><button class="btn btn-ghost" id="popCancel">Cancel</button><button class="btn btn-primary" id="popApply">Confirm this tag</button></div>'
         + '</div></div>';
       host.querySelectorAll('.batchopt').forEach(function(o){
         o.addEventListener('click', function(){ pending = o.getAttribute('data-opt'); draw(); });
@@ -565,7 +600,7 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
         checkoutAck = null;
         host.innerHTML = '';
         renderCart();
-        toast('Batch set', isOldest ? 'Back to the default oldest batch.' : pending+' pinned — reason recorded on the line.');
+        toast('Tag read', isOldest ? 'Back to the oldest batch on hand.' : pending+' confirmed — reason recorded on the line.');
       });
     }
     draw();
@@ -581,9 +616,9 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
       var alloc = lineAllocation(line);
       var mixed = alloc.length > 1;
       var batchText = mixed
-        ? alloc.map(function(a){ return a.no+' ('+a.take+', THC '+(a.thc!=null?a.thc+'%':'n/a')+', '+a.packaged+')'; }).join(' + ')
-        : alloc[0].no+' · THC '+(alloc[0].thc!=null?alloc[0].thc+'%':'n/a')+' · Packaged '+alloc[0].packaged;
-      return '<div class="rline"><span><span class="rname">'+line.qty+'× '+esc(line.name)+'</span><span class="rbatch'+(mixed?' mixed':'')+'">'+(mixed?'MIXED BATCH — ':'')+batchText+'</span></span><span class="rprice">'+money(line.price*line.qty)+'</span></div>';
+        ? alloc.map(function(a){ return a.no+' ('+a.take+', THC '+(a.thc!=null?a.thc+'%':'n/a')+', exp '+a.exp+')'; }).join(' + ')
+        : alloc[0].no+' · THC '+(alloc[0].thc!=null?alloc[0].thc+'%':'n/a')+' · exp '+alloc[0].exp;
+      return '<div class="rline"><span><span class="rname">'+line.qty+'× '+esc(line.name)+'</span><span class="rbatch'+(mixed?' mixed':'')+'">'+(mixed?'LOUD — MIXED BATCH — ':'')+batchText+'</span></span><span class="rprice">'+money(line.price*line.qty)+'</span></div>';
     }).join('');
     host.innerHTML = '<div class="receipt-view">'
       + '<div class="receipt-badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Sale complete — receipt shows batch and THC per line</div>'

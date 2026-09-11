@@ -11,6 +11,9 @@
    and topbar reproduced from Hyperwolf Bounty.html and the two Refill
    keepers. No build step, no external scripts or fonts. Every product,
    batch, location and time on this screen is EXAMPLE DATA — see the banner.
+   Round 2 revision: RFID first (read is the primary control, no location
+   dropdown — a shelf QR opens the location) and batch level everywhere
+   (every line is a batch line: expected / read / counted / variance per batch).
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -107,8 +110,10 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 
 .example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
 .banner{display:flex;align-items:flex-start;gap:12px;border-radius:var(--r12);padding:13px 16px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);}
-.banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;}
+.banner.info{background:var(--infoSoft);border-color:var(--info);color:var(--info);}
+.banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;color:inherit;}
 .banner .b-body{color:var(--inkDim);}
+.banner.info .b-body{color:var(--info);opacity:.92;}
 
 .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
 .card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex-wrap:wrap;}
@@ -123,6 +128,9 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
 .btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
 .btn-ghost:hover{background:var(--surface3);}
+.btn-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.btn-warn:hover{background:var(--warn);color:#fff;}
+.btn-lg{height:52px;padding:0 22px;font-size:var(--f-title);border-radius:var(--r12);}
 .btn-sm{height:32px;padding:0 12px;font-size:var(--f-meta);border-radius:var(--r8);}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
 
@@ -138,11 +146,21 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .ladder-step.done{color:var(--ink);}
 .ladder-badge{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:99px;background:var(--bad);color:#fff;font-size:10px;font-weight:800;}
 
-/* ---- scope picker ---- */
+/* ---- scope chips ---- */
 .scope-row{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 12px;}
 .scope-chip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:99px;border:1px solid var(--hairline3);background:var(--surface);color:var(--inkDim);font-size:var(--f-body);font-weight:600;cursor:pointer;}
 .scope-chip:hover{background:var(--surface3);}
 .scope-chip.active{background:var(--accentSoft);border-color:var(--accentBorder);color:var(--accentText);}
+
+/* ---- open-by-QR gate ---- */
+.gate{display:flex;align-items:center;gap:16px;padding:6px 16px 16px;flex-wrap:wrap;}
+.qrmini{width:56px;height:56px;flex:0 0 auto;background:#fff;border:1px solid var(--hairline3);border-radius:6px;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);padding:3px;}
+.qrmini div{background:#111;}
+.qrmini div.off{background:#fff;}
+.gate-copy{flex:1;min-width:200px;}
+.gate-copy .gt{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;}
+.gate-copy .gs{font-size:var(--f-meta);color:var(--inkMute);}
+
 .scope-detail{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:0 16px 14px;border-bottom:1px solid var(--hairline2);}
 .scope-addr{font-family:var(--fontMono);font-size:var(--f-title);font-weight:700;background:var(--surface3);border-radius:var(--r10);padding:6px 12px;}
 .scope-sub{font-size:var(--f-meta);color:var(--inkMute);}
@@ -151,6 +169,11 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .switch::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .12s ease;box-shadow:var(--shadowSm);}
 .switch.on{background:var(--accentBorder);}
 .switch.on::after{transform:translateX(18px);}
+
+/* ---- primary "Read this location" row ---- */
+.readrow{display:flex;align-items:center;gap:14px;padding:14px 16px;flex-wrap:wrap;border-bottom:1px solid var(--hairline2);}
+.readrow .rstat{font-size:var(--f-body);color:var(--inkDim);}
+.readrow .rstat b{color:var(--ink);}
 
 /* ---- count sheet table ---- */
 table.counttbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;}
@@ -161,12 +184,12 @@ table.counttbl tr:last-child td{border-bottom:none;}
 .counttbl .pn{font-weight:700;font-size:var(--f-strong);}
 .counttbl .ploc{font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);}
 .counttbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
-.counttbl .batchno{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);}
+.batchchip{font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);line-height:1.4;}
 tr.row-mixed{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+tr.row-drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 tr.row-recount{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
-tr.row-ok{}
-.mixed-flag{display:inline-flex;align-items:center;gap:5px;height:19px;padding:0 8px;border-radius:5px;background:var(--bad);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-left:7px;}
-.blind-dash{color:var(--inkFaint);font-family:var(--fontMono);}
+.mixed-flag,.drift-flag{display:inline-flex;align-items:center;gap:5px;height:19px;padding:0 8px;border-radius:5px;background:var(--bad);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-left:7px;}
+.blind-dash,.no-tag{color:var(--inkFaint);font-family:var(--fontMono);}
 .varcell{font-weight:800;font-family:var(--fontMono);}
 .varcell.v-ok{color:var(--good);}
 .varcell.v-warn{color:var(--warnText);}
@@ -176,19 +199,28 @@ tr.row-ok{}
 .statuspill.st-ok{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
 .statuspill.st-recount{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
 .statuspill.st-recounted{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
-
-.stepper{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
-.stepbtn{width:28px;height:28px;border-radius:var(--r8);border:1px solid var(--hairline3);background:var(--surface3);font-size:15px;font-weight:700;cursor:pointer;color:var(--ink);flex:0 0 auto;}
-.stepbtn:hover{background:var(--hairline2);}
-.stepbtn:disabled{opacity:.35;cursor:not-allowed;}
-.stepval{width:38px;text-align:center;font-family:var(--fontMono);font-size:14px;font-weight:800;}
-.stepval.notcounted{color:var(--inkFaint);font-weight:600;font-size:11px;}
+.statuspill.st-drift{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
 .assign-btn{height:26px;padding:0 10px;border-radius:99px;border:1px solid var(--warn);background:var(--surface);color:var(--warnText);font-size:10.5px;font-weight:700;cursor:pointer;}
+.assign-btn.bad{border-color:var(--bad);color:var(--bad);}
 
-.batch-detail{font-size:9.5px;color:var(--inkMute);line-height:1.35;}
-.batch-detail b{color:var(--bad);}
+.batch-detail{font-size:9.5px;color:var(--inkMute);line-height:1.35;margin-top:2px;}
 
 .mixed-note{margin:0 16px 14px;background:var(--badSoft);border:1px solid var(--bad);color:var(--bad);border-radius:var(--r12);padding:10px 14px;font-size:var(--f-meta);font-weight:700;display:flex;align-items:center;gap:9px;}
+
+/* ---- hand count exceptions ---- */
+.exc-card{border-color:var(--warn);}
+.exc-card .card-head{background:var(--warnSoft);border-radius:var(--r16) var(--r16) 0 0;}
+.exc-row{display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.exc-row:last-child{border-bottom:none;}
+.exc-tag{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:5px;background:var(--warn);color:#fff;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;}
+.exc-hand-pill{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:5px;background:var(--info);color:#fff;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-left:6px;}
+.stepper{display:flex;align-items:center;gap:6px;}
+.stepbtn{width:30px;height:30px;border-radius:var(--r8);border:1px solid var(--hairline3);background:var(--surface3);font-size:16px;font-weight:700;cursor:pointer;color:var(--ink);flex:0 0 auto;}
+.stepbtn:hover{background:var(--hairline2);}
+.stepbtn:disabled{opacity:.35;cursor:not-allowed;}
+.stepval{width:40px;text-align:center;font-family:var(--fontMono);font-size:15px;font-weight:800;}
+.stepval.notcounted{color:var(--inkFaint);font-weight:600;font-size:11px;}
+.exc-spacer{flex:1;min-width:160px;}
 
 /* ---- bottom commit bar ---- */
 .commitbar{position:fixed;left:74px;right:0;bottom:0;z-index:25;display:flex;align-items:center;gap:16px;padding:12px 24px;border-top:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;box-shadow:0 -6px 18px rgba(0,0,0,.05);}
@@ -202,19 +234,17 @@ tr.row-ok{}
 
 /* ---- modals ---- */
 .overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:center;justify-content:center;z-index:80;padding:20px;}
-.modal{background:var(--surface);border-radius:var(--r20);width:100%;max-width:560px;max-height:86vh;overflow-y:auto;padding:22px;box-shadow:var(--shadowLg);}
+.modal{background:var(--surface);border-radius:var(--r20);width:100%;max-width:640px;max-height:86vh;overflow-y:auto;padding:22px;box-shadow:var(--shadowLg);}
 .modal h2{margin:0 0 4px;font-size:var(--f-title);}
-.modal .mrow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:var(--f-body);}
-.modal .mrow b{font-family:var(--fontMono);}
 .modal-actions{display:flex;gap:10px;margin-top:16px;}
 .modal-actions .btn{flex:1;}
 
 .printsheet{background:#fff;color:#111;border-radius:var(--r12);padding:20px;font-family:var(--fontMono);}
 .printsheet h3{margin:0 0 2px;font-size:16px;}
 .printsheet .psub{font-size:11px;color:#555;margin-bottom:12px;}
-.printsheet table{width:100%;border-collapse:collapse;font-size:11px;}
+.printsheet table{width:100%;border-collapse:collapse;font-size:10.5px;}
 .printsheet th,.printsheet td{border:1px solid #ccc;padding:5px 7px;text-align:left;}
-.printsheet tr.mixed td{background:#fbdcd6;font-weight:700;}
+.printsheet tr.mixed td,.printsheet tr.drift td{background:#fbdcd6;font-weight:700;}
 .qr{width:84px;height:84px;flex:0 0 auto;background:#fff;border:1px solid #ccc;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);}
 .qr div{background:#111;}
 .qr div.off{background:#fff;}
@@ -276,45 +306,60 @@ tr.row-ok{}
       <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
         Design mockup — every product, batch number, location and timestamp on this screen is example data, not a live count.</div>
 
+      <div class="banner info">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor" stroke="none"/></svg>
+        <div><div class="b-title">RFID reads propose — nothing adjusts stock until a manager approves</div>
+        <div class="b-body">Every count begins with an RFID read of the location, per batch. Typed steppers only appear below for a dead tag or an untagged category, and those lines are flagged hand-counted.</div></div>
+      </div>
+
       <!-- ============ recount-then-approve ladder ============ -->
       <div class="card">
         <div class="ladder" id="ladder"></div>
       </div>
 
-      <!-- ============ scope picker ============ -->
+      <!-- ============ count scope + open-by-scan ============ -->
       <div class="card">
         <div class="card-head"><h2>Count scope</h2><span class="hint">How this sheet was built</span></div>
         <div class="scope-row" id="scopeRow"></div>
-        <div class="scope-detail">
-          <span class="scope-addr" id="scopeAddr">F2-B</span>
-          <span class="scope-sub" id="scopeSub">Rack F2, Shelf B &middot; 6 batch lines &middot; 8 SKUs on record</span>
-          <div class="blind-toggle">
-            <span>Blind count</span>
-            <button class="switch on" id="blindSwitch" aria-label="Toggle blind count" aria-pressed="true"></button>
-          </div>
+
+        <div id="gateWrap"></div>
+
+        <div class="readrow" id="readRow" style="display:none;">
+          <button class="btn btn-primary btn-lg" id="readBtn">Read this location</button>
+          <span class="rstat" id="readStat">Handheld sweep · not read yet</span>
         </div>
       </div>
 
-      <!-- ============ mixed-batch note ============ -->
-      <div class="mixed-note" id="mixedNote">
+      <!-- ============ mixed-batch / drift notes ============ -->
+      <div class="mixed-note" id="mixedNote" style="display:none;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
         Blue Dream 3.5g has two batches on record at F2-B-03 — count both lines separately, oldest batch first. Do not combine them into one number.
       </div>
+      <div class="mixed-note" id="driftNote" style="display:none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+        Drift at F2-B-01 — a batch was read where none was expected. It belongs at F2-C-02; a manager must record a reason before this sheet can go forward.
+      </div>
 
-      <!-- ============ count sheet ============ -->
+      <!-- ============ batch count sheet ============ -->
       <div class="card">
         <div class="card-head">
-          <h2>Count sheet</h2><span class="hint" id="sheetHint">Oldest batch first &middot; nothing adjusts stock until a manager approves</span>
+          <h2>Count sheet — read vs expected</h2><span class="hint" id="sheetHint">Oldest batch first &middot; nothing adjusts stock until a manager approves</span>
           <button class="manage-link" id="printBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H4a1 1 0 01-1-1v-4a1 1 0 011-1h16a1 1 0 011 1v4a1 1 0 01-1 1h-2"/></svg>Preview &amp; print count sheet</button>
         </div>
         <div class="card-body" style="overflow-x:auto;">
           <table class="counttbl">
             <thead><tr>
-              <th>Product</th><th>Batch &middot; received</th><th>Location</th><th>Expected</th><th>Counted</th><th>Variance</th><th>Status</th>
+              <th>Product &middot; batch</th><th>Location</th><th>Expected</th><th>Read</th><th>Counted</th><th>Variance</th><th>Status</th>
             </tr></thead>
             <tbody id="sheetBody"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- ============ hand count exceptions ============ -->
+      <div class="card exc-card">
+        <div class="card-head"><h2>Hand count &middot; exception</h2><span class="hint">Dead tag or untagged category — RFID could not read these batches</span></div>
+        <div id="excBody"></div>
       </div>
 
       <div class="footerline">Cycle Count — Concept A of 4 — Walk the Location</div>
@@ -322,11 +367,11 @@ tr.row-ok{}
 
     <div class="commitbar">
       <div class="sum">
-        <div class="sumitem"><span class="k">Lines counted</span><span class="v" id="sumCounted">0 / 6</span></div>
-        <div class="sumitem"><span class="k">Needs recount</span><span class="v" id="sumRecount">0</span></div>
+        <div class="sumitem"><span class="k">Lines counted</span><span class="v" id="sumCounted">0 / 7</span></div>
+        <div class="sumitem"><span class="k">Needs recount / reason</span><span class="v" id="sumRecount">0</span></div>
         <div class="sumitem"><span class="k">Variance value</span><span class="v" id="sumVar">$0</span></div>
       </div>
-      <div class="note">A variance above 3% or on a mixed-batch line triggers a blind recount by a second counter before this can go to a manager.</div>
+      <div class="note">A variance above 3%, a mixed-batch mismatch, or a drift read all require resolution before this can go to a manager.</div>
       <button class="btn btn-primary" id="submitBtn" disabled>Send to manager for approval</button>
     </div>
   </div>
@@ -369,8 +414,13 @@ tr.row-ok{}
     setTimeout(function(){ el.remove(); }, 4200);
   }
 
-  /* ---------------- scope picker (chip selection is a working control; the
-     sheet below shows the example scope "Rack F2, Shelf B") ---------------- */
+  function buildQR(size){
+    var cells = '';
+    for(var r=0;r<7;r++){ for(var c=0;c<7;c++){ var on = ((r*7+c)*13 % 5) < 3 || (r<2&&c<2)||(r<2&&c>4)||(r>4&&c<2); cells += '<div class="'+(on?'':'off')+'"></div>'; } }
+    return cells;
+  }
+
+  /* ---------------- scope chips (Location is the working demo path) ---------------- */
   var SCOPES = ['Location','Category','Brand','Velocity / ABC','Expiry window','Batch','Random spot'];
   var activeScope = 'Location';
   function renderScopes(){
@@ -380,135 +430,195 @@ tr.row-ok{}
     $$('.scope-chip').forEach(function(b){
       b.addEventListener('click', function(){
         activeScope = b.getAttribute('data-scope');
-        renderScopes();
-        toast('Scope set: '+activeScope, activeScope==='Location'
-          ? 'Sheet below shows Rack F2, Shelf B — the example location scope.'
-          : 'This mockup shows the Location example sheet; a real '+activeScope.toLowerCase()+' scope would list every batch matching that filter instead.');
+        renderScopes(); renderGate();
+        if(activeScope!=='Location'){
+          toast('Scope set: '+activeScope, 'This mockup demonstrates the Location example below; a live '+activeScope.toLowerCase()+' scope would list every batch matching that filter instead, still opened one shelf at a time by QR.');
+        }
       });
     });
   }
-  renderScopes();
 
-  /* ---------------- blind toggle ---------------- */
+  /* ---------------- open-location-by-QR gate ---------------- */
+  var scanned = false;
+  function renderGate(){
+    var host = $('#gateWrap');
+    if(activeScope !== 'Location'){
+      host.innerHTML = '<div class="scope-detail"><span class="scope-sub">Filter scopes are not tied to one physical shelf, so no scan is needed — they still open the batches below by read, never by typed lookup.</span></div>';
+      $('#readRow').style.display = 'flex';
+      return;
+    }
+    if(!scanned){
+      host.innerHTML = '<div class="gate"><div class="qrmini">'+buildQR()+'</div>'
+        + '<div class="gate-copy"><div class="gt">No location open</div><div class="gs">Scan the shelf QR on Rack F2, Shelf B to open it. There is no location dropdown — every open starts with a scan.</div></div>'
+        + '<button class="btn btn-primary" id="scanBtn">Scan shelf QR</button></div>';
+      $('#scanBtn').addEventListener('click', function(){
+        scanned = true;
+        renderGate();
+        toast('Location opened', 'Scanned Rack F2, Shelf B (F2-B). Use "Read this location" to start the RFID sweep.');
+      });
+      $('#readRow').style.display = 'none';
+    } else {
+      host.innerHTML = '<div class="scope-detail">'
+        + '<span class="scope-addr">F2-B</span>'
+        + '<span class="scope-sub">Rack F2, Shelf B &middot; opened by shelf QR &middot; 5 batch lines on record</span>'
+        + '<div class="blind-toggle"><span>Blind count</span><button class="switch on" id="blindSwitch" aria-label="Toggle blind count" aria-pressed="true"></button></div>'
+        + '</div>';
+      $('#blindSwitch').addEventListener('click', function(){
+        blind = !blind;
+        this.classList.toggle('on', blind);
+        this.setAttribute('aria-pressed', String(blind));
+        renderSheet();
+        toast(blind ? 'Blind count on' : 'Blind count off', blind ? 'Expected quantities are hidden until a read or hand count is submitted.' : 'Expected quantities are now visible next to each line.');
+      });
+      $('#readRow').style.display = 'flex';
+    }
+  }
+
+  /* ---------------- data: EXAMPLE ONLY — every line is a batch line ---------------- */
   var blind = true;
-  $('#blindSwitch').addEventListener('click', function(){
-    blind = !blind;
-    this.classList.toggle('on', blind);
-    this.setAttribute('aria-pressed', String(blind));
-    renderSheet();
-    toast(blind ? 'Blind count on' : 'Blind count off', blind
-      ? 'Expected quantities are hidden from the counter until they submit a count.'
-      : 'Expected quantities are now visible next to each line.');
-  });
-
-  /* ---------------- data: EXAMPLE ONLY ---------------- */
   var LINES = [
-    { sku:'Blue Dream 3.5g', batch:'BD-2291', received:'Aug 2', thc:'22.4%', loc:'F2-B-03', expected:18, counted:16, mixed:true },
-    { sku:'Blue Dream 3.5g', batch:'BD-2354', received:'Aug 28', thc:'24.1%', loc:'F2-B-03', expected:6, counted:null, mixed:true },
-    { sku:'OG Kush 3.5g', batch:'OG-1187', received:'Jul 14', thc:'19.8%', loc:'F2-B-04', expected:12, counted:10 },
-    { sku:'Wedding Cake 3.5g', batch:'WC-2410', received:'Sep 1', thc:'27.2%', loc:'F2-B-05', expected:9, counted:9 },
-    { sku:'Live Resin Cart 1g', batch:'LR-0987', received:'Aug 10', thc:'—', loc:'F2-B-06', expected:14, counted:null },
-    { sku:'Gummies 100mg', batch:'GM-3305', received:'Aug 22', thc:'—', loc:'F2-B-07', expected:22, counted:22 }
+    { sku:'Blue Dream 3.5g', batch:'#HW-2409-01', thc:'24.1%', pkg:'Aug 28', exp:'Feb 24', age:13, metrc:'1A40…9C21', loc:'F2-B-03', expected:18, read:null, counted:null, mixed:true },
+    { sku:'Blue Dream 3.5g', batch:'#HW-2411-07', thc:'31.6%', pkg:'Sep 6', exp:'Mar 6', age:4, metrc:'1A40…9D45', loc:'F2-B-03', expected:6, read:null, counted:null, mixed:true },
+    { sku:'OG Kush 3.5g', batch:'#HW-2405-14', thc:'19.8%', pkg:'Jul 14', exp:'Jan 14', age:58, metrc:'1A40…3B08', loc:'F2-B-04', expected:12, read:null, counted:null },
+    { sku:'Wedding Cake 3.5g', batch:'#HW-2409-22', thc:'27.2%', pkg:'Sep 1', exp:'Mar 1', age:9, metrc:'1A40…5E44', loc:'F2-B-05', expected:9, read:null, counted:null },
+    { sku:'Sour Diesel 3.5g', batch:'#HW-2401-09', thc:'20.5%', pkg:'Jan 12', exp:'Jul 12', age:241, metrc:'1A40…7A02', loc:'F2-B-01', expected:0, read:null, counted:null, drift:true, driftHome:'F2-C-02' }
   ];
-  LINES.forEach(function(l){ l.recountDone = false; });
+  var READS = { 0:16, 1:6, 2:10, 3:9, 4:3 };
+
+  var EXCEPTIONS = [
+    { sku:'Live Resin Cart 1g', batch:'#HW-2408-02', thc:'81.4%', pkg:'Aug 4', exp:'Aug 4, 2027', age:37, metrc:'1A40…8D55', loc:'F2-B-06', expected:14, counted:null, kind:'dead tag' },
+    { sku:'Gummies 100mg', batch:'#HW-2408-30', thc:'100mg', pkg:'Aug 22', exp:'Aug 22, 2027', age:19, metrc:'1A40…4A29', loc:'F2-B-07', expected:22, counted:null, kind:'untagged category' }
+  ];
+
+  function chip(l){ return l.batch+' &middot; THC '+l.thc+' &middot; pkg '+l.pkg+' &middot; exp '+l.exp+' &middot; '+l.age+' d on hand &middot; Metrc '+l.metrc; }
 
   function pctVariance(l){
     if(l.counted===null) return null;
     if(l.expected===0) return l.counted===0 ? 0 : 100;
     return (l.counted - l.expected) / l.expected * 100;
   }
-  function needsRecount(l){
+  function needsResolution(l){
     if(l.counted===null) return false;
+    if(l.drift) return !l.resolved;
     var p = pctVariance(l);
-    return Math.abs(p) > 3 || (l.mixed && l.counted !== l.expected);
+    return (Math.abs(p) > 3 || (l.mixed && l.counted !== l.expected)) && !l.resolved;
   }
   function lineStatus(l){
     if(l.counted===null) return 'pending';
-    if(needsRecount(l)) return l.recountDone ? 'recounted' : 'recount';
+    if(l.drift) return l.resolved ? 'recounted' : 'drift';
+    if(needsResolution(l)) return 'recount';
     return 'ok';
   }
 
   function renderRow(l, i){
     var status = lineStatus(l);
-    var rowClass = l.mixed ? 'row-mixed' : (status==='recount' ? 'row-recount' : '');
-    var expCell = blind ? '<span class="blind-dash">— hidden —</span>' : ('<span class="num">'+l.expected+'</span>');
+    var rowClass = l.drift ? 'row-drift' : (l.mixed ? 'row-mixed' : (status==='recount' ? 'row-recount' : ''));
+    var expCell = (blind && l.counted===null) ? '<span class="blind-dash">— hidden —</span>' : ('<span class="num">'+l.expected+'</span>');
+    var readCell = l.read===null ? '<span class="blind-dash">not read</span>' : '<span class="num">'+l.read+'</span>';
     var varVal = pctVariance(l);
     var varCell = '—';
-    if(varVal !== null){
+    if(varVal !== null && !l.drift){
       var cls = Math.abs(varVal) > 10 ? 'v-bad' : (Math.abs(varVal) > 3 ? 'v-warn' : 'v-ok');
       var sign = (l.counted - l.expected) > 0 ? '+' : '';
       varCell = '<span class="varcell '+cls+'">'+sign+(l.counted-l.expected)+' ('+sign+varVal.toFixed(0)+'%)</span>';
+    } else if(l.drift && l.counted!==null){
+      varCell = '<span class="varcell v-bad">n/a — drift</span>';
     }
-    var pillMap = {pending:['st-pending','Not counted'], ok:['st-ok','Within tolerance'], recount:['st-recount','Recount needed'], recounted:['st-recounted','Recounted — ready']};
+    var pillMap = {pending:['st-pending','Not read'], ok:['st-ok','Within tolerance'], recount:['st-recount','Recount needed'], recounted:['st-recounted','Resolved'], drift:['st-drift','Drift — reason required']};
     var pill = pillMap[status];
-    var stepVal = l.counted===null ? '<span class="stepval notcounted">—</span>' : '<span class="stepval">'+l.counted+'</span>';
-    var assign = (status==='recount') ? '<div style="margin-top:5px;"><button class="assign-btn" data-assign="'+i+'">Assign blind recount</button></div>' : '';
+    var action = '';
+    if(status==='recount') action = '<div style="margin-top:5px;"><button class="assign-btn" data-assign="'+i+'">Assign blind recount</button></div>';
+    if(status==='drift') action = '<div style="margin-top:5px;"><button class="assign-btn bad" data-reason="'+i+'">Record reason</button></div>';
+    var flag = l.drift ? '<span class="drift-flag">Drift</span>' : (l.mixed ? '<span class="mixed-flag">Mixed batch</span>' : '');
+    var detail = l.drift ? '<div class="batch-detail">Not expected here — home location is '+l.driftHome+'.</div>'
+      : (l.mixed ? '<div class="batch-detail">Two batches on hand at this location — count each row separately, oldest first.</div>' : '');
     return '<tr class="'+rowClass+'" data-row="'+i+'">'
-      + '<td><div class="pn">'+l.sku+(l.mixed?'<span class="mixed-flag">Mixed batch</span>':'')+'</div>'
-      + (l.mixed ? '<div class="batch-detail">Two batches on hand at this location — count each row separately, oldest first.</div>' : '') + '</td>'
-      + '<td><div class="batchno">'+l.batch+'</div><div class="ploc">Recv '+l.received+' &middot; THC '+l.thc+'</div></td>'
+      + '<td><div class="pn">'+l.sku+flag+'</div><div class="batchchip">'+chip(l)+'</div>'+detail+'</td>'
       + '<td class="ploc">'+l.loc+'</td>'
       + '<td class="num">'+expCell+'</td>'
-      + '<td><div class="stepper">'
-        + '<button class="stepbtn" data-act="dec" data-i="'+i+'" '+(l.counted===0?'disabled':'')+' aria-label="Decrease counted">−</button>'
-        + stepVal
-        + '<button class="stepbtn" data-act="inc" data-i="'+i+'" aria-label="Increase counted">+</button>'
-        + '</div></td>'
+      + '<td class="num">'+readCell+'</td>'
+      + '<td class="num">'+(l.counted===null?'<span class="blind-dash">—</span>':'<span class="num">'+l.counted+'</span>')+'</td>'
       + '<td class="num">'+varCell+'</td>'
-      + '<td><span class="statuspill '+pill[0]+'">'+pill[1]+'</span>'+assign+'</td>'
+      + '<td><span class="statuspill '+pill[0]+'">'+pill[1]+'</span>'+action+'</td>'
       + '</tr>';
   }
 
   function renderSheet(){
     $('#sheetBody').innerHTML = LINES.map(renderRow).join('');
+    $('#mixedNote').style.display = LINES.some(function(l){ return l.mixed; }) ? 'flex' : 'none';
+    $('#driftNote').style.display = LINES.some(function(l){ return l.drift && l.read!==null; }) ? 'flex' : 'none';
+    renderExceptions();
     updateSummary();
     renderLadder();
   }
 
+  function renderExceptions(){
+    $('#excBody').innerHTML = EXCEPTIONS.map(function(x,i){
+      var handPill = x.counted!==null ? '<span class="exc-hand-pill">Hand counted</span>' : '';
+      return '<div class="exc-row">'
+        + '<div style="min-width:220px;"><div class="pn">'+x.sku+'<span class="exc-tag">'+x.kind+'</span>'+handPill+'</div><div class="batchchip">'+chip(x)+'</div><div class="ploc">'+x.loc+' &middot; Expected '+x.expected+'</div></div>'
+        + '<div class="exc-spacer"></div>'
+        + '<div class="stepper">'
+        + '<button class="stepbtn" data-eact="dec" data-ei="'+i+'" '+(x.counted===0?'disabled':'')+' aria-label="Decrease hand count">−</button>'
+        + (x.counted===null ? '<span class="stepval notcounted">—</span>' : '<span class="stepval">'+x.counted+'</span>')
+        + '<button class="stepbtn" data-eact="inc" data-ei="'+i+'" aria-label="Increase hand count">+</button>'
+        + '</div></div>';
+    }).join('');
+  }
+
   document.addEventListener('click', function(e){
-    var sb = e.target.closest('.stepbtn');
-    if(sb){
-      var i = +sb.getAttribute('data-i'), act = sb.getAttribute('data-act');
-      var l = LINES[i];
-      if(l.counted===null) l.counted = l.expected;
-      if(act==='inc') l.counted++;
-      if(act==='dec' && l.counted>0) l.counted--;
-      renderSheet();
-      return;
-    }
     var ab = e.target.closest('[data-assign]');
     if(ab){
       var idx = +ab.getAttribute('data-assign');
-      var line = LINES[idx];
-      line.recountDone = true;
-      toast('Blind recount assigned', line.sku+' ('+line.batch+') queued for a second counter — they will not see the first count or the system expectation.');
+      LINES[idx].resolved = true;
+      toast('Blind recount assigned', LINES[idx].sku+' ('+LINES[idx].batch+') queued for a second counter — they will not see the first read or the system expectation.');
+      renderSheet();
+      return;
+    }
+    var rb = e.target.closest('[data-reason]');
+    if(rb){
+      var ridx = +rb.getAttribute('data-reason');
+      LINES[ridx].resolved = true;
+      toast('Reason recorded', LINES[ridx].sku+' ('+LINES[ridx].batch+') — "Mis-shelved from receiving, flagged for putaway." Manager will see this reason on approval.');
+      renderSheet();
+      return;
+    }
+    var eb = e.target.closest('[data-eact]');
+    if(eb){
+      var ei = +eb.getAttribute('data-ei'), eact = eb.getAttribute('data-eact');
+      var x = EXCEPTIONS[ei];
+      if(x.counted===null) x.counted = x.expected;
+      if(eact==='inc') x.counted++;
+      if(eact==='dec' && x.counted>0) x.counted--;
       renderSheet();
       return;
     }
   });
 
   function updateSummary(){
-    var countedN = LINES.filter(function(l){ return l.counted!==null; }).length;
-    var recountN = LINES.filter(function(l){ return lineStatus(l)==='recount'; }).length;
-    var varValue = LINES.reduce(function(sum,l){ return sum + (l.counted!==null ? Math.abs(l.counted-l.expected)*22 : 0); }, 0);
-    $('#sumCounted').textContent = countedN+' / '+LINES.length;
+    var total = LINES.length + EXCEPTIONS.length;
+    var countedN = LINES.filter(function(l){ return l.counted!==null; }).length + EXCEPTIONS.filter(function(x){ return x.counted!==null; }).length;
+    var recountN = LINES.filter(function(l){ return lineStatus(l)==='recount' || lineStatus(l)==='drift'; }).length;
+    var varValue = LINES.reduce(function(sum,l){ return sum + (l.counted!==null ? Math.abs(l.counted-l.expected)*22 : 0); }, 0)
+      + EXCEPTIONS.reduce(function(sum,x){ return sum + (x.counted!==null ? Math.abs(x.counted-x.expected)*18 : 0); }, 0);
+    $('#sumCounted').textContent = countedN+' / '+total;
     $('#sumRecount').textContent = recountN;
     $('#sumVar').textContent = '$'+varValue.toLocaleString();
-    var allCounted = countedN === LINES.length;
-    var allResolved = LINES.every(function(l){ return lineStatus(l)!=='recount'; });
+    var allCounted = countedN === total;
+    var allResolved = LINES.every(function(l){ return lineStatus(l)!=='recount' && lineStatus(l)!=='drift'; });
     $('#submitBtn').disabled = !(allCounted && allResolved);
   }
 
   /* ---------------- ladder ---------------- */
   function renderLadder(){
-    var recountN = LINES.filter(function(l){ return lineStatus(l)==='recount'; }).length;
-    var allCounted = LINES.every(function(l){ return l.counted!==null; });
-    var stage = 0; // 0 counting, 1 recount, 2 approve, 3 closed
+    var recountN = LINES.filter(function(l){ return lineStatus(l)==='recount' || lineStatus(l)==='drift'; }).length;
+    var allCounted = LINES.every(function(l){ return l.counted!==null; }) && EXCEPTIONS.every(function(x){ return x.counted!==null; });
+    var stage = 0;
     if(allCounted && recountN===0) stage = 2;
     else if(recountN>0) stage = 1;
     var steps = [
-      {k:'count', label:'Counting'},
-      {k:'recount', label:'Blind recount', badge: recountN>0 ? recountN : null},
+      {k:'read', label:'Reading / hand counting'},
+      {k:'recount', label:'Recount or reason', badge: recountN>0 ? recountN : null},
       {k:'approve', label:'Manager approves'},
       {k:'closed', label:'Closed'}
     ];
@@ -518,29 +628,37 @@ tr.row-ok{}
     }).join('');
   }
 
+  /* ---------------- primary control: Read this location ---------------- */
+  $('#readBtn').addEventListener('click', function(){
+    if(LINES.every(function(l){ return l.read!==null; })){ toast('Already read', 'This location was already swept — resolve any flagged lines below or add a hand count for the untagged exceptions.'); return; }
+    LINES.forEach(function(l,i){ l.read = READS[i]; l.counted = READS[i]; });
+    var drift = LINES.filter(function(l){ return l.drift; }).length;
+    $('#readStat').innerHTML = 'Handheld sweep &middot; <b>read complete — '+LINES.length+' of '+LINES.length+' tagged batches</b>'+(drift?', '+drift+' drift':'');
+    renderSheet();
+    toast('Read complete', LINES.length+' tagged batches read at F2-B. '+(drift?drift+' drift line needs a reason.':'No drift detected.')+' Untagged categories still need a hand count below.');
+  });
+
   /* ---------------- submit to manager ---------------- */
   $('#submitBtn').addEventListener('click', function(){
     this.disabled = true;
     this.textContent = 'Sent — awaiting manager approval';
-    toast('Sent for approval', 'Every line is a proposed correction. Nothing in inventory changes until a manager approves it line by line.');
+    toast('Sent for approval', 'Every line is a proposed correction, read or hand-counted. Nothing in inventory changes until a manager approves it line by line.');
   });
 
   /* ---------------- print preview ---------------- */
-  function buildQR(){
-    var cells = '';
-    for(var r=0;r<7;r++){ for(var c=0;c<7;c++){ var on = ((r*7+c)*13 % 5) < 3 || (r<2&&c<2)||(r<2&&c>4)||(r>4&&c<2); cells += '<div class="'+(on?'':'off')+'"></div>'; } }
-    return cells;
-  }
   $('#printBtn').addEventListener('click', function(){
     var rows = LINES.map(function(l){
-      return '<tr class="'+(l.mixed?'mixed':'')+'"><td>'+l.sku+(l.mixed?' — MIXED BATCH':'')+'</td><td>'+l.batch+'</td><td>'+l.received+'</td><td>'+l.thc+'</td><td>'+l.loc+'</td><td>'+(blind?'—':l.expected)+'</td><td></td></tr>';
-    }).join('');
+      var flag = l.drift ? 'DRIFT — not expected here' : (l.mixed ? 'MIXED BATCH' : '');
+      return '<tr class="'+(l.drift?'drift':(l.mixed?'mixed':''))+'"><td>'+l.sku+(flag?' — '+flag:'')+'</td><td>'+chip(l).replace(/&middot;/g,'·')+'</td><td>'+l.loc+'</td><td>'+(blind?'—':l.expected)+'</td><td></td><td></td></tr>';
+    }).concat(EXCEPTIONS.map(function(x){
+      return '<tr><td>'+x.sku+' — HAND COUNT ('+x.kind.toUpperCase()+')</td><td>'+chip(x).replace(/&middot;/g,'·')+'</td><td>'+x.loc+'</td><td>'+(blind?'—':x.expected)+'</td><td></td><td></td></tr>';
+    })).join('');
     var overlay = document.createElement('div'); overlay.className='overlay';
     overlay.innerHTML = '<div class="modal"><div class="printsheet">'
-      + '<div class="printhead"><div><h3>Count Sheet — Rack F2, Shelf B</h3><div class="psub">Business day Thu Sep 10, 2026 &middot; '+(blind?'BLIND — expected hidden':'Informed — expected shown')+' &middot; scan the QR to close this sheet</div></div>'
+      + '<div class="printhead"><div><h3>Count Sheet — Rack F2, Shelf B</h3><div class="psub">Business day Thu Sep 10, 2026 &middot; '+(blind?'BLIND — expected hidden':'Informed — expected shown')+' &middot; one line per batch &middot; scan the QR to close this sheet</div></div>'
       + '<div class="qr">'+buildQR()+'</div></div>'
-      + '<table><thead><tr><th>Product</th><th>Batch</th><th>Received</th><th>THC</th><th>Location</th><th>Expected</th><th>Counted</th></tr></thead><tbody>'+rows+'</tbody></table>'
-      + '<div class="psub" style="margin-top:10px;">Two batches of one SKU are shown as separate rows, oldest first, and flagged MIXED BATCH — never combine them into one count.</div>'
+      + '<table><thead><tr><th>Product</th><th>Batch</th><th>Location</th><th>Expected</th><th>Read</th><th>Counted</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      + '<div class="psub" style="margin-top:10px;">Two batches of one SKU are shown as separate rows, oldest first, and flagged MIXED BATCH. A batch read where it should not be is flagged DRIFT. Never combine batch rows into one count.</div>'
       + '</div>'
       + '<div class="modal-actions"><button class="btn btn-ghost" id="closePrint">Close</button><button class="btn btn-primary" id="doPrint">Print this sheet</button></div></div>';
     document.body.appendChild(overlay);
@@ -550,6 +668,8 @@ tr.row-ok{}
   });
 
   /* ---------------- boot ---------------- */
+  renderScopes();
+  renderGate();
   renderSheet();
 })();
 </script>

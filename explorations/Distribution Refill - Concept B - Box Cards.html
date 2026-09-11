@@ -12,6 +12,11 @@
    Hyperwolf Bounty.html so this reads like the same estate. No build step,
    no external scripts or fonts. Every product, name, quantity and time on
    this screen is EXAMPLE DATA — see the banner below the header.
+   Round 2 revision: packing a box begins with an RFID sweep (Scan box), not
+   a checkbox — Read is compared to Need per batch, and a typed hand-count
+   input appears only on the flagged exception row for an untagged category.
+   Every row is a batch row (mono chip line); two batches of one SKU are LOUD.
+   A QR affordance opens each box's location window when scanned.
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -84,7 +89,6 @@ button,select,input,textarea{font-family:inherit;}
 ::-webkit-scrollbar-track{background:transparent;}
 button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
-
 .app{display:flex;min-height:100vh;}
 .rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
 .rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
@@ -96,7 +100,6 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .rail-item.active .lbl{font-weight:700;}
 .rail-spacer{flex:1;min-height:8px;}
 .rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
-
 .main{flex:1;min-width:0;display:flex;flex-direction:column;}
 .topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
 .titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
@@ -108,7 +111,6 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
 .iconbtn:hover{background:var(--surface3);color:var(--ink);}
 .content{padding:20px 24px 110px;display:flex;flex-direction:column;gap:18px;max-width:1560px;width:100%;margin:0 auto;}
-
 .example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
 .example-banner svg{flex:0 0 auto;}
 .banner{display:flex;align-items:flex-start;gap:12px;border-radius:var(--r12);padding:13px 16px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);}
@@ -117,7 +119,6 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .banner .b-body{color:var(--inkDim);}
 .banner.warn .b-body{color:var(--warnText);opacity:.92;}
 .banner .b-actions{margin-left:auto;display:flex;gap:8px;flex:0 0 auto;}
-
 .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
 .card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex-wrap:wrap;}
 .card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
@@ -125,7 +126,6 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .card-head .manage-link{margin-left:auto;background:none;border:none;color:var(--info);font-size:var(--f-meta);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
 .card-head .manage-link:hover{text-decoration:underline;}
 .card-body{padding:0 16px 16px;}
-
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 15px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
 .btn-primary{background:var(--accent);color:var(--accentInk);}
 .btn-primary:hover{background:var(--accentHover);}
@@ -134,12 +134,10 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .btn-ghost:hover{background:var(--surface3);}
 .btn-sm{height:30px;padding:0 11px;font-size:var(--f-meta);border-radius:var(--r8);}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
-
 .pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap;border:1px solid transparent;text-transform:uppercase;letter-spacing:.03em;}
 .pill-done{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
 .pill-active{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
 .pill-pending{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
-
 /* ---- received lane ---- */
 .lane{display:flex;gap:12px;overflow-x:auto;padding:2px 16px 14px;scroll-snap-type:x proximity;}
 .receipt-card{scroll-snap-align:start;flex:0 0 250px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:12px;display:flex;flex-direction:column;gap:7px;}
@@ -149,18 +147,17 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .tag-premium{background:var(--accent);color:var(--accentInk);}
 .receipt-card .pname{font-size:var(--f-strong);font-weight:700;line-height:1.25;}
 .receipt-card .pmeta{font-size:var(--f-meta);color:var(--inkMute);}
+.receipt-card .bchip{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);}
 .covbar{height:6px;border-radius:99px;background:var(--hairline2);overflow:hidden;margin-top:2px;}
 .covbar>span{display:block;height:100%;border-radius:99px;background:var(--info);}
 .covtext{font-size:var(--f-meta);color:var(--inkDim);display:flex;justify-content:space-between;}
 .receipt-card .cardfoot{margin-top:auto;display:flex;gap:8px;align-items:center;}
 .receipt-card.sent{opacity:.6;}
 .receipt-card .sent-flag{display:flex;align-items:center;gap:6px;font-size:var(--f-meta);color:var(--good);font-weight:700;}
-
 /* ---- legend ---- */
 .legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 16px;align-items:center;}
 .legend .li{display:flex;align-items:center;gap:7px;font-size:var(--f-meta);color:var(--inkDim);}
 .legend .swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
-
 /* ---- skip / shortfall summary (plain words) ---- */
 .skiplist{display:flex;flex-direction:column;}
 .skipitem{display:flex;gap:11px;padding:10px 16px;border-bottom:1px solid var(--hairline);align-items:flex-start;cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;width:100%;text-align:left;}
@@ -173,7 +170,6 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .skipitem .sk-title{font-size:var(--f-strong);font-weight:700;}
 .skipitem .sk-text{font-size:var(--f-body);color:var(--inkDim);margin-top:2px;}
 .skipitem .sk-jump{flex:0 0 auto;font-size:var(--f-meta);color:var(--info);font-weight:600;align-self:center;}
-
 /* ---- region tabs ---- */
 .region-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--hairline2);padding:0 2px;}
 .rtab{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 4px;border:none;background:transparent;color:var(--inkDim);font-size:var(--f-title);font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
@@ -181,13 +177,11 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .rtab.active{color:var(--ink);border-bottom-color:var(--accentBorder);}
 .rtab .n{font-family:var(--fontMono);font-size:var(--f-meta);font-weight:600;color:var(--inkMute);background:var(--surface3);border-radius:99px;padding:2px 8px;}
 .rtab.ran .n{background:var(--goodSoft);color:var(--good);}
-
 /* ---- region board: horizontal row of kit lanes ---- */
 .region-board{display:none;}
 .region-board.active{display:block;}
 .kit-row{display:flex;gap:16px;overflow-x:auto;padding:16px 4px 8px;align-items:flex-start;}
 .kit-lane{flex:0 0 auto;display:flex;gap:10px;}
-
 /* vertical timeline, left of each kit column */
 .kit-tl{flex:0 0 100px;display:flex;flex-direction:column;padding-top:2px;}
 .kit-tl-step{position:relative;padding:0 0 20px 22px;}
@@ -202,7 +196,6 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .kit-tl-step.pending .lbl{color:var(--inkMute);font-weight:600;}
 .kit-tl-step .meta{font-size:9.5px;color:var(--inkMute);font-family:var(--fontMono);margin-top:1px;}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,209,0,.4);}50%{box-shadow:0 0 0 5px rgba(255,209,0,0);}}
-
 /* kit column: header + progress + stacked box cards */
 .kit-col{flex:0 0 300px;display:flex;flex-direction:column;gap:10px;}
 .kit-head{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:10px 12px;box-shadow:var(--shadowSm);}
@@ -212,32 +205,40 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .kit-progress .bar{height:7px;border-radius:99px;background:var(--hairline2);overflow:hidden;}
 .kit-progress .bar>span{display:block;height:100%;border-radius:99px;background:var(--good);transition:width .15s ease;}
 .kit-progress .txt{margin-top:4px;font-size:var(--f-meta);color:var(--inkDim);display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;}
-
 .box-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);overflow:hidden;border-top:3px solid var(--box-c,var(--neutral));}
 .box-card.packed{opacity:.68;}
 .box-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--hairline);}
 .box-head .bname{font-size:var(--f-strong);font-weight:700;flex:1;min-width:0;}
 .box-head .btotal{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);font-variant-numeric:tabular-nums;}
-.packbox{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--hairline3);background:var(--surface);cursor:pointer;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;color:var(--surface);}
-.packbox.checked{background:var(--good);border-color:var(--good);}
+.qr-mini{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;border:1px solid var(--hairline3);background:var(--surface2);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.qr-mini:hover{background:var(--surface3);color:var(--ink);}
+.scanbtn{height:26px;padding:0 10px;border-radius:7px;font-size:10.5px;font-weight:700;cursor:pointer;border:1px solid var(--info);background:var(--infoSoft);color:var(--info);white-space:nowrap;}
+.scanbtn:hover{background:var(--info);color:#fff;}
+.packedflag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:7px;font-size:10px;font-weight:700;background:var(--goodSoft);color:var(--good);white-space:nowrap;}
 table.boxtbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
 table.boxtbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:5px 6px;border-bottom:1px solid var(--hairline);}
 table.boxtbl th:first-child{text-align:left;}
 table.boxtbl td{padding:6px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
 table.boxtbl tr:last-child td{border-bottom:none;}
 .boxtbl .pn{font-weight:600;font-size:11.5px;}
+.boxtbl .bchip{font-family:var(--fontMono);font-size:9px;color:var(--inkMute);font-weight:500;margin-top:1px;}
 .boxtbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
 .boxtbl tr.row-skip{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 .boxtbl tr.row-short{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
-.willgive-input{width:42px;height:26px;text-align:right;border-radius:6px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:11.5px;font-weight:600;padding:0 5px;}
-.willgive-input:disabled{background:var(--surface3);color:var(--inkFaint);}
+.boxtbl tr.row-loud{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+.loud-badge{display:inline-flex;align-items:center;height:14px;padding:0 5px;margin-left:5px;border-radius:5px;background:var(--bad);color:#fff;font-size:8px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;vertical-align:middle;}
+.readcell{font-family:var(--fontMono);font-weight:700;}
+.readcell.match{color:var(--good);}
+.readcell.mismatch{color:var(--bad);}
+.readcell.pending{color:var(--inkFaint);font-weight:500;}
+.fixlink{display:block;font-size:9px;font-weight:700;color:var(--info);cursor:pointer;background:none;border:none;padding:0;text-decoration:underline;}
+.handinput{width:40px;height:24px;text-align:right;border-radius:6px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:11.5px;font-weight:600;padding:0 5px;}
+.handtag{font-size:8px;font-weight:700;color:var(--warnText);text-transform:uppercase;letter-spacing:.03em;}
 .reasoncell{font-size:9.5px;color:var(--inkMute);max-width:88px;line-height:1.25;}
 .reasoncell.r-bad{color:var(--bad);font-weight:700;}
 .reasoncell.r-warn{color:var(--warnText);font-weight:700;}
-
 .flash{animation:flashbox 1.6s ease;}
 @keyframes flashbox{0%,100%{box-shadow:var(--shadowSm);}20%,60%{box-shadow:0 0 0 3px var(--accentBorder), var(--shadowMd);}}
-
 /* ---- commit bar ---- */
 .commitbar{position:fixed;left:74px;right:0;bottom:0;z-index:25;display:flex;align-items:center;gap:16px;padding:12px 24px;border-top:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;box-shadow:0 -6px 18px rgba(0,0,0,.05);}
 .commitbar .sum{display:flex;gap:20px;flex-wrap:wrap;}
@@ -245,9 +246,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
 .commitbar .sumitem .k{font-size:var(--f-micro);text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
 .commitbar .sumitem .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
 .commitbar .btn{margin-left:auto;}
-
 .footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
-
 @media (max-width: 1024px){
   .rail{width:64px;flex-basis:64px;}
   .rail-item .lbl{display:none;}
@@ -280,7 +279,6 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
     </div>
   </aside>
-
   <div class="main">
     <header class="topbar">
       <div class="titleblock">
@@ -295,30 +293,25 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
       </button>
     </header>
-
     <div class="content">
       <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-        Design mockup — every product, driver name, quantity and timestamp on this screen is example data, not live inventory or a real schedule.</div>
-
+        Design mockup — every product, batch, driver name, quantity and timestamp on this screen is example data, not live inventory or a real scan.</div>
       <div class="banner warn" id="alreadyRanBanner">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
         <div><div class="b-title">Refill already ran today for Inland Empire</div>
         <div class="b-body">Completed 5:48 AM PT by System (auto). Business day is Thu Sep 10, 2026 (Pacific) — opening that region below shows what shipped; committing again would supersede it, not add to it.</div></div>
         <div class="b-actions"><button class="btn btn-ghost btn-sm" onclick="showRegion('inlandempire')">View Inland Empire</button><button class="btn btn-ghost btn-sm" onclick="this.closest('.banner').style.display='none'">Dismiss</button></div>
       </div>
-
       <!-- ============ received lane ============ -->
       <div class="card">
         <div class="card-head"><h2>Received in the last 7 days</h2><span class="hint">New and premium SKUs — send today before the next tranche builds</span></div>
         <div class="lane" id="receiptLane"></div>
       </div>
-
       <!-- ============ skips & shortfalls, plain words ============ -->
       <div class="card">
         <div class="card-head"><h2>Skips &amp; shortfalls — today</h2><span class="hint">Tap one to jump to the box it happened in</span></div>
         <div class="skiplist" id="skipList"></div>
       </div>
-
       <!-- ============ legend ============ -->
       <div class="card">
         <div class="legend" id="legendRow">
@@ -328,21 +321,20 @@ table.boxtbl tr:last-child td{border-bottom:none;}
           <span class="li"><span class="swatch" style="background:var(--cat-concentrate)"></span>Concentrate</span>
           <span class="li"><span class="swatch" style="background:var(--cat-edible)"></span>Edible</span>
           <span class="li"><span class="swatch" style="background:var(--cat-cooler)"></span>Cooler</span>
-          <span class="li" style="margin-left:8px;border-left:1px solid var(--hairline2);padding-left:16px;"><span class="swatch" style="background:var(--warn)"></span>Shortfall row</span>
-          <span class="li"><span class="swatch" style="background:var(--bad)"></span>Skipped row</span>
+          <span class="li" style="margin-left:8px;border-left:1px solid var(--hairline2);padding-left:16px;"><span class="swatch" style="background:var(--warn)"></span>Shortfall, reason recorded</span>
+          <span class="li"><span class="swatch" style="background:var(--bad)"></span>Skipped / not in template</span>
+          <span class="li"><span class="loud-badge" style="margin-left:0;">Mixed batch</span>two batches, one SKU, LOUD</span>
+          <span class="li">Read = RFID sweep vs Need; hand-count is the exception for untagged rows</span>
           <button class="manage-link" style="margin-left:auto;" onclick="toast('Manage box types','Box sets vary by kit and change over time — opens the box-type editor (not built in this mockup).')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Manage box types</button>
         </div>
       </div>
-
       <!-- ============ region tabs + boards ============ -->
       <div>
         <div class="region-tabs" id="regionTabs"></div>
         <div id="regionBoards"></div>
       </div>
-
       <div class="footerline">Concept B of 4 — Box Cards</div>
     </div>
-
     <div class="commitbar">
       <div class="sum">
         <div class="sumitem"><span class="k">Region</span><span class="v" id="commitRegion">West LA</span></div>
@@ -353,11 +345,9 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     </div>
   </div>
 </div>
-
 <script>
 (function(){
   "use strict";
-
   /* ---------------- theme toggle ---------------- */
   var root = document.documentElement;
   var stored = null;
@@ -378,13 +368,11 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     try { localStorage.setItem('refill-boxcards-theme', next); } catch(e){}
     paintThemeIcon();
   });
-
   function tickClock(){
     var el = document.getElementById('clockNow'); if (!el) return;
     try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
   }
   tickClock(); setInterval(tickClock, 30000);
-
   /* ---------------- toast host ---------------- */
   var toastHost = document.createElement('div');
   toastHost.style.cssText = 'position:fixed;right:16px;bottom:76px;z-index:400;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;';
@@ -400,27 +388,24 @@ table.boxtbl tr:last-child td{border-bottom:none;}
   styleTag.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}';
   document.head.appendChild(styleTag);
   window.toast = toast;
-
   /* ---------------- data: EXAMPLE ONLY ---------------- */
   var BOXCOLOR = { flower:'var(--cat-flower)', preroll:'var(--cat-preroll)', vape:'var(--cat-vape)', concentrate:'var(--cat-concentrate)', edible:'var(--cat-edible)', cooler:'var(--cat-cooler)' };
   var STEPS = [['built','Built'],['frozen','Frozen'],['synced','Synced to Blaze'],['dispatched','Dispatched'],['refilled','Refilled'],['closed','Closed']];
-
-  function tl(doneCount, activeAt, times){
-    // doneCount steps are 'done', the step at activeAt is 'active', rest 'pending'
-    return STEPS.map(function(s, i){
-      var status = i < doneCount ? 'done' : (i === activeAt ? 'active' : 'pending');
-      var t = times[i] || (status === 'pending' ? '—' : 'Just now');
-      return { key:s[0], label:s[1], status:status, time:t.time || t, who:t.who || '' };
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function groupBatches(items){
+    var groups=[];
+    items.forEach(function(p){
+      var last=groups[groups.length-1];
+      if(last && last[0].name===p.name){ last.push(p); } else { groups.push([p]); }
     });
+    return groups;
   }
-
   var RECEIPTS = [
-    { name:'Papaya Punch 3.5g', tag:'new', received:'2 days ago', qty:240, coverage:62, sent:false },
-    { name:'Live Resin Disposable 1g', tag:'premium', received:'Yesterday', qty:96, coverage:40, sent:false },
-    { name:'Cereal Milk Pre-Roll 5-pack', tag:'new', received:'Today', qty:180, coverage:0, sent:false },
-    { name:'Zkittlez Rosin 1g', tag:'premium', received:'3 days ago', qty:60, coverage:88, sent:true }
+    { name:'Papaya Punch 3.5g', tag:'new', received:'2 days ago', qty:240, coverage:62, sent:false, batchNo:'#HW-2409-18', thc:'22.6%' },
+    { name:'Live Resin Disposable 1g', tag:'premium', received:'Yesterday', qty:96, coverage:40, sent:false, batchNo:'#HW-2408-31', thc:'83.9%' },
+    { name:'Cereal Milk Pre-Roll 5-pack', tag:'new', received:'Today', qty:180, coverage:0, sent:false, batchNo:'#HW-2409-29', thc:'21.1%' },
+    { name:'Zkittlez Rosin 1g', tag:'premium', received:'3 days ago', qty:60, coverage:88, sent:true, batchNo:'#HW-2407-02', thc:'78.4%' }
   ];
-
   var REGIONS = [
     { id:'westla', name:'West LA', ranToday:false, kits:[
       { id:'mr3', driver:'Marcus R.', route:'Route 3',
@@ -428,21 +413,22 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         doneCount:3, activeAt:3,
         boxes:[
           { name:'Flower Box 1', type:'flower', packed:false, products:[
-            { name:'Blue Dream 3.5g', sold:18, need:20, cap:24, will:20, reason:'' },
-            { name:'OG Kush 3.5g', sold:9, need:12, cap:12, will:12, reason:'' },
-            { name:'Wedding Cake 3.5g', sold:4, need:10, cap:10, will:6, reason:'short stock' }
+            { name:'Blue Dream 3.5g', batchNo:'#HW-2308-30', thc:'21.4%', pkg:'Aug 14', exp:'Feb 9', age:'27 d', need:20, tag:'rfid', simRead:20, read:null },
+            { name:'OG Kush 3.5g', batchNo:'#HW-2306-18', thc:'23.0%', pkg:'Jul 28', exp:'Jan 23', age:'44 d', need:12, tag:'rfid', simRead:12, read:null },
+            { name:'Wedding Cake 3.5g', batchNo:'#HW-2409-01', thc:'24.1%', pkg:'Aug 28', exp:'Feb 24', age:'42 d', need:6, tag:'rfid', simRead:6, read:null },
+            { name:'Wedding Cake 3.5g', batchNo:'#HW-2411-07', thc:'31.6%', pkg:'Sep 6', exp:'Mar 3', age:'4 d', need:4, tag:'rfid', simRead:2, read:null, reason:'short stock — newer batch only partly received' }
           ]},
           { name:'Flower Box 2', type:'flower', packed:false, products:[
-            { name:'Sour Diesel 3.5g', sold:6, need:8, cap:8, will:8, reason:'' },
-            { name:'Gelato 1g', sold:2, need:6, cap:6, will:0, reason:'not in template' }
+            { name:'Sour Diesel 3.5g', batchNo:'#HW-2307-22', thc:'22.6%', pkg:'Aug 2', exp:'Jan 29', age:'40 d', need:8, tag:'rfid', simRead:8, read:null },
+            { name:'Gelato 1g', batchNo:'#HW-2405-16', thc:'86.0%', pkg:'Jul 21', exp:'Jul 21 \'27', age:'52 d', need:0, tag:'none', reason:'not in template' }
           ]},
           { name:'Pre-Roll Box 1', type:'preroll', packed:true, products:[
-            { name:'Indica PR 5-pack', sold:11, need:12, cap:15, will:12, reason:'' },
-            { name:'Hybrid PR Single', sold:3, need:5, cap:5, will:5, reason:'' }
+            { name:'Indica PR 5-pack', batchNo:'#HW-2409-08', thc:'18.9%', pkg:'Aug 29', exp:'Feb 24', age:'13 d', need:12, tag:'rfid', simRead:12, read:12 },
+            { name:'Hybrid PR Single', batchNo:'#HW-2408-33', thc:'19.4%', pkg:'Aug 27', exp:'Feb 22', age:'15 d', need:5, tag:'untagged', hand:5 }
           ]},
           { name:'Cooler', type:'cooler', packed:false, products:[
-            { name:'Live Rosin Gummies 100mg', sold:14, need:16, cap:16, will:16, reason:'' },
-            { name:'THC Drink 10mg 4-pk', sold:1, need:4, cap:4, will:0, reason:'no sales counted' }
+            { name:'Live Rosin Gummies 100mg', batchNo:'#HW-2404-14', thc:'10 mg/pc', pkg:'Jul 12', exp:'Jan 7', age:'60 d', need:16, tag:'rfid', simRead:16, read:null },
+            { name:'THC Drink 10mg 4-pk', batchNo:'#HW-2403-27', thc:'10 mg/can', pkg:'Jul 6', exp:'Jan 1', age:'66 d', need:0, tag:'none', reason:'no sales counted' }
           ]}
         ]},
       { id:'dk1', driver:'Dana K.', route:'Route 1',
@@ -450,22 +436,22 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         doneCount:2, activeAt:2,
         boxes:[
           { name:'Flower Box 1', type:'flower', packed:false, products:[
-            { name:'Pineapple Express 3.5g', sold:12, need:14, cap:14, will:14, reason:'' },
-            { name:'Runtz 3.5g', sold:7, need:10, cap:8, will:8, reason:'capped' }
+            { name:'Pineapple Express 3.5g', batchNo:'#HW-2408-27', thc:'20.7%', pkg:'Aug 25', exp:'Feb 20', age:'16 d', need:14, tag:'rfid', simRead:14, read:null },
+            { name:'Runtz 3.5g', batchNo:'#HW-2407-30', thc:'25.8%', pkg:'Aug 9', exp:'Feb 4', age:'32 d', need:8, tag:'rfid', simRead:7, read:null, defaultReason:'Dead tag on 1 unit — recounted by hand, confirmed present.' }
           ]},
           { name:'Vape Box 1', type:'vape', packed:false, products:[
-            { name:'Live Resin Cart 1g', sold:9, need:10, cap:10, will:10, reason:'' },
-            { name:'Distillate Cart 0.5g', sold:3, need:6, cap:6, will:6, reason:'' }
+            { name:'Live Resin Cart 1g', batchNo:'#HW-2406-11', thc:'88.4%', pkg:'Aug 1', exp:'Aug 1 \'27', age:'41 d', need:10, tag:'rfid', simRead:10, read:null },
+            { name:'Distillate Cart 0.5g', batchNo:'#HW-2405-19', thc:'92.1%', pkg:'Jul 22', exp:'Jul 22 \'27', age:'51 d', need:6, tag:'rfid', simRead:6, read:null }
           ]},
           { name:'Vape Box 2', type:'vape', packed:false, products:[
-            { name:'Disposable Vape 1g', sold:5, need:8, cap:8, will:4, reason:'below subregion count' }
+            { name:'Disposable Vape 1g', batchNo:'#HW-2404-27', thc:'80.5%', pkg:'Jul 15', exp:'Jul 15 \'27', age:'58 d', need:8, tag:'rfid', simRead:4, read:null, reason:'below subregion count — remainder held at the safe' }
           ]},
           { name:'Concentrate Bin 1', type:'concentrate', packed:false, products:[
-            { name:'Rosin 1g', sold:4, need:6, cap:6, will:6, reason:'' },
-            { name:'Badder 1g', sold:2, need:5, cap:5, will:0, reason:'no sales counted' }
+            { name:'Rosin 1g', batchNo:'#HW-2403-09', thc:'77.9%', pkg:'Jul 3', exp:'Jul 3 \'27', age:'70 d', need:6, tag:'rfid', simRead:6, read:null },
+            { name:'Badder 1g', batchNo:'#HW-2402-14', thc:'75.3%', pkg:'Jun 24', exp:'Jun 24 \'27', age:'79 d', need:0, tag:'none', reason:'no sales counted' }
           ]},
           { name:'Edible Bin', type:'edible', packed:false, products:[
-            { name:'Gummies 10mg 10-pk', sold:16, need:18, cap:18, will:18, reason:'' }
+            { name:'Gummies 10mg 10-pk', batchNo:'#HW-2402-21', thc:'10 mg/pc', pkg:'Jun 25', exp:'Dec 21', age:'78 d', need:18, tag:'rfid', simRead:18, read:null }
           ]}
         ]},
       { id:'ps5', driver:'Priya S.', route:'Route 5',
@@ -473,16 +459,16 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         doneCount:1, activeAt:1,
         boxes:[
           { name:'Flower Box 1', type:'flower', packed:false, products:[
-            { name:'Ice Cream Cake 3.5g', sold:10, need:12, cap:12, will:12, reason:'' }
+            { name:'Ice Cream Cake 3.5g', batchNo:'#HW-2407-31', thc:'24.9%', pkg:'Aug 11', exp:'Feb 6', age:'30 d', need:12, tag:'rfid', simRead:12, read:null }
           ]},
           { name:'Pre-Roll Box 1', type:'preroll', packed:false, products:[
-            { name:'Sativa PR 5-pack', sold:8, need:10, cap:10, will:10, reason:'' }
+            { name:'Sativa PR 5-pack', batchNo:'#HW-2408-19', thc:'17.3%', pkg:'Aug 23', exp:'Feb 18', age:'18 d', need:10, tag:'rfid', simRead:10, read:null }
           ]},
           { name:'Pre-Roll Box 2', type:'preroll', packed:false, products:[
-            { name:'Infused PR Single', sold:1, need:4, cap:4, will:0, reason:'not in template' }
+            { name:'Infused PR Single', batchNo:'#HW-2401-11', thc:'19.0%', pkg:'Jun 8', exp:'Dec 4', age:'94 d', need:0, tag:'none', reason:'not in template' }
           ]},
           { name:'Cooler', type:'cooler', packed:false, products:[
-            { name:'Seltzer 5mg', sold:5, need:6, cap:6, will:6, reason:'' }
+            { name:'Seltzer 5mg', batchNo:'#HW-2401-05', thc:'5 mg/can', pkg:'Jun 2', exp:'Nov 29', age:'99 d', need:6, tag:'rfid', simRead:6, read:null }
           ]}
         ]}
     ]},
@@ -492,10 +478,10 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         doneCount:6, activeAt:6,
         boxes:[
           { name:'Flower Box 1', type:'flower', packed:true, products:[
-            { name:'GMO 3.5g', sold:15, need:16, cap:16, will:16, reason:'' }
+            { name:'GMO 3.5g', batchNo:'#HW-2406-29', thc:'26.1%', pkg:'Aug 2', exp:'Jan 29', age:'40 d', need:16, tag:'rfid', simRead:16, read:16 }
           ]},
           { name:'Vape Box 1', type:'vape', packed:true, products:[
-            { name:'Live Resin Cart 1g', sold:7, need:8, cap:8, will:8, reason:'' }
+            { name:'Live Resin Cart 1g', batchNo:'#HW-2405-14', thc:'89.0%', pkg:'Jul 20', exp:'Jul 20 \'27', age:'53 d', need:8, tag:'rfid', simRead:8, read:8 }
           ]}
         ]},
       { id:'wl4', driver:'Whitney L.', route:'Route 4',
@@ -503,10 +489,10 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         doneCount:5, activeAt:5,
         boxes:[
           { name:'Flower Box 1', type:'flower', packed:true, products:[
-            { name:'Zkittlez 3.5g', sold:11, need:12, cap:12, will:12, reason:'' }
+            { name:'Zkittlez 3.5g', batchNo:'#HW-2407-02', thc:'23.4%', pkg:'Aug 3', exp:'Jan 29', age:'39 d', need:12, tag:'rfid', simRead:12, read:12 }
           ]},
           { name:'Edible Bin', type:'edible', packed:true, products:[
-            { name:'Chocolate Bar 100mg', sold:5, need:8, cap:8, will:3, reason:'short stock' }
+            { name:'Chocolate Bar 100mg', batchNo:'#HW-2404-30', thc:'10 mg/sq', pkg:'Jul 18', exp:'Jan 14', age:'55 d', need:8, tag:'rfid', simRead:5, read:5, reason:'short stock — 3 units held at the safe pending recount' }
           ]}
         ]}
     ]},
@@ -516,18 +502,15 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         doneCount:0, activeAt:0,
         boxes:[
           { name:'Flower Box 1', type:'flower', packed:false, products:[
-            { name:'Lemon Cherry Gelato 3.5g', sold:0, need:10, cap:10, will:10, reason:'' }
+            { name:'Lemon Cherry Gelato 3.5g', batchNo:'#HW-2409-15', thc:'20.9%', pkg:'Sep 2', exp:'Feb 27', age:'8 d', need:10, tag:'rfid', simRead:10, read:null }
           ]},
           { name:'Vape Box 1', type:'vape', packed:false, products:[
-            { name:'Cereal Milk Cart 1g', sold:0, need:6, cap:6, will:0, reason:'not in template' }
+            { name:'Cereal Milk Cart 1g', batchNo:'#HW-2405-24', thc:'84.7%', pkg:'Jul 24', exp:'Jul 24 \'27', age:'48 d', need:0, tag:'none', reason:'not in template' }
           ]}
         ]}
     ]}
   ];
   var activeRegion = 'westla';
-
-  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
-
   /* ---------------- received lane ---------------- */
   function renderReceipts(){
     var host = document.getElementById('receiptLane');
@@ -537,6 +520,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         + '<div class="badge-row"><span class="tag tag-'+r.tag+'">'+r.tag+'</span><span class="pmeta">Received '+r.received+'</span></div>'
         + '<div class="pname">'+esc(r.name)+'</div>'
         + '<div class="pmeta">'+r.qty+' units on hand</div>'
+        + '<div class="bchip">'+r.batchNo+' · THC '+r.thc+' · one batch, RFID-tagged at intake</div>'
         + '<div class="covbar"><span style="width:'+r.coverage+'%"></span></div>'
         + '<div class="covtext"><span>'+r.coverage+'% of kits covered</span><span>'+(partial?'partial send':'full send')+'</span></div>'
         + '<div class="cardfoot">'+(r.sent
@@ -554,46 +538,55 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       });
     });
   }
-
-  /* ---------------- reason styling ---------------- */
-  function reasonClass(p){
-    if (p.will === 0) return 'row-skip';
-    if (p.will < p.need) return 'row-short';
-    return '';
+  /* ---------------- batch/box math ---------------- */
+  function qtyOf(p){ if (p.tag==='untagged') return p.hand!=null ? p.hand : p.need; if (p.read!=null) return p.read; return p.need; }
+  function boxTotal(box){ return box.products.reduce(function(sum,p){ return sum + qtyOf(p); }, 0); }
+  function boxResolved(box){
+    return box.products.every(function(p){
+      if (p.tag!=='rfid' || p.need===0) return true;
+      if (p.read==null) return false;
+      return p.read===p.need || !!p.reason;
+    });
   }
-  function reasonCellClass(p){
-    if (p.will === 0) return 'reasoncell r-bad';
-    if (p.will < p.need) return 'reasoncell r-warn';
-    return 'reasoncell';
-  }
-
-  /* ---------------- box card ---------------- */
-  function boxTotal(box){
-    return box.products.reduce(function(sum,p){ return sum + (p.will||0); }, 0);
-  }
+  /* ---------------- box card (RFID-first: Scan box, then per-batch Read vs Need) ---------------- */
   function renderBox(regionId, kitId, box, bi){
     var id = 'box-'+regionId+'-'+kitId+'-'+bi;
-    var rows = box.products.map(function(p, pi){
-      var rc = reasonClass(p);
-      return '<tr class="'+rc+'" data-box="'+id+'" data-pi="'+pi+'">'
-        + '<td class="pn">'+esc(p.name)+'</td>'
-        + '<td class="num">'+p.sold+'</td>'
-        + '<td class="num">'+p.need+'</td>'
-        + '<td class="num">'+p.cap+'</td>'
-        + '<td class="num"><input class="willgive-input" type="number" min="0" max="'+p.cap+'" value="'+p.will+'" data-region="'+regionId+'" data-kit="'+kitId+'" data-box="'+bi+'" data-p="'+pi+'"'+(box.packed?' disabled':'')+'/></td>'
-        + '<td class="'+reasonCellClass(p)+'">'+(p.reason||'—')+'</td>'
-        + '</tr>';
+    var rowsHtml = groupBatches(box.products).map(function(grp){
+      var loud = grp.length>1;
+      return grp.map(function(p, gi){
+        var pi = box.products.indexOf(p);
+        var chip = p.batchNo+' · THC '+p.thc+' · pkg '+p.pkg+' · exp '+p.exp+' · '+p.age+' on hand';
+        var nameHtml = gi===0 ? esc(p.name)+(loud?'<span class="loud-badge">Mixed batch</span>':'') : '<span style="color:var(--inkMute);font-style:italic;">↳ same SKU, older first</span>';
+        var readTd;
+        if (p.tag==='untagged'){
+          readTd = '<input class="handinput" type="number" min="0" value="'+(p.hand!=null?p.hand:p.need)+'" data-region="'+regionId+'" data-kit="'+kitId+'" data-box="'+bi+'" data-p="'+pi+'"/><div class="handtag">hand-counted</div>';
+        } else if (p.need===0 || p.read==null){
+          readTd = '<span class="readcell pending">—</span>';
+        } else if (p.read===p.need || p.reason){
+          readTd = '<span class="readcell match">'+p.read+'</span>';
+        } else {
+          readTd = '<span class="readcell mismatch">'+p.read+'</span><button class="fixlink" data-region="'+regionId+'" data-kit="'+kitId+'" data-box="'+bi+'" data-p="'+pi+'">Fix</button>';
+        }
+        var rowCls = loud ? 'row-loud' : (p.tag==='none' ? 'row-skip' : ((p.reason && p.read!=null && p.read!==p.need) ? 'row-short' : ''));
+        return '<tr class="'+rowCls+'"><td class="pn">'+nameHtml+'<div class="bchip">'+chip+'</div></td><td class="num">'+p.need+'</td><td class="num">'+readTd+'</td><td class="'+(p.reason?'reasoncell r-warn':'reasoncell')+'">'+(p.reason||'—')+'</td></tr>';
+      }).join('');
     }).join('');
+    var resolved = boxResolved(box);
+    var scanned = box.products.some(function(p){ return p.tag==='rfid' && p.need>0 && p.read!=null; }) || !box.products.some(function(p){ return p.tag==='rfid' && p.need>0; });
+    var headRight = box.packed
+      ? '<span class="packedflag"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Packed</span>'
+      : (scanned
+          ? '<button class="btn btn-primary btn-sm" data-mark="'+regionId+'|'+kitId+'|'+bi+'" '+(resolved?'':'disabled')+'>Mark packed</button>'
+          : '<button class="scanbtn" data-scan="'+regionId+'|'+kitId+'|'+bi+'">Scan box</button>');
     return '<div class="box-card'+(box.packed?' packed':'')+'" id="'+id+'" style="--box-c:'+BOXCOLOR[box.type]+'">'
-      + '<div class="box-head">'
-      + '<button class="packbox'+(box.packed?' checked':'')+'" data-region="'+regionId+'" data-kit="'+kitId+'" data-box="'+bi+'" title="Mark packed" aria-label="Mark '+esc(box.name)+' packed">'+(box.packed?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>':'')+'</button>'
+      + '<div class="box-head"><button class="qr-mini" title="Box QR — opens this box\'s location window"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="6" height="6"/><rect x="15" y="3" width="6" height="6"/><rect x="3" y="15" width="6" height="6"/><rect x="15" y="15" width="2" height="2"/><rect x="19" y="15" width="2" height="2"/><rect x="15" y="19" width="2" height="2"/></svg></button>'
       + '<span class="bname">'+esc(box.name)+'</span>'
       + '<span class="btotal" data-total-for="'+id+'">'+boxTotal(box)+' u</span>'
+      + headRight
       + '</div>'
-      + '<table class="boxtbl"><thead><tr><th>Product</th><th>Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      + '<table class="boxtbl"><thead><tr><th>Product · batch</th><th>Need</th><th>Read</th><th>Reason</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'
       + '</div>';
   }
-
   function kitPackedCount(kit){
     var n = 0; kit.boxes.forEach(function(b){ if (b.packed) n++; });
     return n;
@@ -621,13 +614,11 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       + kit.boxes.map(function(b, bi){ return renderBox(regionId, kit.id, b, bi); }).join('')
       + '</div></div>';
   }
-
   function renderRegionBoard(region){
     return '<div class="region-board" id="board-'+region.id+'"><div class="kit-row">'
       + region.kits.map(function(k){ return renderKit(region.id, k); }).join('')
       + '</div></div>';
   }
-
   function renderTabs(){
     var host = document.getElementById('regionTabs');
     host.innerHTML = REGIONS.map(function(r){
@@ -637,17 +628,14 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       btn.addEventListener('click', function(){ showRegion(btn.getAttribute('data-region')); });
     });
   }
-
   window.showRegion = function(id){
     activeRegion = id;
     document.querySelectorAll('.rtab').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-region')===id); });
     document.querySelectorAll('.region-board').forEach(function(b){ b.classList.toggle('active', b.id === 'board-'+id); });
     updateCommitBar();
   };
-
   function findRegion(id){ for (var i=0;i<REGIONS.length;i++) if (REGIONS[i].id===id) return REGIONS[i]; }
   function findKit(region, kitId){ for (var i=0;i<region.kits.length;i++) if (region.kits[i].id===kitId) return region.kits[i]; }
-
   function updateCommitBar(){
     var region = findRegion(activeRegion);
     var boxesTotal = 0, boxesPacked = 0, units = 0;
@@ -660,7 +648,6 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     document.getElementById('commitBoxes').textContent = boxesPacked + ' / ' + boxesTotal;
     document.getElementById('commitUnits').textContent = units;
   }
-
   function refreshKitBar(regionId, kitId){
     var region = findRegion(regionId), kit = findKit(region, kitId);
     var total = kit.boxes.length, packed = kitPackedCount(kit);
@@ -673,40 +660,51 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     if (utxt) utxt.textContent = kitUnits(kit) + ' u';
     if (regionId === activeRegion) updateCommitBar();
   }
-
-  /* ---------------- events: packed checkbox + will-give input (delegated) ---------------- */
+  function rerenderBox(regionId, kitId, bi){
+    var region = findRegion(regionId), kit = findKit(region, kitId), box = kit.boxes[bi];
+    var el = document.getElementById('box-'+regionId+'-'+kitId+'-'+bi);
+    if (el) el.outerHTML = renderBox(regionId, kitId, box, bi);
+    refreshKitBar(regionId, kitId);
+  }
+  /* ---------------- events: scan / fix / mark-packed / hand-count / box QR (delegated) ---------------- */
   document.addEventListener('click', function(e){
-    var pb = e.target.closest('.packbox');
-    if (pb){
-      var regionId = pb.getAttribute('data-region'), kitId = pb.getAttribute('data-kit'), bi = +pb.getAttribute('data-box');
-      var region = findRegion(regionId), kit = findKit(region, kitId), box = kit.boxes[bi];
-      box.packed = !box.packed;
-      var card = pb.closest('.box-card');
-      card.classList.toggle('packed', box.packed);
-      pb.classList.toggle('checked', box.packed);
-      pb.innerHTML = box.packed ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>' : '';
-      card.querySelectorAll('.willgive-input').forEach(function(inp){ inp.disabled = box.packed; });
-      refreshKitBar(regionId, kitId);
+    var scanBtn = e.target.closest('[data-scan]');
+    if (scanBtn){
+      var sp = scanBtn.getAttribute('data-scan').split('|');
+      var sRegion = findRegion(sp[0]), sKit = findKit(sRegion, sp[1]), sBox = sKit.boxes[+sp[2]];
+      sBox.products.forEach(function(p){ if (p.tag==='rfid' && p.need>0) p.read = p.simRead; });
+      rerenderBox(sp[0], sp[1], +sp[2]);
+      toast('Box scanned', 'Handheld RFID sweep complete — read compared to plan for every tagged batch in '+esc(sBox.name)+'.');
+      return;
     }
+    var fixBtn = e.target.closest('.fixlink');
+    if (fixBtn){
+      var fRegion = findRegion(fixBtn.getAttribute('data-region')), fKit = findKit(fRegion, fixBtn.getAttribute('data-kit')), fBi = +fixBtn.getAttribute('data-box');
+      var fp = fKit.boxes[fBi].products[+fixBtn.getAttribute('data-p')];
+      fp.reason = fp.defaultReason || 'Recounted by hand — recorded as a discrepancy.';
+      rerenderBox(fRegion.id, fKit.id, fBi);
+      return;
+    }
+    var markBtn = e.target.closest('[data-mark]');
+    if (markBtn){
+      var mp = markBtn.getAttribute('data-mark').split('|');
+      var mRegion = findRegion(mp[0]), mKit = findKit(mRegion, mp[1]), mBox = mKit.boxes[+mp[2]];
+      mBox.packed = true;
+      rerenderBox(mp[0], mp[1], +mp[2]);
+      return;
+    }
+    var qr = e.target.closest('.qr-mini');
+    if (qr){ toast('Box QR', 'Scanning this opens the box\'s location window on the handheld — the same QR is printed on the pick slip.'); }
   });
   document.addEventListener('input', function(e){
-    if (!e.target.classList.contains('willgive-input')) return;
+    if (!e.target.classList.contains('handinput')) return;
     var inp = e.target;
-    var regionId = inp.getAttribute('data-region'), kitId = inp.getAttribute('data-kit'), bi = +inp.getAttribute('data-box'), pi = +inp.getAttribute('data-p');
-    var region = findRegion(regionId), kit = findKit(region, kitId), box = kit.boxes[bi], product = box.products[pi];
-    var cap = product.cap;
-    var v = parseInt(inp.value, 10); if (isNaN(v) || v < 0) v = 0; if (v > cap) v = cap;
-    product.will = v;
-    var id = 'box-'+regionId+'-'+kitId+'-'+bi;
-    var totalEl = document.querySelector('[data-total-for="'+id+'"]');
-    if (totalEl) totalEl.textContent = boxTotal(box) + ' u';
-    var row = inp.closest('tr');
-    row.className = reasonClass(product);
-    var reasonCell = row.querySelector('td:last-child');
-    reasonCell.className = reasonCellClass(product);
-    refreshKitBar(regionId, kitId);
+    var region = findRegion(inp.getAttribute('data-region')), kit = findKit(region, inp.getAttribute('data-kit')), bi = +inp.getAttribute('data-box'), p = kit.boxes[bi].products[+inp.getAttribute('data-p')];
+    var v = parseInt(inp.value, 10); p.hand = (isNaN(v) || v<0) ? 0 : v;
+    var totalEl = document.querySelector('[data-total-for="box-'+region.id+'-'+kit.id+'-'+bi+'"]');
+    if (totalEl) totalEl.textContent = boxTotal(kit.boxes[bi]) + ' u';
+    refreshKitBar(region.id, kit.id);
   });
-
   /* ---------------- skip / shortfall summary (built from data) ---------------- */
   function renderSkips(){
     var items = [];
@@ -714,13 +712,14 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       region.kits.forEach(function(kit){
         kit.boxes.forEach(function(box, bi){
           box.products.forEach(function(p){
-            if (!p.reason) return;
-            var kind = p.will === 0 ? 'skip' : 'short';
-            var verb = p.will === 0 ? 'skipped entirely' : ('gave '+p.will+' of '+p.need+' needed');
+            var unresolved = p.tag==='rfid' && p.read!=null && p.read!==p.need && !p.reason;
+            if (!p.reason && !unresolved) return;
+            var kind = unresolved ? 'short' : (qtyOf(p)===0 ? 'skip' : 'short');
+            var verb = unresolved ? ('read '+p.read+' of '+p.need+' expected — needs a reason or a fix') : (qtyOf(p)===0 ? 'skipped entirely' : ('packing '+qtyOf(p)+' of '+p.need+' needed'));
             items.push({
               kind: kind,
               title: region.name+' · '+kit.driver+' · '+box.name,
-              text: esc(p.name)+' — '+verb+' ('+p.reason+').',
+              text: esc(p.name)+' — '+verb+(p.reason?' ('+p.reason+').':'.'),
               target: 'box-'+region.id+'-'+kit.id+'-'+bi,
               region: region.id
             });
@@ -752,18 +751,18 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       });
     });
   }
-
   /* ---------------- commit refill ---------------- */
   document.getElementById('commitBtn').addEventListener('click', function(){
     var region = findRegion(activeRegion);
     var units = document.getElementById('commitUnits').textContent;
-    document.querySelectorAll('#board-'+activeRegion+' .willgive-input').forEach(function(inp){ inp.disabled = true; });
+    var board = document.getElementById('board-'+activeRegion);
+    board.querySelectorAll('.handinput').forEach(function(inp){ inp.disabled = true; });
+    board.style.pointerEvents = 'none'; board.style.opacity = '.72';
     var btn = document.getElementById('commitBtn');
     btn.disabled = true;
     btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Committed';
     toast('Refill committed — '+region.name, units+' units sent to the floor across '+region.kits.length+' kits.');
   });
-
   /* ---------------- boot ---------------- */
   renderReceipts();
   renderTabs();

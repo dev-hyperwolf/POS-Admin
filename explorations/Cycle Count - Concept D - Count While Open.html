@@ -11,8 +11,15 @@
    shared/hd-ui.jsx (table/pill patterns); rail/header shape copied from
    Hyperwolf Bounty.html; box-panel stepper shape copied from
    "Distribution Refill - Concept D - Tablet Packing.html" (keeper). No build
-   step, no external scripts or fonts. Every shelf, product, name and time on
-   this screen is EXAMPLE DATA — see the banner below the header.
+   step, no external scripts or fonts. Round 2 revision: RFID first (a shelf's
+   count window opens by scanning its QR; the dialog's primary action is
+   "Read this shelf" — a handheld sweep read vs expected per batch, with
+   in-window sales already reconciled; steppers survive only in a flagged
+   "hand count · exception" row for a dead tag or untagged category) and
+   batch level everywhere (every line is one batch with a monospace batch
+   chip; a shelf holding two batches of one SKU shows two LOUD rows; the
+   printed count sheet is one line per batch with a QR to close it). Every
+   shelf, product, name and time on this screen is EXAMPLE DATA — see banner.
    ========================================================================= */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
@@ -144,6 +151,15 @@ select.sel{height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorde
 .pill-pending{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
 .pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
 
+/* ---- RFID-first / batch-level additions ---- */
+.batchline{font-family:var(--fontMono);font-size:9.5px;color:var(--inkMute);margin-top:1px;}
+.loudflag{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;color:var(--bad);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+.loudnote{font-family:var(--fontMono);font-size:9px;color:var(--bad);margin-top:1px;}
+.methodpill{display:inline-flex;align-items:center;gap:4px;height:16px;padding:0 6px;border-radius:99px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-top:3px;}
+.methodpill.rfid{background:var(--infoSoft);color:var(--info);}
+.methodpill.hand{background:var(--warnSoft);color:var(--warnText);}
+.qrmini{display:inline-block;width:12px;height:12px;background:repeating-conic-gradient(currentColor 0% 25%, transparent 0% 50%) 0/4px 4px;border-radius:2px;flex:0 0 auto;vertical-align:-2px;}
+
 /* ---- shelf grid ---- */
 .shelfrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;padding:6px 16px 16px;}
 .shelf{border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:13px;display:flex;flex-direction:column;gap:8px;border-top:3px solid var(--shelf-c,var(--neutral));}
@@ -203,7 +219,8 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
 .printsheet{border:1.5px dashed var(--hairline3);border-radius:var(--r10);padding:16px;font-family:var(--fontMono);}
 .printsheet table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
 .printsheet th,.printsheet td{border:1px solid var(--hairline3);padding:5px 6px;text-align:left;}
-.printsheet .qr{width:64px;height:64px;background:repeating-conic-gradient(var(--ink) 0% 25%, transparent 0% 50%) 0/16px 16px;float:right;border:1px solid var(--hairline3);}
+.printsheet .qr{width:64px;height:64px;background:repeating-conic-gradient(var(--ink) 0% 25%, transparent 0% 50%) 0/16px 16px;border:1px solid var(--hairline3);flex:0 0 auto;}
+.printsheet .closeqr{display:flex;align-items:center;gap:10px;margin-top:14px;}
 .printsheet .signline{margin-top:14px;display:flex;gap:24px;font-size:11px;}
 .printsheet .signline div{flex:1;border-top:1px solid var(--ink);padding-top:4px;}
 
@@ -257,12 +274,12 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
 
     <div class="content">
       <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-        Design mockup — every shelf, product, associate name and time on this screen is example data, not a live store.</div>
+        Design mockup — every shelf, batch, product, associate name and time on this screen is example data, not a live store.</div>
 
       <div class="banner info">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor" stroke="none"/></svg>
-        <div><div class="b-title">Counting doesn't stop the register</div>
-        <div class="b-body">Open a count window on one shelf at a time; associates count between customers. Any sale that rings up while a window is open is reconciled automatically — the expected quantity adjusts, it is never treated as a discrepancy. Nothing posts to inventory until a manager approves the window.</div></div>
+        <div><div class="b-title">Reading doesn't stop the register</div>
+        <div class="b-body">Scan the shelf QR to open a count window, then sweep it with the handheld — read vs. expected per batch, one shelf at a time between customers. A dead tag or an untagged category becomes a flagged hand count instead. Any sale that rings up while a window is open is reconciled automatically — expected adjusts, it's never a discrepancy. Nothing posts to inventory until a manager approves the window.</div></div>
       </div>
 
       <!-- ============ shelf grid ============ -->
@@ -274,7 +291,7 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
       <!-- ============ active windows ============ -->
       <div class="card">
         <div class="card-head"><h2>Open count windows</h2><span class="hint">Sales during the window reconcile here, live</span></div>
-        <div id="windowList"><div class="winrow"><span style="color:var(--inkMute);font-size:var(--f-body);">No windows open — open one from a shelf above.</span></div></div>
+        <div id="windowList"><div class="winrow"><span style="color:var(--inkMute);font-size:var(--f-body);">No windows open — scan a shelf QR above.</span></div></div>
       </div>
 
       <!-- ============ pending manager approval ============ -->
@@ -288,8 +305,8 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
         </div>
         <div style="overflow-x:auto;">
         <table class="apptbl">
-          <thead><tr><th>Shelf · product</th><th class="r">Expected</th><th class="r">Counted</th><th class="r">Variance</th><th>Attribution</th><th>Action</th></tr></thead>
-          <tbody id="approvalBody"><tr><td colspan="6" style="color:var(--inkMute);padding:14px 8px;">Nothing pending.</td></tr></tbody>
+          <thead><tr><th>Shelf · product / batch</th><th class="r">Expected</th><th class="r">Read</th><th class="r">Counted</th><th class="r">Variance</th><th>Attribution</th><th>Action</th></tr></thead>
+          <tbody id="approvalBody"><tr><td colspan="7" style="color:var(--inkMute);padding:14px 8px;">Nothing pending.</td></tr></tbody>
         </table>
         </div>
       </div>
@@ -343,40 +360,66 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
   tickClock(); setInterval(tickClock, 30000);
   function nowStr(){ try { return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){ return 'just now'; } }
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function batchLine(b){ return esc(b.batch)+' · THC '+esc(b.thc)+' · pkg '+esc(b.pkg)+' · exp '+esc(b.exp)+' · '+esc(b.age)+' on hand'; }
+  function loudNote(b){ return b.mixed ? '<div class="loudflag">⚠ LOUD · MIXED BATCH</div><div class="loudnote">also '+esc(b.mixed.batch)+' · THC '+esc(b.mixed.thc)+' · pkg '+esc(b.mixed.pkg)+'</div>' : ''; }
+  function shelfHasMixed(shelf){ return shelf.batches.some(function(b){ return !!b.mixed; }); }
   var CATCOLOR = { flower:'var(--cat-flower)', preroll:'var(--cat-preroll)', vape:'var(--cat-vape)', concentrate:'var(--cat-concentrate)', edible:'var(--cat-edible)' };
 
   /* ---------------- data: EXAMPLE ONLY ---------------- */
-  var pid = 0;
-  function P(name, expected){ return { id:'p'+(++pid), name:name, expected:expected, base:expected }; }
+  var bid = 0;
+  // Every line is one batch. tagged:false = no RFID tag on this batch (dead tag / untagged
+  // category) — it can only be resolved with a flagged hand count, never a read. mixed carries
+  // the other batch's number/THC/pkg date when two batches of one SKU sit on the same shelf (LOUD).
+  function B(name, batch, thc, pkg, exp, age, expected, opts){
+    opts = opts || {};
+    return { id:'b'+(++bid), name:name, batch:batch, thc:thc, pkg:pkg, exp:exp, age:age, expected:expected, tagged: opts.tagged !== false, mixed: opts.mixed || null, driftReadQty: opts.driftReadQty };
+  }
 
   var SHELVES = [
     { id:'flowerwall', name:'Flower Wall', cat:'flower', assoc:'Alicia N.', ago:12, status:'fresh',
-      products:[P('Blue Dream 3.5g',22), P('OG Kush 3.5g',14), P('Wedding Cake 3.5g',9)] },
+      batches:[
+        B('Blue Dream 3.5g','#HW-2409-01','24.1%','Aug 28','Feb 24','13 d',12,{mixed:{batch:'#HW-2411-07',thc:'31.6%',pkg:'Sep 6'}}),
+        B('Blue Dream 3.5g','#HW-2411-07','31.6%','Sep 6','Mar 6','4 d',10,{mixed:{batch:'#HW-2409-01',thc:'24.1%',pkg:'Aug 28'}}),
+        B('OG Kush 3.5g','#HW-2405-12','21.4%','Aug 10','Feb 5','31 d',14),
+        B('Wedding Cake 3.5g','#HW-2406-30','26.0%','Aug 18','Feb 13','23 d',9)
+      ] },
     { id:'vapecase', name:'Vape Case', cat:'vape', assoc:'Marcus R.', ago:46, status:'stale',
-      products:[P('Live Resin Cart 1g',16), P('Distillate Cart 0.5g',10)] },
+      batches:[
+        B('Live Resin Cart 1g','#HW-2402-08','78.5%','Jul 25','Jul 2027','47 d',16,{driftReadQty:14}),
+        B('Distillate Cart 0.5g','#HW-2403-19','81.0%','Jul 30','Jul 2027','42 d',10)
+      ] },
     { id:'prendcap', name:'Pre-Roll Endcap', cat:'preroll', assoc:null, ago:null, status:'none',
-      products:[P('Indica PR 5-pack',18), P('Hybrid PR Single',24)],
-      saleScript:[ {atMs:3000, name:'Indica PR 5-pack', qty:1}, {atMs:7500, name:'Hybrid PR Single', qty:2} ] },
+      batches:[
+        B('Indica PR 5-pack','#HW-2404-44','19.8%','Aug 2','Jan 29','39 d',18),
+        B('Hybrid PR Single','#HW-2404-51','18.2%','Aug 3','Jan 30','38 d',24)
+      ],
+      saleScript:[ {atMs:3000, batch:'#HW-2404-44', qty:1}, {atMs:7500, batch:'#HW-2404-51', qty:2} ] },
     { id:'ediblesh', name:'Edible Shelf', cat:'edible', assoc:'Priya S.', ago:5, status:'flag',
-      products:[P('Gummies 100mg',20), P('Chocolate Bar 100mg',12)],
-      flaggedLine:{ product:'Chocolate Bar 100mg', expected:12, counted:9, countedBy:'Priya S.', countedAt:'12:58 PM PT' } },
+      batches:[
+        B('Gummies 100mg','#HW-2409-66','10 mg','Aug 30','Feb 25','11 d',20),
+        B('Chocolate Bar 100mg','#HW-2405-90','10 mg','Aug 10','Feb 5','31 d',12,{tagged:false})
+      ] },
     { id:'concentratecase', name:'Concentrate Case', cat:'concentrate', assoc:null, ago:null, status:'none',
-      products:[P('Live Rosin 1g',14), P('Shatter 1g',9)],
-      saleScript:[ {atMs:4000, name:'Live Rosin 1g', qty:1} ] }
+      batches:[
+        B('Live Rosin 1g','#HW-2406-15','72.0%','Aug 18','Aug 2027','23 d',14),
+        B('Shatter 1g','#HW-2407-22','68.4%','Aug 22','Aug 2027','19 d',9)
+      ],
+      saleScript:[ {atMs:4000, batch:'#HW-2406-15', qty:1} ] }
   ];
 
   var WINDOWS = {}; // shelfId -> { openedBy, openedAt, ticker:[], timers:[] }
-  var PENDING = []; // approval lines: { shelf, product, expected, counted, countedBy, countedAt, status, approvedBy, approvedAt }
+  var PENDING = []; // approval lines, one per batch: { shelf, name, batch, thc, pkg, exp, age, method, expected, actual, countedBy, countedAt, status, approvedBy, approvedAt, mixed }
 
-  // seed the pre-flagged edible-shelf variance as already pending approval
+  // seed the pre-flagged edible-shelf batch (no RFID tag) as already pending approval
   (function seedPending(){
     var s = SHELVES.find(function(x){ return x.id==='ediblesh'; });
-    PENDING.push({ shelf:s.name, product:s.flaggedLine.product, expected:s.flaggedLine.expected, counted:s.flaggedLine.counted,
-      countedBy:s.flaggedLine.countedBy, countedAt:s.flaggedLine.countedAt, status:'pending', approvedBy:null, approvedAt:null });
+    var b = s.batches.find(function(x){ return x.name==='Chocolate Bar 100mg'; });
+    PENDING.push({ shelf:s.name, name:b.name, batch:b.batch, thc:b.thc, pkg:b.pkg, exp:b.exp, age:b.age, method:'hand', expected:12, actual:9,
+      countedBy:'Priya S.', countedAt:'12:58 PM PT', status:'pending', approvedBy:null, approvedAt:null, mixed:null });
   })();
 
   function chipHtml(shelf){
-    if (WINDOWS[shelf.id]) return '<span class="chip chip-counting"><span class="dot"></span>Window open — counting now</span>';
+    if (WINDOWS[shelf.id]) return '<span class="chip chip-counting"><span class="dot"></span>Window open — reading now</span>';
     if (shelf.status==='flag') return '<span class="chip chip-flag"><span class="dot"></span>Counted '+shelf.ago+' min ago — variance flagged</span>';
     if (shelf.status==='fresh') return '<span class="chip chip-fresh"><span class="dot"></span>Counted '+shelf.ago+' min ago</span>';
     if (shelf.status==='stale') return '<span class="chip chip-stale"><span class="dot"></span>Counted '+shelf.ago+' min ago</span>';
@@ -388,13 +431,14 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
     host.innerHTML = SHELVES.map(function(s){
       var winOpen = !!WINDOWS[s.id];
       var openBtn = winOpen
-        ? '<button class="btn btn-ghost btn-sm" disabled>Window open</button>'
-        : '<button class="btn btn-ghost btn-sm" data-open="'+s.id+'">Open window</button>';
-      var countBtn = '<button class="btn btn-primary btn-sm" data-count="'+s.id+'"'+(!winOpen?' disabled title="Open a count window first"':'')+'>Count this shelf</button>';
+        ? '<button class="btn btn-ghost btn-sm" disabled><span class="qrmini"></span>Window open</button>'
+        : '<button class="btn btn-ghost btn-sm" data-open="'+s.id+'"><span class="qrmini"></span>Scan shelf QR</button>';
+      var countBtn = '<button class="btn btn-primary btn-sm" data-count="'+s.id+'"'+(!winOpen?' disabled title="Scan the shelf QR to open a window first"':'')+'>Count this shelf</button>';
+      var mixedChip = shelfHasMixed(s) ? '<span class="chip chip-flag"><span class="dot"></span>LOUD — mixed batch on this shelf</span>' : '';
       return '<div class="shelf" style="--shelf-c:'+CATCOLOR[s.cat]+'">'
         + '<div class="stitle"><span class="catdot" style="background:'+CATCOLOR[s.cat]+'"></span>'+esc(s.name)+'</div>'
         + '<div class="sassoc">'+(s.assoc?'Usually counted by '+esc(s.assoc):'No regular counter assigned')+'</div>'
-        + chipHtml(s)
+        + chipHtml(s) + mixedChip
         + '<div class="sactions">'+openBtn+countBtn+'</div>'
         + '</div>';
     }).join('');
@@ -410,10 +454,10 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
     WINDOWS[shelfId] = win;
     (shelf.saleScript||[]).forEach(function(sale){
       var t = setTimeout(function(){
-        var p = shelf.products.find(function(x){ return x.name===sale.name; });
-        if (!p) return;
-        p.expected = Math.max(0, p.expected - sale.qty);
-        win.ticker.unshift(nowStr()+' — sold '+sale.qty+' × '+sale.name+' — expected adjusted to '+p.expected+', reconciled automatically');
+        var b = shelf.batches.find(function(x){ return x.batch===sale.batch; });
+        if (!b) return;
+        b.expected = Math.max(0, b.expected - sale.qty);
+        win.ticker.unshift(nowStr()+' — sold '+sale.qty+' × '+b.name+' ('+b.batch+') — expected adjusted to '+b.expected+', reconciled automatically');
         renderWindows();
       }, sale.atMs);
       win.timers.push(t);
@@ -432,12 +476,12 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
   function renderWindows(){
     var host = document.getElementById('windowList');
     var ids = Object.keys(WINDOWS);
-    if (!ids.length){ host.innerHTML = '<div class="winrow"><span style="color:var(--inkMute);font-size:var(--f-body);">No windows open — open one from a shelf above.</span></div>'; return; }
+    if (!ids.length){ host.innerHTML = '<div class="winrow"><span style="color:var(--inkMute);font-size:var(--f-body);">No windows open — scan a shelf QR above.</span></div>'; return; }
     host.innerHTML = ids.map(function(id){
       var shelf = SHELVES.find(function(s){ return s.id===id; });
       var win = WINDOWS[id];
       return '<div class="winrow"><span class="wname">'+esc(shelf.name)+'</span>'
-        + '<span class="wmeta">Opened by '+esc(win.openedBy)+' · '+win.openedAt+'</span>'
+        + '<span class="wmeta">Opened via shelf QR by '+esc(win.openedBy)+' · '+win.openedAt+'</span>'
         + '<span class="wticker">'+(win.ticker.length ? esc(win.ticker[0]) : 'No sales yet during this window.')+'</span>'
         + '<span class="spacer"></span>'
         + '<button class="btn btn-primary btn-sm" data-count2="'+id+'">Count this shelf</button>'
@@ -448,50 +492,81 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
     host.querySelectorAll('[data-close]').forEach(function(btn){ btn.addEventListener('click', function(){ closeWindow(btn.getAttribute('data-close')); }); });
   }
 
-  /* ---------------- count entry drawer ---------------- */
+  /* ---------------- count entry drawer: Read this shelf -> per-batch result ---------------- */
   function openCountDrawer(shelfId){
     var shelf = SHELVES.find(function(s){ return s.id===shelfId; });
-    var counts = {}; // productId -> counted value, defaults to expected
-    shelf.products.forEach(function(p){ counts[p.id] = p.expected; });
-    renderDrawer(shelf, counts);
+    var state = { phase:'preread', handCounts:{} };
+    shelf.batches.forEach(function(b){ if (!b.tagged) state.handCounts[b.id] = b.expected; });
+    renderDrawer(shelf, state);
     document.getElementById('countOverlay').style.display = 'flex';
   }
-  function renderDrawer(shelf, counts){
-    var rowsHtml = shelf.products.map(function(p){
-      var counted = counts[p.id];
-      var variance = counted - p.expected;
-      var amber = variance !== 0;
-      return '<div class="prow'+(amber?' amber':'')+'" data-p="'+p.id+'">'
-        + '<div class="pname"><b>'+esc(p.name)+'</b><span class="sub">'+esc(shelf.name)+'</span></div>'
-        + '<div class="stat2"><div><div class="k">Expected</div>'+p.expected+'</div><div><div class="k">Variance</div><span class="varbadge" style="color:'+(amber?'var(--warnText)':'var(--good)')+'">'+(variance>0?'+':'')+variance+'</span></div></div>'
-        + '<div class="stepper"><button class="stepbtn" data-act="dec" data-p="'+p.id+'">−</button><span class="stepval">'+counted+'</span><button class="stepbtn" data-act="inc" data-p="'+p.id+'">+</button></div>'
-        + (amber ? '<div class="reasonline">Reason required — variance vs. expected (already adjusted for in-window sales).</div>' : '')
+
+  function renderDrawer(shelf, state){
+    var mixedNote = shelfHasMixed(shelf) ? '<div class="loudflag" style="margin-bottom:8px;">⚠ Mixed batch on this shelf — shown as two separate rows</div>' : '';
+    var cancelHtml = '<button class="btn btn-ghost" id="cancelCount">Cancel</button>';
+
+    if (state.phase === 'preread'){
+      var previewRows = shelf.batches.map(function(b){
+        return '<div class="prow" style="opacity:.8;"><div class="pname"><b>'+esc(b.name)+'</b><span class="sub batchline">'+batchLine(b)+'</span>'+loudNote(b)+(b.tagged?'<span class="methodpill rfid">RFID tag</span>':'<span class="methodpill hand">No tag — hand count</span>')+'</div>'
+          + '<div class="stat2"><div><div class="k">Expected</div>'+b.expected+'</div></div></div>';
+      }).join('');
+      document.getElementById('countModalBody').innerHTML =
+        '<h2>Count — '+esc(shelf.name)+'</h2><div class="msub">Expected is already adjusted for any sale reconciled during this window.</div>'
+        + mixedNote + previewRows
+        + '<div class="modal-actions">'+cancelHtml+'<button class="btn btn-primary" id="readShelfBtn">📡 Read this shelf</button></div>';
+      document.getElementById('cancelCount').addEventListener('click', function(){ document.getElementById('countOverlay').style.display='none'; });
+      document.getElementById('readShelfBtn').addEventListener('click', function(){ state.phase='read'; renderDrawer(shelf, state); });
+      return;
+    }
+
+    // phase === 'read': RFID rows show read vs expected; the untagged/dead-tag batch becomes a
+    // flagged "hand count (exception)" row with the −/+ steppers.
+    var rowsHtml = shelf.batches.map(function(b){
+      if (b.tagged){
+        var read = (typeof b.driftReadQty === 'number') ? b.driftReadQty : b.expected;
+        var variance = read - b.expected;
+        var amber = variance !== 0;
+        return '<div class="prow'+(amber?' amber':'')+'">'
+          + '<div class="pname"><b>'+esc(b.name)+'</b><span class="sub batchline">'+batchLine(b)+'</span>'+loudNote(b)+'<span class="methodpill rfid">RFID read</span></div>'
+          + '<div class="stat2"><div><div class="k">Expected</div>'+b.expected+'</div><div><div class="k">Read</div>'+read+'</div><div><div class="k">Variance</div><span class="varbadge" style="color:'+(amber?'var(--warnText)':'var(--good)')+'">'+(variance>0?'+':'')+variance+'</span></div></div>'
+          + (amber ? '<div class="reasonline">Read differs from expected (already adjusted for in-window sales) — held for manager approval.</div>' : '')
+          + '</div>';
+      }
+      var counted = state.handCounts[b.id];
+      var variance2 = counted - b.expected;
+      return '<div class="prow amber" data-p="'+b.id+'">'
+        + '<div class="pname"><b>'+esc(b.name)+'</b><span class="sub batchline">'+batchLine(b)+'</span><span class="methodpill hand">Hand count · exception</span></div>'
+        + '<div class="stat2"><div><div class="k">Expected</div>'+b.expected+'</div><div><div class="k">Variance</div><span class="varbadge" style="color:var(--warnText);">'+(variance2>0?'+':'')+variance2+'</span></div></div>'
+        + '<div class="stepper"><button class="stepbtn" data-act="dec" data-p="'+b.id+'">−</button><span class="stepval">'+counted+'</span><button class="stepbtn" data-act="inc" data-p="'+b.id+'">+</button></div>'
+        + '<div class="reasonline">No RFID tag on this batch — hand count required, always reviewed by a manager.</div>'
         + '</div>';
     }).join('');
     document.getElementById('countModalBody').innerHTML =
-      '<h2>Count — '+esc(shelf.name)+'</h2><div class="msub">Expected is already adjusted for any sale reconciled during this window.</div>'
-      + '<div class="who-row">Counted by <select class="sel" id="assocSel"><option'+(shelf.assoc?' selected':'')+'>'+esc(shelf.assoc||'Alicia N.')+'</option><option>Marcus R.</option><option>Priya S.</option></select></div>'
-      + rowsHtml
-      + '<div class="modal-actions"><button class="btn btn-ghost" id="cancelCount">Cancel</button><button class="btn btn-primary" id="saveCount">Save count</button></div>';
+      '<h2>Count — '+esc(shelf.name)+'</h2><div class="msub">Handheld read complete. Sales during this window are already reflected in Expected.</div>'
+      + '<div class="who-row">Read by <select class="sel" id="assocSel"><option'+(shelf.assoc?' selected':'')+'>'+esc(shelf.assoc||'Alicia N.')+'</option><option>Marcus R.</option><option>Priya S.</option></select></div>'
+      + mixedNote + rowsHtml
+      + '<div class="modal-actions">'+cancelHtml+'<button class="btn btn-primary" id="saveCount">Save count</button></div>';
     document.getElementById('cancelCount').addEventListener('click', function(){ document.getElementById('countOverlay').style.display='none'; });
     document.querySelectorAll('#countModalBody .stepbtn').forEach(function(btn){
       btn.addEventListener('click', function(){
         var pid = btn.getAttribute('data-p'), act = btn.getAttribute('data-act');
-        if (act==='inc') counts[pid] = counts[pid] + 1;
-        if (act==='dec') counts[pid] = Math.max(0, counts[pid] - 1);
-        renderDrawer(shelf, counts);
+        if (act==='inc') state.handCounts[pid] = state.handCounts[pid] + 1;
+        if (act==='dec') state.handCounts[pid] = Math.max(0, state.handCounts[pid] - 1);
+        renderDrawer(shelf, state);
       });
     });
     document.getElementById('saveCount').addEventListener('click', function(){
       var countedBy = document.getElementById('assocSel').value;
       var anyVariance = false;
-      shelf.products.forEach(function(p){
-        var counted = counts[p.id], variance = counted - p.expected;
+      shelf.batches.forEach(function(b){
+        var actual = b.tagged ? ((typeof b.driftReadQty === 'number') ? b.driftReadQty : b.expected) : state.handCounts[b.id];
+        var variance = actual - b.expected;
         if (variance !== 0){
           anyVariance = true;
-          PENDING.push({ shelf:shelf.name, product:p.name, expected:p.expected, counted:counted, countedBy:countedBy, countedAt:nowStr(), status:'pending', approvedBy:null, approvedAt:null });
+          PENDING.push({ shelf:shelf.name, name:b.name, batch:b.batch, thc:b.thc, pkg:b.pkg, exp:b.exp, age:b.age, method:(b.tagged?'rfid':'hand'),
+            expected:b.expected, actual:actual, countedBy:countedBy, countedAt:nowStr(), status:'pending', approvedBy:null, approvedAt:null, mixed:b.mixed });
         }
-        p.expected = counted; // the count becomes the new on-hand for the shelf display
+        b.expected = actual; b.driftReadQty = undefined;
       });
       shelf.ago = 0; shelf.status = anyVariance ? 'flag' : 'fresh'; shelf.lastCountedBy = countedBy;
       closeWindow(shelf.id);
@@ -503,15 +578,20 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
   /* ---------------- pending manager approval ---------------- */
   function renderPending(){
     var body = document.getElementById('approvalBody');
-    var open = PENDING.filter(function(p){ return p.status==='pending'; });
-    if (!open.length){ body.innerHTML = '<tr><td colspan="6" style="color:var(--inkMute);padding:14px 8px;">Nothing pending.</td></tr>'; return; }
+    if (!PENDING.length){ body.innerHTML = '<tr><td colspan="7" style="color:var(--inkMute);padding:14px 8px;">Nothing pending.</td></tr>'; return; }
     body.innerHTML = PENDING.map(function(p, i){
-      var variance = p.counted - p.expected;
-      var attrib = '<div class="attrib">Counted by <b>'+esc(p.countedBy)+'</b> · '+p.countedAt+'</div><div class="attrib">'+(p.approvedBy?('Approved by <b>'+esc(p.approvedBy)+'</b> · '+p.approvedAt):'Awaiting approval')+'</div>';
+      var variance = p.actual - p.expected;
+      var attrib = '<div class="attrib">'+(p.method==='rfid'?'Read':'Hand count')+' by <b>'+esc(p.countedBy)+'</b> · '+p.countedAt+'</div><div class="attrib">'+(p.approvedBy?('Approved by <b>'+esc(p.approvedBy)+'</b> · '+p.approvedAt):'Awaiting approval')+'</div>';
       var actions = p.status==='pending'
         ? '<div style="display:flex;gap:6px;"><button class="btn btn-good btn-sm" data-approve="'+i+'">Approve</button><button class="btn btn-warn btn-sm" data-recount="'+i+'">Blind recount</button></div>'
         : '<span class="pill '+(p.status==='approved'?'pill-done':'pill-active')+'">'+(p.status==='approved'?'Approved — posted':'Recount requested')+'</span>';
-      return '<tr class="'+(variance!==0?'variance':'')+'"><td>'+esc(p.shelf)+' · '+esc(p.product)+'</td><td class="r" style="font-family:var(--fontMono);">'+p.expected+'</td><td class="r" style="font-family:var(--fontMono);">'+p.counted+'</td><td class="r" style="font-family:var(--fontMono);">'+(variance>0?'+':'')+variance+'</td><td>'+attrib+'</td><td>'+actions+'</td></tr>';
+      var nameCell = '<div><b>'+esc(p.shelf)+' · '+esc(p.name)+'</b><div class="batchline">'+batchLine(p)+'</div>'+loudNote(p)+'<span class="methodpill '+(p.method==='rfid'?'rfid':'hand')+'">'+(p.method==='rfid'?'RFID read':'Hand count · exception')+'</span></div>';
+      return '<tr class="'+(variance!==0?'variance':'')+'"><td>'+nameCell+'</td>'
+        + '<td class="r" style="font-family:var(--fontMono);">'+p.expected+'</td>'
+        + '<td class="r" style="font-family:var(--fontMono);">'+(p.method==='rfid'?p.actual:'—')+'</td>'
+        + '<td class="r" style="font-family:var(--fontMono);">'+(p.method==='hand'?p.actual:'—')+'</td>'
+        + '<td class="r" style="font-family:var(--fontMono);">'+(variance>0?'+':'')+variance+'</td>'
+        + '<td>'+attrib+'</td><td>'+actions+'</td></tr>';
     }).join('');
     body.querySelectorAll('[data-approve]').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -529,17 +609,18 @@ table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var
     });
   }
 
-  /* ---------------- print count sheet ---------------- */
+  /* ---------------- print count sheet: one line per batch, QR to close ---------------- */
   document.getElementById('printBtn').addEventListener('click', function(){
     var rows = PENDING.map(function(p){
-      return '<tr><td>'+esc(p.shelf)+'</td><td>'+esc(p.product)+'</td><td>'+p.expected+'</td><td>'+p.counted+'</td><td>'+esc(p.countedBy)+'</td></tr>';
+      return '<tr><td>'+esc(p.shelf)+'</td><td>'+esc(p.name)+'<div style="font-size:9px;">'+batchLine(p)+'</div></td><td>'+p.expected+'</td><td>'+p.actual+'</td><td>'+esc(p.countedBy)+'</td></tr>';
     }).join('');
     document.getElementById('printSheetBody').innerHTML =
-      '<div class="qr"></div><h3 style="margin:0;">Sales Floor Cycle Count — West Hollywood</h3>'
-      + '<div>Business day: Thu Sep 10, 2026 · Printed '+nowStr()+'</div>'
-      + '<table><thead><tr><th>Shelf</th><th>Product</th><th>Expected</th><th>Counted</th><th>Counted by</th></tr></thead><tbody>'
-      + (rows || '<tr><td colspan="5">No variance lines — every shelf counted matched.</td></tr>') + '</tbody></table>'
-      + '<div class="signline"><div>Counted by: (see rows above)</div><div>Approved by: _____________________</div></div>';
+      '<h3 style="margin:0;">Sales Floor Cycle Count — West Hollywood</h3>'
+      + '<div>Business day: Thu Sep 10, 2026 · Printed '+nowStr()+' · one line per batch</div>'
+      + '<table><thead><tr><th>Shelf</th><th>Product / batch</th><th>Expected</th><th>Read / counted</th><th>By</th></tr></thead><tbody>'
+      + (rows || '<tr><td colspan="5">No variance lines — every shelf read matched.</td></tr>') + '</tbody></table>'
+      + '<div class="signline"><div>Counted by: (see rows above)</div><div>Approved by: _____________________</div></div>'
+      + '<div class="closeqr"><div class="qr"></div><div style="font-size:10px;max-width:220px;">Scan this QR at the bench to close this count sheet — it matches the sheet to this session and locks the lines above.</div></div>';
     document.getElementById('printOverlay').style.display = 'flex';
   });
   document.getElementById('closePrint').addEventListener('click', function(){ document.getElementById('printOverlay').style.display='none'; });

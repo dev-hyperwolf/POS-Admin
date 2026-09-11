@@ -6,14 +6,17 @@
 <title>Store — Concept A — Floor Restock</title>
 <style>
 /* ============================================================================
-   Store — Concept A — Floor Restock. Safe → shelf, several times a day. Row
-   schema (PRODUCT · SOLD · ON SHELF · PAR · WILL MOVE · REASON) and the tinted
-   shortfall/skip rows are the keeper from Distribution Refill Concept B (Box
-   Cards) — same colours, same "never a bare skip" rule, oldest batch always
-   first. A shelf that would carry a second live batch turns LOUD (red, both
-   batch numbers, THC, packaged dates) — never quiet. Every restock stamps who
-   moved it and when. Tokens copied inline from pos/tokens.jsx; rail/header
-   shape from Hyperwolf Bounty.html. No build step, no external requests.
+   Store — Concept A — Floor Restock. Safe → shelf, several times a day.
+   REVISION (2026-09-10, RFID first + Batch level everywhere): every line is a
+   batch line — chip is `#no · THC · pkg · exp · age on hand`, monospace. A
+   SKU with two batches on hand shows two batch rows under one product header,
+   LOUD (red) when a second batch would join a shelf. Every batch row carries
+   an RFID READ vs EXPECTED pair; a dead-tag / untagged product gets a flagged
+   HAND COUNT exception row with a manual entry instead of a read. The shelf
+   worked is chosen by scanning its QR — no location dropdown anywhere. The
+   printed restock slip carries one line per batch, each with its own QR.
+   Tokens copied inline from pos/tokens.jsx; rail/header shape from Hyperwolf
+   Bounty.html. No build step, no external requests.
    Every name, product, quantity and time below is EXAMPLE DATA.
    ========================================================================= */
 :root{
@@ -130,43 +133,60 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .manage-link:hover{color:var(--ink);border-color:var(--inkMute);}
 
 /* aisle tabs */
-.aisle-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--hairline2);padding:0 2px;}
+.aisle-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--hairline2);padding:0 2px;}
 .atab{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 4px;border:none;background:transparent;color:var(--inkDim);font-size:var(--f-title);font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
 .atab:hover{color:var(--ink);}
 .atab.active{color:var(--ink);border-bottom-color:var(--accentBorder);}
 .atab .n{font-family:var(--fontMono);font-size:var(--f-meta);font-weight:600;color:var(--inkMute);background:var(--surface3);border-radius:99px;padding:2px 8px;}
 .atab.hasflag .n{background:var(--badSoft);color:var(--bad);}
+.scanbtn{margin-left:auto;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px 0 8px;border-radius:99px;border:1px solid var(--accentBorder);background:var(--accentSoft);color:var(--accentText);font-size:var(--f-meta);font-weight:700;cursor:pointer;}
+.scanbtn:hover{background:var(--accentHover);color:var(--accentInk);}
 
-/* shelf grid + shelf card (row schema keeper) */
-.shelf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;padding:14px 4px 4px;}
+/* batch grid (row schema keeper, revised to batch level) */
+.shelf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px;padding:14px 4px 4px;}
 .shelf-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);overflow:hidden;border-top:3px solid var(--sc,var(--neutral));}
 .shelf-card.moved{opacity:.72;}
-.shelf-head{padding:10px 12px;border-bottom:1px solid var(--hairline);}
+.shelf-card.scanned{box-shadow:0 0 0 2px var(--accentBorder), var(--shadowSm);}
+.shelf-head{padding:10px 12px;border-bottom:1px solid var(--hairline);display:flex;align-items:flex-start;gap:8px;}
+.shelf-head .shinfo{flex:1;min-width:0;}
 .shelf-head .sname{font-size:var(--f-strong);font-weight:700;display:flex;align-items:center;gap:8px;}
 .shelf-head .scode{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);font-weight:600;}
 .shelf-head .sattr{font-size:var(--f-meta);color:var(--inkMute);margin-top:3px;}
 .shelf-head .sattr b{color:var(--ink2);font-weight:700;}
-table.shelftbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
-table.shelftbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:6px;border-bottom:1px solid var(--hairline);}
-table.shelftbl th:first-child{text-align:left;}
-table.shelftbl td{padding:7px 6px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
-table.shelftbl tr:last-child td{border-bottom:none;}
-.shelftbl .pn{font-weight:600;font-size:11.5px;}
-.shelftbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
-.shelftbl tr.row-skip{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
-.shelftbl tr.row-short{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
-.shelftbl tr.row-loud{background:var(--badSoft);box-shadow:inset 4px 0 0 var(--bad);}
-.loudpill{display:inline-flex;align-items:center;height:15px;padding:0 5px;border-radius:4px;background:var(--bad);color:#fff;font-size:8.5px;font-weight:800;letter-spacing:.05em;margin-right:4px;}
-.willmove-input{width:44px;height:27px;text-align:right;border-radius:6px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:11.5px;font-weight:600;padding:0 5px;}
+.qrbtn{flex:0 0 auto;width:30px;height:30px;border-radius:7px;border:1px solid var(--hairline3);background:
+  repeating-linear-gradient(0deg,var(--ink) 0 2.4px,transparent 2.4px 5.4px),
+  repeating-linear-gradient(90deg,var(--ink) 0 2.4px,transparent 2.4px 5.4px);
+  background-blend-mode:multiply;background-color:var(--surface);cursor:pointer;}
+.qrbtn:hover{outline:2px solid var(--accentBorder);}
+
+.pgroup{border-bottom:1px solid var(--hairline);padding:8px 12px 9px;}
+.pgroup:last-child{border-bottom:none;}
+.pgname{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;margin-bottom:4px;}
+.pgname .parbadge{margin-left:auto;font-family:var(--fontMono);font-size:9.5px;font-weight:600;color:var(--inkMute);background:var(--surface3);border-radius:6px;padding:2px 6px;}
+.loudbanner{display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:800;color:var(--bad);background:var(--badSoft);border-radius:6px;padding:3px 7px;margin-bottom:5px;letter-spacing:.02em;}
+
+.batchrow{display:grid;grid-template-columns:1.75fr 88px 46px 62px 1.35fr;gap:7px;align-items:center;padding:5px 0;font-size:11px;}
+.batchrow.hdr{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding-bottom:3px;border-bottom:1px solid var(--hairline);margin-bottom:2px;}
+.batchrow.loud{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);border-radius:6px;padding-left:4px;}
+.batchrow.short{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);border-radius:6px;padding-left:4px;}
+.batchrow.mismatch{background:var(--infoSoft);box-shadow:inset 3px 0 0 var(--info);border-radius:6px;padding-left:4px;}
+.batchrow.exception{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--bad);border-radius:6px;padding-left:4px;}
+.bchip{font-family:var(--fontMono);font-size:10px;line-height:1.35;color:var(--inkDim);}
+.bchip b{color:var(--ink);font-weight:700;}
+.oldest-badge{display:inline-flex;height:14px;padding:0 5px;border-radius:4px;background:var(--goodSoft);color:var(--good);font-size:8px;font-weight:800;letter-spacing:.04em;margin-left:5px;vertical-align:middle;}
+.readexp{font-family:var(--fontMono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.readexp .rok{color:var(--good);font-weight:700;}
+.readexp .rbad{color:var(--bad);font-weight:700;}
+.numc{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;}
+.willmove-input{width:42px;height:26px;text-align:right;border-radius:6px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:11px;font-weight:600;padding:0 5px;}
 .willmove-input:disabled{background:var(--surface3);color:var(--inkFaint);}
-.reasoncell{font-size:9.5px;color:var(--inkMute);max-width:120px;line-height:1.3;}
+.reasoncell{font-size:9.5px;color:var(--inkMute);line-height:1.3;}
 .reasoncell.r-bad{color:var(--bad);font-weight:700;}
 .reasoncell.r-warn{color:var(--warnText);font-weight:700;}
-.loud-detail{background:var(--surface);border-top:1px dashed var(--bad);}
-.loud-detail td{padding:8px 10px;}
-.loud-detail .lrow{display:flex;justify-content:space-between;gap:10px;font-family:var(--fontMono);font-size:10.5px;color:var(--ink2);padding:2px 0;}
-.loud-detail .lrow span:first-child{font-family:var(--fontSans);color:var(--inkDim);font-weight:600;}
-.oldest-badge{display:inline-flex;height:15px;padding:0 5px;border-radius:4px;background:var(--goodSoft);color:var(--good);font-size:8.5px;font-weight:800;letter-spacing:.04em;margin-left:6px;}
+.loudpill{display:inline-flex;align-items:center;height:14px;padding:0 5px;border-radius:4px;background:var(--bad);color:#fff;font-size:8px;font-weight:800;letter-spacing:.05em;margin-right:4px;}
+.excpill{display:inline-flex;align-items:center;height:14px;padding:0 5px;border-radius:4px;background:var(--warnText);color:#fff;font-size:8px;font-weight:800;letter-spacing:.03em;margin-right:4px;}
+.mispill{display:inline-flex;align-items:center;height:14px;padding:0 5px;border-radius:4px;background:var(--info);color:#fff;font-size:8px;font-weight:800;letter-spacing:.03em;margin-right:4px;}
+.handinput{width:42px;height:26px;text-align:right;border-radius:6px;border:1px solid var(--bad);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:11px;font-weight:700;padding:0 5px;}
 
 /* skips + legend (Refill Concept B pattern) */
 .skiplist{display:flex;flex-direction:column;}
@@ -176,6 +196,7 @@ table.shelftbl tr:last-child td{border-bottom:none;}
 .skipitem .sk-icon{width:26px;height:26px;border-radius:var(--r8);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 .skipitem.skip .sk-icon,.skipitem.loud .sk-icon{background:var(--badSoft);color:var(--bad);}
 .skipitem.short .sk-icon{background:var(--warnSoft);color:var(--warnText);}
+.skipitem.mismatch .sk-icon{background:var(--infoSoft);color:var(--info);}
 .skipitem .sk-body{flex:1;min-width:0;}
 .skipitem .sk-title{font-size:var(--f-strong);font-weight:700;}
 .skipitem .sk-text{font-size:var(--f-body);color:var(--inkDim);margin-top:2px;}
@@ -193,18 +214,23 @@ table.shelftbl tr:last-child td{border-bottom:none;}
 .commitbar .sumitem{display:flex;flex-direction:column;gap:1px;}
 .commitbar .sumitem .k{font-size:var(--f-micro);text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
 .commitbar .sumitem .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
+.commitbar .flagnote{font-size:var(--f-meta);color:var(--info);font-weight:600;}
 .commitbar .btn{margin-left:auto;}
 .commitbar .confirmed{font-size:var(--f-meta);color:var(--good);font-weight:700;margin-left:auto;}
 
-/* print overlay */
+/* overlays (print + scan) */
 .overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:flex-start;justify-content:center;z-index:80;overflow-y:auto;padding:30px 16px;}
-.print-sheet{background:#fff;color:#111;width:100%;max-width:640px;border-radius:var(--r12);padding:26px 28px;font-family:var(--fontMono);box-shadow:var(--shadowLg);}
+.print-sheet{background:#fff;color:#111;width:100%;max-width:680px;border-radius:var(--r12);padding:26px 28px;font-family:var(--fontMono);box-shadow:var(--shadowLg);}
 .print-sheet h3{font-family:var(--fontSans);margin:0 0 2px;font-size:17px;}
 .print-sheet .psub{font-family:var(--fontSans);font-size:11.5px;color:#666;margin-bottom:14px;}
-.print-sheet table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px;}
-.print-sheet th,.print-sheet td{border-bottom:1px solid #ddd;padding:5px 4px;text-align:left;}
-.print-sheet th{font-family:var(--fontSans);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:#777;}
+.print-sheet table{width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:6px;}
+.print-sheet th,.print-sheet td{border-bottom:1px solid #ddd;padding:5px 4px;text-align:left;vertical-align:top;}
+.print-sheet th{font-family:var(--fontSans);font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#777;}
 .print-sheet .ploud{color:#a5251b;font-weight:700;}
+.lineqr{width:22px;height:22px;background:
+  repeating-linear-gradient(0deg,#111 0 2.5px,#fff 2.5px 5px),
+  repeating-linear-gradient(90deg,#111 0 2.5px,transparent 2.5px 5px);
+  background-blend-mode:multiply;border:1px solid #111;flex:0 0 auto;}
 .print-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:12px;}
 .qr{width:64px;height:64px;background:
   repeating-linear-gradient(0deg,#111 0 4px,#fff 4px 8px),
@@ -216,6 +242,19 @@ table.shelftbl tr:last-child td{border-bottom:none;}
   .overlay{position:static;background:none;padding:0;}
   .print-sheet{box-shadow:none;max-width:none;}
 }
+.scan-sheet{background:var(--surface);color:var(--ink);width:100%;max-width:460px;border-radius:var(--r16);padding:20px 22px;box-shadow:var(--shadowLg);}
+.scan-sheet h3{margin:0 0 3px;font-size:17px;}
+.scan-sheet .ssub{font-size:11.5px;color:var(--inkMute);margin-bottom:14px;}
+.scan-grid{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;}
+.scan-opt{display:flex;align-items:center;gap:10px;padding:8px 9px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface2);cursor:pointer;text-align:left;width:100%;}
+.scan-opt:hover{border-color:var(--accentBorder);background:var(--accentSoft);}
+.scan-opt .qrmini{width:26px;height:26px;background:
+  repeating-linear-gradient(0deg,var(--ink) 0 2.4px,transparent 2.4px 5.4px),
+  repeating-linear-gradient(90deg,var(--ink) 0 2.4px,transparent 2.4px 5.4px);
+  background-blend-mode:multiply;background-color:var(--surface);border-radius:5px;flex:0 0 auto;}
+.scan-opt .sotext{flex:1;min-width:0;}
+.scan-opt .socode{font-family:var(--fontMono);font-size:11.5px;font-weight:700;}
+.scan-opt .solabel{font-size:10.5px;color:var(--inkMute);}
 
 .footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:10px 0 14px;}
 .toast{position:fixed;right:18px;bottom:88px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;animation:fadeIn .16s ease;}
@@ -235,6 +274,8 @@ table.shelftbl tr:last-child td{border-bottom:none;}
   .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
   .example-banner{margin:14px 12px 0;}
   .content{padding:12px 12px 150px;}
+  .batchrow{grid-template-columns:1fr;row-gap:2px;}
+  .batchrow.hdr{display:none;}
 }
 </style>
 </head>
@@ -250,7 +291,7 @@ table.shelftbl tr:last-child td{border-bottom:none;}
     </div>
     <div class="rail-spacer"></div>
     <div class="rail-bottom">
-      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
     </div>
   </aside>
 
@@ -270,16 +311,18 @@ table.shelftbl tr:last-child td{border-bottom:none;}
     </header>
 
     <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-      Design mockup — every product, shelf, quantity, name and time on this screen is example data, not live inventory or a real restock.</div>
+      Design mockup — every product, batch, shelf, quantity, name and time on this screen is example data, not live inventory or a real restock.</div>
 
     <div class="content">
       <div class="card">
-        <div class="aisle-tabs" id="aisleTabs"></div>
+        <div class="aisle-tabs" id="aisleTabs">
+          <button class="scanbtn" id="scanShelfBtn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M20 8V5a1 1 0 00-1-1h-3M4 16v3a1 1 0 001 1h3M20 16v3a1 1 0 01-1 1h-3M4 12h16" stroke-dasharray="0"/></svg>Scan shelf QR</button>
+        </div>
         <div class="shelf-grid" id="shelfGrid"></div>
       </div>
 
       <div class="card">
-        <div class="card-head"><h2>Skips &amp; shortfalls — this restock</h2><span class="hint">Tap one to jump to the shelf it happened on</span></div>
+        <div class="card-head"><h2>Skips, shortfalls &amp; RFID flags — this restock</h2><span class="hint">Tap one to jump to the shelf it happened on</span></div>
         <div class="skiplist" id="skipList"></div>
       </div>
 
@@ -288,6 +331,8 @@ table.shelftbl tr:last-child td{border-bottom:none;}
           <span class="li"><span class="swatch" style="background:var(--warnSoft);border:1px solid var(--warn)"></span>Short stock in safe — partial move</span>
           <span class="li"><span class="swatch" style="background:var(--badSoft);border:1px solid var(--bad)"></span>Nothing to move — safe is empty</span>
           <span class="li"><span class="swatch" style="background:var(--bad)"></span>LOUD — a second batch would join this shelf</span>
+          <span class="li"><span class="mispill">DRIFT</span>RFID read ≠ expected — flagged for LP</span>
+          <span class="li"><span class="excpill">HAND</span>Dead tag / untagged — hand count exception</span>
           <button class="manage-link" style="margin-left:auto;" onclick="toast('Manage shelf pars','Pars vary by shelf and season — opens the shelf-par editor (not built in this mockup).')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Manage shelf pars</button>
         </div>
       </div>
@@ -299,6 +344,7 @@ table.shelftbl tr:last-child td{border-bottom:none;}
         <div class="sumitem"><div class="k">Shelves</div><div class="v" id="cbShelves">0 / 0</div></div>
         <div class="sumitem"><div class="k">Units to move</div><div class="v" id="cbUnits">0</div></div>
       </div>
+      <span class="flagnote" id="cbFlag" style="display:none;"></span>
       <button class="btn btn-ghost" id="printBtn">Print restock slip</button>
       <button class="btn btn-primary" id="commitBtn">Move to floor</button>
       <span class="confirmed" id="cbConfirmed" style="display:none;"></span>
@@ -348,114 +394,169 @@ table.shelftbl tr:last-child td{border-bottom:none;}
     host.appendChild(el);
     setTimeout(function(){ el.remove(); }, 4400);
   };
+  function chip(b){
+    return '<b>#'+b.no+'</b> · THC '+(b.thc!=null?b.thc+'%':'n/a')+' · pkg '+b.pkg+' · exp '+b.exp+' · '+b.age+' d on hand';
+  }
 
-  /* ---------------- EXAMPLE DATA: aisles → shelves → products ---------------- */
+  /* ---------------- EXAMPLE DATA: aisles → shelves → product groups → batches ---------------- */
   var CATCOLOR = { flower:'var(--cat-flower)', vape:'var(--cat-vape)', preroll:'var(--cat-preroll)', edible:'var(--cat-edible)' };
   var AISLES = [
     { id:'flower', name:'Flower Wall', cat:'flower', shelves:[
       { id:'f1', code:'F2-A-01', label:'Top Shelf Flower', lastBy:'Dana R.', lastAt:'9:12 AM', products:[
-        { name:'Blue Dream 3.5g', sold:6, onShelf:2, par:10, onBatch:{no:'B-2291',thc:22.4,packaged:'Jun 28'},
-          safe:[{no:'B-2291',thc:22.4,packaged:'Jun 28',qty:3},{no:'B-2350',thc:24.9,packaged:'Aug 02',qty:40}] },
-        { name:'Wedding Cake 3.5g', sold:3, onShelf:5, par:8, onBatch:{no:'B-2402',thc:27.6,packaged:'Aug 12'},
-          safe:[{no:'B-2402',thc:27.6,packaged:'Aug 12',qty:20}] }
+        { name:'Blue Dream 3.5g', par:10, items:[
+          { batch:{no:'HW-2409-01',thc:24.1,pkg:'Aug 28',exp:'Feb 24',age:42}, onShelf:true, read:2, expected:2, sold:6, safe:3, oldest:true },
+          { batch:{no:'HW-2411-07',thc:31.6,pkg:'Sep 06',exp:'Mar 05',age:4}, onShelf:false, read:null, expected:null, sold:0, safe:40 }
+        ]},
+        { name:'Wedding Cake 3.5g', par:8, items:[
+          { batch:{no:'HW-2408-19',thc:27.6,pkg:'Aug 12',exp:'Feb 08',age:29}, onShelf:true, read:5, expected:5, sold:3, safe:20, oldest:true }
+        ]}
       ]},
       { id:'f2', code:'F2-B-03', label:'Value Flower', lastBy:'Dana R.', lastAt:'9:18 AM', products:[
-        { name:'OG Kush 3.5g (bag)', sold:10, onShelf:0, par:12, onBatch:null,
-          safe:[{no:'B-6610',thc:19.2,packaged:'Jul 15',qty:12}] },
-        { name:'Sour Diesel 3.5g (bulk)', sold:4, onShelf:3, par:10, onBatch:{no:'B-7001',thc:18.4,packaged:'May 30'},
-          safe:[{no:'B-7050',thc:21.0,packaged:'Aug 25',qty:2}] }
+        { name:'OG Kush 3.5g (bag)', par:12, items:[
+          { batch:{no:'HW-2407-33',thc:19.2,pkg:'Jul 15',exp:'Jan 11',age:57}, onShelf:false, read:0, expected:0, sold:10, safe:12, oldest:true }
+        ]},
+        { name:'Sour Diesel 3.5g (bulk)', par:10, items:[
+          { batch:{no:'HW-2405-11',thc:18.4,pkg:'May 30',exp:'Nov 26',age:103}, onShelf:true, read:3, expected:3, sold:4, safe:0, oldest:true },
+          { batch:{no:'HW-2409-44',thc:21.0,pkg:'Aug 25',exp:'Feb 21',age:16}, onShelf:false, read:null, expected:null, sold:0, safe:2 }
+        ]},
+        { name:'Bulk Shake 1g equiv (loose bin — no RFID)', par:5, items:[
+          { batch:{no:'HW-2404-77',thc:16.8,pkg:'Apr 27',exp:'Oct 24',age:136}, onShelf:true, exception:true, sold:4, safe:8, oldest:true }
+        ]}
       ]}
     ]},
     { id:'vape', name:'Vape Case', cat:'vape', shelves:[
       { id:'v1', code:'V1-A-02', label:'510 + Pods', lastBy:'Marcus D.', lastAt:'8:40 AM', products:[
-        { name:'Live Resin Cart 1g', sold:5, onShelf:4, par:10, onBatch:{no:'B-1042',thc:84.2,packaged:'Jul 10'},
-          safe:[{no:'B-1042',thc:84.2,packaged:'Jul 10',qty:1},{no:'B-1090',thc:88.1,packaged:'Aug 20',qty:22}] },
-        { name:'All-In-One Vape 1g', sold:2, onShelf:8, par:10, onBatch:{no:'B-1200',thc:79.0,packaged:'Jul 22'},
-          safe:[{no:'B-1200',thc:79.0,packaged:'Jul 22',qty:30}] }
+        { name:'Live Resin Cart 1g', par:10, items:[
+          { batch:{no:'HW-2406-77',thc:84.2,pkg:'Jun 27',exp:'Jun 24',age:75}, onShelf:true, read:4, expected:4, sold:5, safe:1, oldest:true },
+          { batch:{no:'HW-2408-90',thc:88.1,pkg:'Aug 20',exp:'Aug 17',age:21}, onShelf:false, read:null, expected:null, sold:0, safe:22 }
+        ]},
+        { name:'All-In-One Vape 1g', par:10, items:[
+          { batch:{no:'HW-2407-05',thc:79.0,pkg:'Jul 22',exp:'Jul 19',age:50}, onShelf:true, read:7, expected:8, sold:2, safe:30, oldest:true }
+        ]}
       ]}
     ]},
     { id:'preroll', name:'Pre-Roll Rack', cat:'preroll', shelves:[
       { id:'p1', code:'P1-A-01', label:'Singles', lastBy:'Dana R.', lastAt:'7:55 AM', products:[
-        { name:'GMO Pre-Roll 5-pack', sold:6, onShelf:1, par:8, onBatch:{no:'B-3311',thc:26.0,packaged:'Jul 01'},
-          safe:[{no:'B-3311',thc:26.0,packaged:'Jul 01',qty:0}] }
+        { name:'GMO Pre-Roll 5-pack', par:8, items:[
+          { batch:{no:'HW-2404-51',thc:26.0,pkg:'Apr 25',exp:'Oct 22',age:138}, onShelf:true, read:1, expected:1, sold:6, safe:0, oldest:true }
+        ]}
       ]}
     ]},
     { id:'edible', name:'Edible Shelf', cat:'edible', shelves:[
-      { id:'e1', code:'E1-A-01', label:'Gummies &amp; Chews', lastBy:'Marcus D.', lastAt:'8:05 AM', products:[
-        { name:'Gummies 10mg 10-pack', sold:8, onShelf:6, par:12, onBatch:{no:'B-4410',thc:null,packaged:'May 15'},
-          safe:[{no:'B-4410',thc:null,packaged:'May 15',qty:30}] }
+      { id:'e1', code:'E1-A-01', label:'Gummies & Chews', lastBy:'Marcus D.', lastAt:'8:05 AM', products:[
+        { name:'Gummies 10mg 10-pack', par:12, items:[
+          { batch:{no:'HW-2401-10',thc:null,pkg:'Jan 10',exp:'Jan 07',age:243}, onShelf:true, read:6, expected:6, sold:8, safe:30, oldest:true }
+        ]}
       ]}
     ]}
   ];
   var activeAisle = 'flower';
 
-  /* ---------------- allocation + row classification ---------------- */
-  function computeRow(p){
-    var need = Math.max(p.par - p.onShelf, 0);
-    var remaining = need, alloc = [];
-    for (var i=0;i<p.safe.length && remaining>0;i++){
-      var take = Math.min(p.safe[i].qty, remaining);
-      if (take <= 0) continue;
-      alloc.push({ no:p.safe[i].no, thc:p.safe[i].thc, packaged:p.safe[i].packaged, take:take });
-      remaining -= take;
-    }
-    var will = (typeof p._will === 'number') ? p._will : alloc.reduce(function(s,a){return s+a.take;},0);
-    var loud = p.onBatch && alloc.some(function(a){ return a.no !== p.onBatch.no; }) && alloc.length && (alloc.length>1 || alloc[0].no!==p.onBatch.no) && will>0;
-    // LOUD only when the shelf already carries stock AND the incoming batch(es) include one different from what's on the shelf.
-    loud = !!(p.onShelf>0 && p.onBatch && alloc.some(function(a){ return a.no !== p.onBatch.no; }) && will>0);
-    var cls = loud ? 'row-loud' : (will===0 && need>0 ? 'row-skip' : (will<need ? 'row-short' : ''));
-    var reason = '';
-    if (loud) reason = 'LOUD — '+p.onBatch.no+' is already on the shelf; '+alloc.filter(function(a){return a.no!==p.onBatch.no;}).map(function(a){return a.no;}).join(', ')+' would join it.'
-      + (will<need ? ' Also short: only '+alloc.reduce(function(s,a){return s+a.take;},0)+' of '+need+' needed is in the safe.' : '');
-    else if (will===0 && need>0) reason = 'Nothing to move — safe has none of this SKU left.';
-    else if (will<need) reason = 'Short stock in safe: only '+will+' of '+need+' needed.';
-    else if (need===0) reason = 'At par — nothing to move.';
-    else reason = 'Oldest batch first.';
-    return { need:need, alloc:alloc, will:will, loud:loud, cls:cls, reason:reason };
+  /* ---------------- allocation + row classification (per batch) ---------------- */
+  function computeItem(prod, it){
+    var onShelfQty = it.exception ? (typeof it.hand==='number' ? it.hand : (it.read!=null?it.read:0)) : (it.onShelf ? (it.read||0) : 0);
+    var need = it.onShelf ? Math.max(prod.par - onShelfQty, 0) : 0; // safe-fill decisions only computed against the incumbent batch
+    var will = (typeof it._will === 'number') ? it._will : Math.min(it.safe, need);
+    var mismatch = !it.exception && it.read!=null && it.expected!=null && it.read!==it.expected;
+    return { onShelfQty:onShelfQty, need:need, will:will, mismatch:mismatch };
+  }
+  function classifyProduct(prod){
+    var incumbent = prod.items.filter(function(i){return i.onShelf;})[0];
+    var incoming = prod.items.filter(function(i){return !i.onShelf;});
+    var incumbentWill = incumbent ? computeItem(prod, incumbent).will : 0;
+    var stillShort = incumbent ? (computeItem(prod, incumbent).need > incumbentWill) : false;
+    var incomingWill = incoming.reduce(function(s,i){ var c=computeItem(prod,i); var w=(typeof i._will==='number')?i._will:Math.min(i.safe, Math.max(0,(incumbent?computeItem(prod,incumbent).need:0)-incumbentWill)); return s + (w>0?w:0); },0);
+    var loud = !!(incumbent && incumbent.onShelfQty>0 && incomingWill>0);
+    return { incumbent:incumbent, incoming:incoming, loud:loud, stillShort:stillShort };
   }
 
   /* ---------------- rendering ---------------- */
   function findAisle(id){ for (var i=0;i<AISLES.length;i++) if (AISLES[i].id===id) return AISLES[i]; }
+  function findShelf(id){ for (var a=0;a<AISLES.length;a++) for (var s=0;s<AISLES[a].shelves.length;s++) if (AISLES[a].shelves[s].id===id) return { aisle:AISLES[a], shelf:AISLES[a].shelves[s] }; }
+  function anyFlag(shelf){
+    return shelf.products.some(function(p){
+      var c = classifyProduct(p);
+      if (c.loud || c.stillShort) return true;
+      return p.items.some(function(i){ return i.exception || computeItem(p,i).mismatch; });
+    });
+  }
   function renderTabs(){
-    document.getElementById('aisleTabs').innerHTML = AISLES.map(function(a){
-      var flagged = a.shelves.some(function(s){ return s.products.some(function(p){ return computeRow(p).cls; }); });
+    var host = document.getElementById('aisleTabs');
+    var tabsHtml = AISLES.map(function(a){
+      var flagged = a.shelves.some(anyFlag);
       return '<button class="atab'+(a.id===activeAisle?' active':'')+(flagged?' hasflag':'')+'" data-aisle="'+a.id+'">'+a.name
         + (flagged ? ' <span class="n">flag</span>' : '')+'</button>';
     }).join('');
-    document.querySelectorAll('.atab').forEach(function(b){ b.addEventListener('click', function(){ showAisle(b.getAttribute('data-aisle')); }); });
+    host.innerHTML = tabsHtml + '<button class="scanbtn" id="scanShelfBtn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M20 8V5a1 1 0 00-1-1h-3M4 16v3a1 1 0 001 1h3M20 16v3a1 1 0 01-1 1h-3M4 12h16"/></svg>Scan shelf QR</button>';
+    host.querySelectorAll('.atab').forEach(function(b){ b.addEventListener('click', function(){ showAisle(b.getAttribute('data-aisle')); }); });
+    document.getElementById('scanShelfBtn').addEventListener('click', openScanModal);
   }
-  function renderRow(shelf, p, pi){
-    var r = computeRow(p);
-    var html = '<tr class="'+r.cls+'" data-shelf="'+shelf.id+'" data-pi="'+pi+'">'
-      + '<td class="pn">'+esc(p.name)+'</td>'
-      + '<td class="num">'+p.sold+'</td>'
-      + '<td class="num">'+p.onShelf+'</td>'
-      + '<td class="num">'+p.par+'</td>'
-      + '<td class="num"><input class="willmove-input" type="number" min="0" max="'+r.need+'" value="'+r.will+'" data-shelf="'+shelf.id+'" data-p="'+pi+'"'+(shelf.moved?' disabled':'')+'/></td>'
-      + '<td class="reasoncell'+(r.loud||( r.will===0&&r.need>0)?' r-bad':(r.will<r.need?' r-warn':''))+'">'+(r.loud?'<span class="loudpill">LOUD</span>':'')+esc(r.reason)+'</td>'
-      + '</tr>';
-    if (r.loud){
-      html += '<tr class="loud-detail"><td colspan="6"><div class="lrow"><span>On shelf now</span><span>'+p.onBatch.no+' · THC '+(p.onBatch.thc!=null?p.onBatch.thc+'%':'n/a')+' · Packaged '+p.onBatch.packaged+'</span></div>'
-        + r.alloc.filter(function(a){return a.no!==p.onBatch.no;}).map(function(a){
-            return '<div class="lrow"><span>Incoming from safe</span><span>'+a.no+' × '+a.take+' · THC '+(a.thc!=null?a.thc+'%':'n/a')+' · Packaged '+a.packaged+'</span></div>';
-          }).join('') + '</td></tr>';
+  function itemRow(prod, it, cls, badge){
+    var c = computeItem(prod, it);
+    var readCell, willCell, reason;
+    if (it.exception){
+      readCell = '<span class="readexp rbad">HAND</span>';
+      willCell = '<input class="handinput" type="number" min="0" value="'+(it.hand!=null?it.hand:it.read||0)+'" data-hand="1" data-prod="'+prod._pi+'" data-item="'+it._ii+'"/>';
+      reason = 'No RFID tag — loose/untagged bulk product. Hand count entered by '+ACTOR+', flagged as an exception.';
+    } else if (!it.onShelf){
+      readCell = '<span style="color:var(--inkFaint);">— / —</span>';
+      willCell = '<input class="willmove-input" type="number" min="0" max="'+it.safe+'" value="'+(typeof it._will==='number'?it._will:c.will)+'" data-prod="'+prod._pi+'" data-item="'+it._ii+'"/>';
+      reason = 'Incoming from safe — different batch than what is on the shelf.';
+    } else {
+      var mismatch = c.mismatch;
+      readCell = '<span class="readexp '+(mismatch?'rbad':'rok')+'">'+it.read+' / '+it.expected+'</span>';
+      willCell = '<input class="willmove-input" type="number" min="0" max="'+it.safe+'" value="'+(typeof it._will==='number'?it._will:c.will)+'" data-prod="'+prod._pi+'" data-item="'+it._ii+'"/>';
+      reason = mismatch ? ('Read '+it.read+', expected '+it.expected+' — drift of '+(it.expected-it.read)+', flagged for LP.') : 'Oldest batch first — topping up.';
     }
-    return html;
+    var rowcls = cls ? ' '+cls : '';
+    return '<div class="batchrow'+rowcls+'">'
+      + '<div class="bchip">'+chip(it.batch)+(it.oldest?'<span class="oldest-badge">OLDEST</span>':'')+'</div>'
+      + '<div class="readexp">'+readCell+'</div>'
+      + '<div class="numc">'+it.sold+'</div>'
+      + '<div>'+willCell+'</div>'
+      + '<div class="reasoncell'+(badge==='loud'||badge==='exc'?' r-bad':(badge==='short'?' r-warn':''))+'">'
+        + (badge==='loud'?'<span class="loudpill">LOUD</span>':'')+(badge==='exc'?'<span class="excpill">HAND</span>':'')+(badge==='mismatch'?'<span class="mispill">DRIFT</span>':'')
+        + esc(reason)+'</div>'
+      + '</div>';
+  }
+  function renderProduct(prod, pi){
+    prod._pi = pi;
+    prod.items.forEach(function(it, ii){ it._ii = ii; });
+    var c = classifyProduct(prod);
+    var loud = c.loud;
+    var rows = prod.items.map(function(it){
+      var cls = '', badge = '';
+      if (it.exception){ cls='exception'; badge='exc'; }
+      else if (loud){ cls='loud'; badge='loud'; }
+      else if (!it.onShelf && it.safe===0){ /* nothing incoming, no row needed beyond incumbent short */ }
+      else if (it.onShelf && computeItem(prod,it).mismatch){ cls='mismatch'; badge='mismatch'; }
+      else if (it.onShelf && c.stillShort){ cls='short'; badge='short'; }
+      return itemRow(prod, it, cls, badge);
+    }).join('');
+    return '<div class="pgroup">'
+      + '<div class="pgname">'+esc(prod.name)+'<span class="parbadge">PAR '+prod.par+'</span></div>'
+      + (loud ? '<div class="loudbanner">LOUD — two batches will be live on this shelf. Tell the next person; do not report "no stock" while the other batch exists.</div>' : '')
+      + '<div class="batchrow hdr"><div>Batch</div><div>Read / Exp</div><div>Sold</div><div>Move</div><div>Reason</div></div>'
+      + rows + '</div>';
   }
   function renderShelf(shelf, cat){
-    var rows = shelf.products.map(function(p,pi){ return renderRow(shelf, p, pi); }).join('');
+    var rows = shelf.products.map(function(p,pi){ return renderProduct(p, pi); }).join('');
     var attr = shelf.moved
       ? 'Restocked by <b>'+ACTOR+'</b> · just now'
       : 'Last restocked by <b>'+esc(shelf.lastBy)+'</b> · '+shelf.lastAt;
-    return '<div class="shelf-card'+(shelf.moved?' moved':'')+'" id="shelf-'+shelf.id+'" style="--sc:'+CATCOLOR[cat]+'">'
-      + '<div class="shelf-head"><div class="sname">'+esc(shelf.label)+' <span class="scode">'+shelf.code+'</span></div>'
-      + '<div class="sattr">'+attr+'</div></div>'
-      + '<table class="shelftbl"><thead><tr><th>Product</th><th>Sold</th><th>On shelf</th><th>Par</th><th>Will move</th><th>Reason</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    return '<div class="shelf-card'+(shelf.moved?' moved':'')+(shelf.scanned?' scanned':'')+'" id="shelf-'+shelf.id+'" style="--sc:'+CATCOLOR[cat]+'">'
+      + '<div class="shelf-head"><div class="qrbtn" title="Scan this shelf" data-scanshelf="'+shelf.id+'"></div>'
+      + '<div class="shinfo"><div class="sname">'+esc(shelf.label)+' <span class="scode">'+shelf.code+'</span></div>'
+      + '<div class="sattr">'+attr+'</div></div></div>'
+      + rows
       + '</div>';
   }
   function renderGrid(){
     var a = findAisle(activeAisle);
     document.getElementById('shelfGrid').innerHTML = a.shelves.map(function(s){ return renderShelf(s, a.cat); }).join('');
+    document.querySelectorAll('[data-scanshelf]').forEach(function(b){
+      b.addEventListener('click', function(){ scanToShelf(b.getAttribute('data-scanshelf')); });
+    });
     updateCommitBar();
   }
   window.showAisle = function(id){
@@ -465,15 +566,25 @@ table.shelftbl tr:last-child td{border-bottom:none;}
   };
 
   function aisleTotals(a){
-    var shelvesTotal = a.shelves.length, shelvesMoved = a.shelves.filter(function(s){return s.moved;}).length, units = 0;
-    a.shelves.forEach(function(s){ s.products.forEach(function(p){ units += computeRow(p).will; }); });
-    return { shelvesTotal:shelvesTotal, shelvesMoved:shelvesMoved, units:units };
+    var shelvesTotal = a.shelves.length, shelvesMoved = a.shelves.filter(function(s){return s.moved;}).length, units = 0, mismatches = 0;
+    a.shelves.forEach(function(s){ s.products.forEach(function(p){
+      p.items.forEach(function(it){
+        var c = computeItem(p, it);
+        if (it.exception){ units += (it.hand!=null?it.hand: (typeof it._will==='number'?it._will:0)); }
+        else units += (typeof it._will==='number' ? it._will : c.will);
+        if (c.mismatch) mismatches++;
+      });
+    }); });
+    return { shelvesTotal:shelvesTotal, shelvesMoved:shelvesMoved, units:units, mismatches:mismatches };
   }
   function updateCommitBar(){
     var a = findAisle(activeAisle), t = aisleTotals(a);
     document.getElementById('cbAisle').textContent = a.name;
     document.getElementById('cbShelves').textContent = t.shelvesMoved+' / '+t.shelvesTotal;
     document.getElementById('cbUnits').textContent = t.units;
+    var flagNote = document.getElementById('cbFlag');
+    if (t.mismatches>0){ flagNote.style.display=''; flagNote.textContent = t.mismatches+' RFID read/expected mismatch — flagged for manager review, reads propose only.'; }
+    else flagNote.style.display = 'none';
     var confirmed = document.getElementById('cbConfirmed');
     var commitBtn = document.getElementById('commitBtn');
     if (t.shelvesMoved === t.shelvesTotal && t.shelvesTotal>0){
@@ -486,50 +597,94 @@ table.shelftbl tr:last-child td{border-bottom:none;}
   }
 
   document.addEventListener('input', function(e){
-    if (!e.target.classList.contains('willmove-input')) return;
-    var inp = e.target, shelfId = inp.getAttribute('data-shelf'), pi = +inp.getAttribute('data-p');
-    var a = findAisle(activeAisle), shelf = a.shelves.filter(function(s){return s.id===shelfId;})[0];
-    var p = shelf.products[pi];
-    var need = computeRow(p).need;
-    var v = parseInt(inp.value,10); if (isNaN(v)||v<0) v=0; if (v>need) v=need;
-    p._will = v;
-    renderGrid();
-    renderSkips();
+    if (e.target.classList.contains('handinput')){
+      var hi = e.target, prod0 = findAisle(activeAisle).shelves.reduce(function(acc,s){ return acc || s.products[+hi.getAttribute('data-prod')] && s; }, null);
+    }
+    if (e.target.classList.contains('willmove-input') || e.target.classList.contains('handinput')){
+      var inp = e.target, pi = +inp.getAttribute('data-prod'), ii = +inp.getAttribute('data-item');
+      var a = findAisle(activeAisle);
+      var shelfEl = inp.closest('.shelf-card');
+      var shelfId = shelfEl ? shelfEl.id.replace('shelf-','') : null;
+      var shelf = a.shelves.filter(function(s){return s.id===shelfId;})[0];
+      if (!shelf) return;
+      var prod = shelf.products[pi], it = prod.items[ii];
+      var v = parseInt(inp.value,10); if (isNaN(v)||v<0) v=0;
+      if (it.exception) it.hand = v; else { if (v>it.safe) v=it.safe; it._will = v; }
+      renderGrid();
+      renderSkips();
+    }
   });
 
   document.getElementById('commitBtn').addEventListener('click', function(){
     var a = findAisle(activeAisle);
     a.shelves.forEach(function(s){
-      var anyMove = s.products.some(function(p){ return computeRow(p).will>0; });
-      if (anyMove){ s.moved = true; s.lastBy = ACTOR; s.lastAt = 'just now'; }
+      var anyMove = s.products.some(function(p){ return p.items.some(function(it){ return it.exception ? (it.hand>0) : ((typeof it._will==='number'?it._will:computeItem(p,it).will)>0); }); });
+      if (anyMove){ s.moved = true; s.scanned = false; s.lastBy = ACTOR; s.lastAt = 'just now'; }
     });
     renderGrid();
     renderSkips();
-    toast('Moved to floor', a.name+' restocked and attributed to '+ACTOR+'.');
+    toast('Moved to floor', a.name+' restocked and attributed to '+ACTOR+'. RFID mismatches remain flagged for manager review.');
   });
+
+  /* ---------------- scan-to-select-shelf (no location dropdowns) ---------------- */
+  function allShelves(){
+    var list = [];
+    AISLES.forEach(function(a){ a.shelves.forEach(function(s){ list.push({ aisleId:a.id, id:s.id, code:s.code, label:s.label }); }); });
+    return list;
+  }
+  function scanToShelf(shelfId){
+    var found = findShelf(shelfId); if (!found) return;
+    found.shelf.scanned = true;
+    showAisle(found.aisle.id);
+    setTimeout(function(){
+      var el = document.getElementById('shelf-'+shelfId);
+      if (el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 1700); }
+    }, 30);
+    var host = document.getElementById('overlayHost');
+    var open = host.querySelector('#scanOverlay'); if (open) open.remove();
+    toast('Shelf scanned', found.shelf.code+' · '+found.shelf.label+' is now the active shelf.');
+  }
+  function openScanModal(){
+    var host = document.getElementById('overlayHost');
+    var el = document.createElement('div');
+    el.className = 'overlay'; el.id = 'scanOverlay';
+    el.innerHTML = '<div class="scan-sheet"><h3>Scan a shelf QR</h3><div class="ssub">The shelf label carries a QR — scanning it opens that shelf\'s restock window. No location list to browse.</div>'
+      + '<div class="scan-grid">' + allShelves().map(function(s){
+          return '<button class="scan-opt" data-shelfid="'+s.id+'"><span class="qrmini"></span><span class="sotext"><span class="socode">'+s.code+'</span><br/><span class="solabel">'+esc(s.label)+'</span></span></button>';
+        }).join('') + '</div>'
+      + '<div class="print-actions"><button class="btn btn-ghost" id="scanClose">Cancel</button></div></div>';
+    host.appendChild(el);
+    el.querySelectorAll('.scan-opt').forEach(function(b){ b.addEventListener('click', function(){ scanToShelf(b.getAttribute('data-shelfid')); }); });
+    document.getElementById('scanClose').addEventListener('click', function(){ el.remove(); });
+  }
 
   /* ---------------- skips panel ---------------- */
   function renderSkips(){
     var items = [];
     AISLES.forEach(function(a){
       a.shelves.forEach(function(s){
-        s.products.forEach(function(p,pi){
-          var r = computeRow(p);
-          if (!r.cls) return;
-          items.push({ aisle:a.id, shelf:s.id, name:p.name, cls:r.cls, reason:r.reason, shelfLabel:s.label });
+        s.products.forEach(function(p){
+          var c = classifyProduct(p);
+          p.items.forEach(function(it){
+            var ic = computeItem(p, it);
+            if (it.exception){ items.push({ aisle:a.id, shelf:s.id, name:p.name, kind:'skip', reason:'Hand count exception — no RFID tag on this batch/product.' }); return; }
+            if (c.loud && it.onShelf){ items.push({ aisle:a.id, shelf:s.id, name:p.name, kind:'loud', reason:'LOUD — '+it.batch.no+' stays on shelf while a different batch joins from the safe.' }); return; }
+            if (ic.mismatch){ items.push({ aisle:a.id, shelf:s.id, name:p.name, kind:'mismatch', reason:'RFID read '+it.read+' vs expected '+it.expected+' — drift flagged for LP.' }); return; }
+            if (it.onShelf && it.safe===0 && ic.need>0){ items.push({ aisle:a.id, shelf:s.id, name:p.name, kind:'skip', reason:'Nothing to move — safe has none of this batch left.' }); return; }
+            if (it.onShelf && ic.will<ic.need && ic.need>0){ items.push({ aisle:a.id, shelf:s.id, name:p.name, kind:'short', reason:'Short stock in safe: only '+ic.will+' of '+ic.need+' needed.' }); }
+          });
         });
       });
     });
     var host = document.getElementById('skipList');
-    if (!items.length){ host.innerHTML = '<div class="skipitem"><div class="sk-body"><div class="sk-text">No skips or shortfalls right now.</div></div></div>'; return; }
+    if (!items.length){ host.innerHTML = '<div class="skipitem"><div class="sk-body"><div class="sk-text">No skips, shortfalls or RFID flags right now.</div></div></div>'; return; }
     host.innerHTML = items.map(function(it){
-      var kind = it.cls==='row-loud'?'loud':(it.cls==='row-skip'?'skip':'short');
-      var icon = kind==='short'
+      var icon = it.kind==='short'
         ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>'
         : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><circle cx="12" cy="16.4" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9.3"/></svg>';
-      return '<button class="skipitem '+kind+'" data-aisle="'+it.aisle+'" data-shelf="'+it.shelf+'">'
+      return '<button class="skipitem '+it.kind+'" data-aisle="'+it.aisle+'" data-shelf="'+it.shelf+'">'
         + '<span class="sk-icon">'+icon+'</span>'
-        + '<div class="sk-body"><div class="sk-title">'+esc(it.name)+' · '+esc(it.shelfLabel)+'</div><div class="sk-text">'+esc(it.reason)+'</div></div>'
+        + '<div class="sk-body"><div class="sk-title">'+esc(it.name)+'</div><div class="sk-text">'+esc(it.reason)+'</div></div>'
         + '<span class="sk-jump">Jump →</span></button>';
     }).join('');
     host.querySelectorAll('.skipitem').forEach(function(btn){
@@ -544,17 +699,19 @@ table.shelftbl tr:last-child td{border-bottom:none;}
     });
   }
 
-  /* ---------------- printable restock slip ---------------- */
+  /* ---------------- printable restock slip: one line per batch, each with a QR ---------------- */
   document.getElementById('printBtn').addEventListener('click', function(){
     var a = findAisle(activeAisle);
     var rowsHtml = '';
     a.shelves.forEach(function(s){
       s.products.forEach(function(p){
-        var r = computeRow(p);
-        if (r.will<=0) return;
-        var batchText = r.alloc.map(function(x){ return x.no+' ('+x.take+')'; }).join(' + ');
-        rowsHtml += '<tr><td>'+s.code+' · '+esc(s.label)+'</td><td>'+esc(p.name)+'</td><td>'+batchText+'</td><td>'+r.will+'</td>'
-          + '<td class="'+(r.loud?'ploud':'')+'">'+(r.loud?'LOUD — mixed batch':'—')+'</td></tr>';
+        p.items.forEach(function(it){
+          var willQty = it.exception ? (it.hand||0) : (typeof it._will==='number'?it._will:computeItem(p,it).will);
+          if (willQty<=0) return;
+          var loud = classifyProduct(p).loud;
+          rowsHtml += '<tr><td>'+s.code+'<br/>'+esc(s.label)+'</td><td>'+esc(p.name)+'</td><td>'+chip(it.batch)+'</td><td>'+willQty+'</td>'
+            + '<td class="'+(loud?'ploud':'')+'">'+(loud?'LOUD':(it.exception?'HAND':'—'))+'</td><td><span class="lineqr" title="Scan to confirm this batch line"></span></td></tr>';
+        });
       });
     });
     var host = document.getElementById('overlayHost');
@@ -564,8 +721,8 @@ table.shelftbl tr:last-child td{border-bottom:none;}
     el.innerHTML = '<div class="print-sheet">'
       + '<h3>Floor Restock Slip — '+esc(a.name)+'</h3>'
       + '<div class="psub">Corona · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' · Prepared by '+ACTOR+'</div>'
-      + '<table><thead><tr><th>Shelf</th><th>Product</th><th>Batch(es)</th><th>Move</th><th>Flag</th></tr></thead><tbody>'+(rowsHtml||'<tr><td colspan="5">Nothing to move on this aisle right now.</td></tr>')+'</tbody></table>'
-      + '<div class="print-foot"><div style="font-size:11px;color:#555;max-width:400px;">Oldest batch first. Any LOUD line means two batches will share that shelf — tell the next person, do not report "no stock" while the other batch exists.</div><div class="qr" title="QR — scan to close this restock"></div></div>'
+      + '<table><thead><tr><th>Shelf</th><th>Product</th><th>Batch</th><th>Move</th><th>Flag</th><th>QR</th></tr></thead><tbody>'+(rowsHtml||'<tr><td colspan="6">Nothing to move on this aisle right now.</td></tr>')+'</tbody></table>'
+      + '<div class="print-foot"><div style="font-size:11px;color:#555;max-width:420px;">One line per batch, oldest first. Each line carries its own QR to confirm at the shelf. Any LOUD line means two batches will share that shelf — tell the next person, do not report "no stock" while the other batch exists.</div><div class="qr" title="Scan to close this whole restock"></div></div>'
       + '<div class="print-actions"><button class="btn btn-ghost" id="printClose">Close</button><button class="btn btn-primary" id="printNow">Print</button></div>'
       + '</div>';
     host.appendChild(el);

@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Build &amp; Close — Concept A — Weekly Build</title>
 <style>
-/* ============================================================================
-   Build & Close — Concept A — Weekly Build
-   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK) and
-   shared/hd-ui.jsx (table + pill patterns); rail/header shape copied from
-   Hyperwolf Bounty.html. Kit column (timeline + driver card + box cards),
-   box-type legend, row schema and tinted shortfall rows reproduced from the
-   keeper: explorations/Distribution Refill - Concept B - Box Cards.html.
-   No build step, no external scripts or fonts. Every name, product, quantity
-   and time on this screen is EXAMPLE DATA — see the banner below the header.
-   ========================================================================= */
+/* Build & Close — Concept A — Weekly Build. Round 2 revision: RFID-first +
+   batch-level-everywhere — every product line is a batch line (name + mono
+   chip: number · THC · pkg · exp · age), Available lists batches oldest-
+   first, a kit line spanning two batches renders as two LOUD rows, every kit
+   gets a printable pick slip (one line per batch, one QR closes the kit).
+   Templates keep min/max per SKU; the preview shows which batches fill it.
+   Tokens from pos/tokens.jsx + shared/hd-ui.jsx; rail/header from Hyperwolf
+   Bounty.html. Kit column, box legend, tinted rows reproduced from the
+   keeper: Distribution Refill - Concept B - Box Cards.html. No build step,
+   no external scripts/fonts. All data on screen is EXAMPLE — see banner. */
 :root{
   --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
   --fontMono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
@@ -138,10 +138,8 @@ button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visibl
 .btn:disabled{opacity:.5;cursor:not-allowed;}
 
 .pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap;border:1px solid transparent;text-transform:uppercase;letter-spacing:.03em;}
-.pill-done{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
-.pill-active{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
-.pill-pending{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
-.pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.pill-done{background:var(--goodSoft);color:var(--good);border-color:var(--good);} .pill-active{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+.pill-pending{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);} .pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
 
 /* ---- template tabs ---- */
 .tpl-tabs{display:flex;gap:6px;padding:0 2px;}
@@ -168,6 +166,11 @@ table.grid tr:last-child td{border-bottom:none;}
 .velo-actions button.accept:hover{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
 .velo-actions button.dismiss:hover{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
 .velo-done{font-size:10.5px;color:var(--good);font-weight:700;}
+
+/* ---- per-batch available column (oldest first) ---- */
+.availcol{display:flex;flex-direction:column;gap:2px;}
+.availbatch{display:flex;align-items:baseline;justify-content:flex-end;gap:8px;font-family:var(--fontMono);font-size:10px;color:var(--inkMute);white-space:nowrap;}
+.availbatch b{color:var(--ink);font-weight:700;font-size:11.5px;} .availbatch .oldest{color:var(--warnText);font-weight:700;}
 
 /* ---- received ledger ---- */
 .ledger-tabs{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
@@ -215,11 +218,10 @@ table.grid tr:last-child td{border-bottom:none;}
 .kit-tl-step .dot{position:absolute;left:0;top:1px;width:12px;height:12px;border-radius:50%;border:2px solid var(--hairline3);background:var(--surface);}
 .kit-tl-step.done .dot{background:var(--good);border-color:var(--good);}
 .kit-tl-step.active .dot{background:var(--accent);border-color:var(--accentBorder);animation:pulse 1.8s ease-in-out infinite;}
-.kit-tl-step .lbl{font-size:10.5px;font-weight:700;color:var(--ink2);}
-.kit-tl-step.pending .lbl{color:var(--inkMute);font-weight:600;}
+.kit-tl-step .lbl{font-size:10.5px;font-weight:700;color:var(--ink2);} .kit-tl-step.pending .lbl{color:var(--inkMute);font-weight:600;}
 .kit-tl-step .meta{font-size:9.5px;color:var(--inkMute);font-family:var(--fontMono);margin-top:1px;}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,209,0,.4);}50%{box-shadow:0 0 0 5px rgba(255,209,0,0);}}
-.kit-col{flex:0 0 310px;display:flex;flex-direction:column;gap:10px;}
+.kit-col{flex:0 0 320px;display:flex;flex-direction:column;gap:10px;}
 .kit-head{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:10px 12px;box-shadow:var(--shadowSm);}
 .kit-head .kname{font-size:var(--f-strong);font-weight:700;}
 .kit-head .kroute{font-size:var(--f-meta);color:var(--inkMute);}
@@ -227,6 +229,7 @@ table.grid tr:last-child td{border-bottom:none;}
 .kit-progress .bar{height:7px;border-radius:99px;background:var(--hairline2);overflow:hidden;}
 .kit-progress .bar>span{display:block;height:100%;border-radius:99px;background:var(--good);}
 .kit-progress .txt{margin-top:4px;font-size:var(--f-meta);color:var(--inkDim);display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;}
+.kit-head .slipbtn{margin-top:8px;width:100%;justify-content:center;}
 .box-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);overflow:hidden;border-top:3px solid var(--box-c,var(--neutral));}
 .box-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--hairline);}
 .box-head .bname{font-size:var(--f-strong);font-weight:700;flex:1;min-width:0;}
@@ -241,11 +244,9 @@ table.boxtbl tr:last-child td{border-bottom:none;}
 .boxtbl tr.row-skip{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 .boxtbl tr.row-short{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
 .boxtbl tr.row-mixed{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
-.mixed-flag{display:block;font-size:9px;font-weight:800;color:var(--bad);letter-spacing:.03em;margin-top:2px;}
-.mixed-detail{font-size:9px;color:var(--bad);font-family:var(--fontMono);}
-.reasoncell{font-size:9.5px;color:var(--inkMute);max-width:96px;line-height:1.25;}
-.reasoncell.r-bad{color:var(--bad);font-weight:700;}
-.reasoncell.r-warn{color:var(--warnText);font-weight:700;}
+.batchline{display:block;font-family:var(--fontMono);font-size:9px;color:var(--inkMute);margin-top:2px;font-weight:400;}
+.mixed-flag{display:block;font-size:9px;font-weight:800;color:var(--bad);letter-spacing:.03em;margin-top:2px;} .mixed-detail{font-size:9px;color:var(--bad);font-family:var(--fontMono);display:block;}
+.reasoncell{font-size:9.5px;color:var(--inkMute);max-width:96px;line-height:1.25;} .reasoncell.r-bad{color:var(--bad);font-weight:700;} .reasoncell.r-warn{color:var(--warnText);font-weight:700;}
 .flash{animation:flashbox 1.6s ease;}
 @keyframes flashbox{0%,100%{box-shadow:var(--shadowSm);}20%,60%{box-shadow:0 0 0 3px var(--accentBorder), var(--shadowMd);}}
 
@@ -262,6 +263,17 @@ table.boxtbl tr:last-child td{border-bottom:none;}
 .commitbar .sumitem .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
 .commitbar .btn{margin-left:auto;}
 .footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
+
+/* ---- pick slip (paper) overlay ---- */
+.slipOverlay{display:none;position:fixed;inset:0;background:rgba(10,10,8,.55);z-index:200;align-items:center;justify-content:center;padding:24px;} .slipOverlay.open{display:flex;}
+.slipSheet{background:#FFFFFF;color:#141410;width:100%;max-width:480px;max-height:86vh;overflow:auto;border-radius:12px;padding:22px 24px 20px;position:relative;font-family:var(--fontSans);box-shadow:var(--shadowLg);}
+.slipSheet h3{margin:0 0 2px;font-size:16px;} .slipmeta{font-size:11px;color:#666;margin-bottom:6px;}
+.slipqr{float:right;width:60px;height:60px;margin:0 0 8px 10px;}
+.slipqrcap{clear:both;font-size:9px;color:#888;text-align:right;text-transform:uppercase;letter-spacing:.05em;margin:-4px 0 6px;}
+.slipbox{margin-top:10px;padding-top:8px;border-top:1px solid #E4E2DA;} .slipbox h4{margin:0 0 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:#555;}
+.slipline{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px dashed #E4E2DA;} .slipline.loud{color:#B23223;font-weight:700;}
+.slipline .sname{display:block;font-family:var(--fontMono);font-size:10px;color:#777;font-weight:400;} .slipline.loud .sname{color:#B23223;} .slipline .sqty{font-family:var(--fontMono);font-weight:700;flex:0 0 auto;}
+.slipclose{position:absolute;top:10px;right:10px;border:none;background:#F0EEE6;color:#333;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1;}
 
 @media (max-width: 1024px){
   .rail{width:64px;flex-basis:64px;}
@@ -305,7 +317,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
 
     <div class="content">
       <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-        Design mockup — every product, driver name, quantity and timestamp on this screen is example data, not live inventory or a real schedule.</div>
+        Design mockup — every product, driver name, quantity, batch and timestamp on this screen is example data, not live inventory or a real schedule.</div>
 
       <!-- ============ template editor ============ -->
       <div>
@@ -314,7 +326,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
           <div class="tpl-meta" id="tplMeta"></div>
           <div class="card-body" style="padding:0;">
             <table class="grid">
-              <thead><tr><th>Product</th><th style="text-align:right">Available</th><th style="text-align:right">Min</th><th style="text-align:right">Max</th><th>Velocity suggestion</th><th>Box</th></tr></thead>
+              <thead><tr><th>Product</th><th style="text-align:right">Available — by batch, oldest first</th><th style="text-align:right">Min</th><th style="text-align:right">Max</th><th>Velocity suggestion</th><th>Box</th></tr></thead>
               <tbody id="tplRows"></tbody>
             </table>
           </div>
@@ -345,8 +357,8 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         <!-- ============ partial-build banner ============ -->
         <div class="banner warn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-          <div><div class="b-title">Partial build — 1 product held from every subregion, 1 subregion unassigned</div>
-          <div class="b-body">GMO 7g: 4 units on hand, 6 subregions served — held from all of them rather than partially served (fairness rule), not distributed. Subregion 9 (Chino Hills) has no driver assigned today — no kit was built for it. Both are listed below, not silently dropped.</div></div>
+          <div><div class="b-title">Partial build — 1 batch held from every subregion, 1 subregion unassigned</div>
+          <div class="b-body">GMO 7g batch #HW-2501-02: 4 units on hand, 6 subregions served — held from all of them rather than partially served (fairness rule), not distributed. Subregion 9 (Chino Hills) has no driver assigned today — no kit was built for it. Both are listed below, not silently dropped.</div></div>
         </div>
 
         <!-- ============ skip/shortfall + partial summary ============ -->
@@ -366,7 +378,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
             <span class="li"><span class="swatch" style="background:var(--cat-cooler)"></span>Cooler</span>
             <span class="li" style="margin-left:8px;border-left:1px solid var(--hairline2);padding-left:16px;"><span class="swatch" style="background:var(--warn)"></span>Shortfall row</span>
             <span class="li"><span class="swatch" style="background:var(--bad)"></span>Skipped / held row</span>
-            <span class="li"><span class="swatch" style="background:var(--bad)"></span>LOUD — mixed batch</span>
+            <span class="li"><span class="swatch" style="background:var(--bad)"></span>LOUD — two batches, one kit line</span>
             <button class="manage-link" style="margin-left:auto;" onclick="toast('Manage box types','Box sets vary by kit and change over time — opens the box-type editor (not built in this mockup).')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Manage box types</button>
           </div>
         </div>
@@ -401,6 +413,8 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     </div>
   </div>
 </div>
+
+<div class="slipOverlay" id="slipOverlay"><div class="slipSheet" id="slipSheet"></div></div>
 
 <script>
 (function(){
@@ -443,21 +457,40 @@ table.boxtbl tr:last-child td{border-bottom:none;}
   window.toast = toast;
 
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function chipMeta(b){ return '#'+b.batch+' · THC '+b.thc+'% · pkg '+b.pkg+' · exp '+b.exp+' · '+b.age+'d'; }
 
-  /* ---------------- template data (EXAMPLE) ---------------- */
+  /* ---------------- QR (decorative, closes the kit by scan) ---------------- */
+  function qrSvg(){
+    var cells = [[0,0],[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2],[4,0],[5,0],[6,0],[4,1],[6,1],[4,2],[5,2],[6,2],
+      [0,4],[1,4],[2,4],[0,5],[2,5],[0,6],[1,6],[2,6],[4,4],[5,5],[6,4],[4,6],[6,6],[3,3],[5,3],[3,5]];
+    return '<svg class="slipqr" viewBox="0 0 7 7" shape-rendering="crispEdges"><rect width="7" height="7" fill="#fff"/>'
+      + cells.map(function(c){ return '<rect x="'+c[0]+'" y="'+c[1]+'" width="1" height="1" fill="#141410"/>'; }).join('')
+      + '</svg>';
+  }
+
+  /* ---------------- template data (EXAMPLE) — Available is per batch, oldest first ---------------- */
   var TEMPLATES = {
     distribution: { id:'T-0001-LA', region:'RC (Rancho Cucamonga)', subregions:9, boxes:15, tplMin:1, tplMax:1100, edited:'Sep 3, 2026', rows:[
-      { name:'Blue Dream 3.5g', cat:'flower', avail:186, min:16, max:24, sug:{min:18,max:28,ev:'14d avg 22.4/day across region'}, box:'Flower Box 1', accepted:null },
-      { name:'Wedding Cake 1g', cat:'flower', avail:64, min:20, max:24, sug:null, box:'Flower Box 2', accepted:null },
-      { name:'GMO 7g', cat:'flower', avail:4, min:4, max:6, sug:{min:8,max:12,ev:'14d avg 9.1/day — current cap under-serves demand'}, box:'Flower Box 1', accepted:null },
-      { name:'Live Resin Cart 1g', cat:'vape', avail:210, min:14, max:18, sug:{min:16,max:20,ev:'14d avg 17.6/day'}, box:'Vape Box 1', accepted:null },
-      { name:'Indica 5-pack', cat:'preroll', avail:340, min:12, max:14, sug:null, box:'Pre-Roll Box 1', accepted:null },
-      { name:'Gummies 100mg', cat:'edible', avail:88, min:20, max:24, sug:{min:18,max:22,ev:'14d avg 15.8/day — current cap over-serves demand'}, box:'Edible Bin', accepted:null }
+      { name:'Blue Dream 3.5g', cat:'flower', min:16, max:24, sug:{min:18,max:28,ev:'14d avg 22.4/day across region'}, box:'Flower Box 1', accepted:null,
+        batches:[ {batch:'HW-2312-03',thc:24.6,pkg:'Aug 12',exp:'Feb 8',age:29,qty:96}, {batch:'HW-2405-11',thc:26.9,pkg:'Sep 3',exp:'Mar 1',age:7,qty:90} ] },
+      { name:'Wedding Cake 1g', cat:'flower', min:20, max:24, sug:null, box:'Flower Box 2', accepted:null,
+        batches:[ {batch:'HW-2409-01',thc:24.1,pkg:'Aug 28',exp:'Feb 24',age:42,qty:22}, {batch:'HW-2411-07',thc:31.6,pkg:'Sep 6',exp:'Mar 8',age:4,qty:42} ] },
+      { name:'GMO 7g', cat:'flower', min:4, max:6, sug:{min:8,max:12,ev:'14d avg 9.1/day — current cap under-serves demand'}, box:'Flower Box 1', accepted:null,
+        batches:[ {batch:'HW-2501-02',thc:29.2,pkg:'Sep 2',exp:'Mar 1',age:8,qty:4} ] },
+      { name:'Live Resin Cart 1g', cat:'vape', min:14, max:18, sug:{min:16,max:20,ev:'14d avg 17.6/day'}, box:'Vape Box 1', accepted:null,
+        batches:[ {batch:'HW-2404-19',thc:82.4,pkg:'Aug 20',exp:'Aug 20, 2027',age:21,qty:210} ] },
+      { name:'Indica 5-pack', cat:'preroll', min:12, max:14, sug:null, box:'Pre-Roll Box 1', accepted:null,
+        batches:[ {batch:'HW-2406-08',thc:19.8,pkg:'Sep 1',exp:'Mar 1',age:9,qty:340} ] },
+      { name:'Gummies 100mg', cat:'edible', min:20, max:24, sug:{min:18,max:22,ev:'14d avg 15.8/day — current cap over-serves demand'}, box:'Edible Bin', accepted:null,
+        batches:[ {batch:'HW-2403-27',thc:10.0,pkg:'Aug 15',exp:'Aug 15, 2027',age:26,qty:88} ] }
     ]},
     refill: { id:'T-0002-LA', region:'SB+OC', subregions:9, boxes:15, tplMin:1, tplMax:900, edited:'Aug 28, 2026', rows:[
-      { name:'Blue Dream 3.5g', cat:'flower', avail:186, min:14, max:20, sug:{min:18,max:28,ev:'14d avg 22.4/day across region'}, box:'Flower Box 1', accepted:null },
-      { name:'Runtz 3.5g', cat:'flower', avail:52, min:8, max:8, sug:null, box:'Flower Box 2', accepted:null },
-      { name:'Rosin Cart 0.5g', cat:'vape', avail:96, min:6, max:8, sug:{min:6,max:8,ev:'14d avg 6.9/day — matches current cap'}, box:'Vape Box 1', accepted:null }
+      { name:'Blue Dream 3.5g', cat:'flower', min:14, max:20, sug:{min:18,max:28,ev:'14d avg 22.4/day across region'}, box:'Flower Box 1', accepted:null,
+        batches:[ {batch:'HW-2312-03',thc:24.6,pkg:'Aug 12',exp:'Feb 8',age:29,qty:96}, {batch:'HW-2405-11',thc:26.9,pkg:'Sep 3',exp:'Mar 1',age:7,qty:90} ] },
+      { name:'Runtz 3.5g', cat:'flower', min:8, max:8, sug:null, box:'Flower Box 2', accepted:null,
+        batches:[ {batch:'HW-2402-15',thc:27.3,pkg:'Aug 18',exp:'Feb 14',age:23,qty:52} ] },
+      { name:'Rosin Cart 0.5g', cat:'vape', min:6, max:8, sug:{min:6,max:8,ev:'14d avg 6.9/day — matches current cap'}, box:'Vape Box 1', accepted:null,
+        batches:[ {batch:'HW-2401-22',thc:78.1,pkg:'Aug 22',exp:'Aug 22, 2027',age:19,qty:96} ] }
     ]}
   };
   var activeTpl = 'distribution';
@@ -481,7 +514,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     var t = TEMPLATES[activeTpl];
     document.getElementById('tplMeta').innerHTML =
       '<span><b>'+t.id+'</b></span><span>Region '+t.region+'</span><span>'+t.subregions+' subregions</span><span>'+t.boxes+' boxes</span>'
-      + '<span>Min '+t.tplMin+' / Max '+t.tplMax+' products per region (template cap)</span><span>Edited '+t.edited+'</span>'
+      + '<span>Min '+t.tplMin+' / Max '+t.tplMax+' products per region (template cap, still per SKU)</span><span>Edited '+t.edited+'</span>'
       + (tplsDiffer() ? '<span class="outofsync"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>Distribution and Refill templates disagree on a shared SKU\'s min/max</span>' : '');
     document.getElementById('tplRows').innerHTML = t.rows.map(function(r, i){
       var sugHtml = '<span style="color:var(--inkFaint);font-size:10.5px;">matches current cap</span>';
@@ -490,8 +523,12 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       else if (r.sug) sugHtml = '<div class="velo"><div class="velo-chip"><b>Suggest '+r.sug.min+' / '+r.sug.max+'</b><span class="ev">'+r.sug.ev+'</span></div>'
         + '<div class="velo-actions"><button class="accept" title="Accept suggestion" data-tpl="'+activeTpl+'" data-i="'+i+'" data-act="accept"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></button>'
         + '<button class="dismiss" title="Dismiss" data-tpl="'+activeTpl+'" data-i="'+i+'" data-act="dismiss"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>';
+      var avail = r.batches.map(function(b,bi){
+        return '<div class="availbatch">'+(bi===0&&r.batches.length>1?'<span class="oldest" title="Oldest batch — served first">⏵</span>':'')
+          + '<span>'+chipMeta(b)+'</span><b>'+b.qty+'</b></div>';
+      }).join('');
       return '<tr><td><span class="gcat" style="background:'+catColor(r.cat)+'"></span>'+esc(r.name)+'</td>'
-        + '<td class="gnum">'+r.avail+'</td>'
+        + '<td><div class="availcol">'+avail+'</div></td>'
         + '<td class="gnum"><input class="cap-in" type="number" value="'+r.min+'" data-tpl="'+activeTpl+'" data-i="'+i+'" data-field="min"/></td>'
         + '<td class="gnum"><input class="cap-in" type="number" value="'+r.max+'" data-tpl="'+activeTpl+'" data-i="'+i+'" data-field="max"/></td>'
         + '<td>'+sugHtml+'</td>'
@@ -520,7 +557,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     { name:'Papaya Punch 3.5g', kind:'new', qty:240, incl:6, total:6, reason:null },
     { name:'Live Resin Disposable 1g', kind:'restock', qty:96, incl:6, total:6, reason:null },
     { name:'Cereal Milk Pre-Roll 5-pack', kind:'new', qty:180, incl:3, total:6, reason:'below subregion count (below the 6-subregion floor)' },
-    { name:'GMO 7g — batch B-2291', kind:'batch', qty:4, incl:0, total:6, reason:'held — 4 units below 6 subregions served (round-robin fairness rule)', loc:'Stored at F2-B-03 — different rack than batch B-2140 already in kits' },
+    { name:'GMO 7g — batch #HW-2501-02', kind:'batch', qty:4, incl:0, total:6, reason:'held — 4 units below 6 subregions served (round-robin fairness rule)', loc:'Stored at F2-B-03 — different rack than the batch already in kits' },
     { name:'Zkittlez Rosin 1g', kind:'restock', qty:60, incl:6, total:6, reason:null },
     { name:'Test Data Sampler 3-pack', kind:'new', qty:24, incl:0, total:6, reason:'not in template' }
   ];
@@ -547,36 +584,39 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     }).join('');
   }
 
-  /* ---------------- preview build (region/kit/box) ---------------- */
+  /* ---------------- preview build (region/kit/box) — every product line is a batch line ---------------- */
   var STEPS = [['built','Built'],['frozen','Frozen'],['synced','Synced to Blaze'],['dispatched','Dispatched']];
   var REGIONS = [
     { id:'westla', name:'West LA', held:false, kits:[
       { id:'mr3', driver:'Marcus R.', route:'Route 3', doneCount:1, boxes:[
         { name:'Flower Box 1', type:'flower', products:[
-          { name:'Blue Dream 3.5g', sold:22, need:22, cap:24, give:22, reason:'' },
-          { name:'GMO 7g', sold:0, need:8, cap:12, give:0, reason:'held — below subregion count (4 units, 6 subregions)' }
+          { name:'Blue Dream 3.5g', batches:[ {batch:'HW-2312-03',thc:24.6,pkg:'Aug 12',exp:'Feb 8',age:29,sold:22,need:22,cap:24,give:22,reason:''} ] },
+          { name:'GMO 7g', batches:[ {batch:'HW-2501-02',thc:29.2,pkg:'Sep 2',exp:'Mar 1',age:8,sold:0,need:8,cap:12,give:0,reason:'held — below subregion count (4 units, 6 subregions)'} ] }
         ]},
         { name:'Vape Box 1', type:'vape', products:[
-          { name:'Live Resin Cart 1g', sold:17, need:17, cap:20, give:17, reason:'' }
+          { name:'Live Resin Cart 1g', batches:[ {batch:'HW-2404-19',thc:82.4,pkg:'Aug 20',exp:'Aug 20, 2027',age:21,sold:17,need:17,cap:20,give:17,reason:''} ] }
         ]}
       ]},
       { id:'dk1', driver:'Dana K.', route:'Route 1', doneCount:1, boxes:[
         { name:'Flower Box 1', type:'flower', products:[
-          { name:'Wedding Cake 1g', sold:20, need:20, cap:24, give:20, reason:'', mixed:{batches:['B-3390 · THC 24.1% · pkgd Aug 29','B-3402 · THC 31.6% · pkgd Sep 5']} }
+          { name:'Wedding Cake 1g', batches:[
+            {batch:'HW-2409-01',thc:24.1,pkg:'Aug 28',exp:'Feb 24',age:42,sold:8,need:12,cap:14,give:12,reason:'',loud:true},
+            {batch:'HW-2411-07',thc:31.6,pkg:'Sep 6',exp:'Mar 8',age:4,sold:5,need:8,cap:10,give:8,reason:'',loud:true}
+          ]}
         ]},
         { name:'Pre-Roll Box 1', type:'preroll', products:[
-          { name:'Indica 5-pack', sold:12, need:12, cap:14, give:12, reason:'' },
-          { name:'Cereal Milk Pre-Roll 5-pack', sold:0, need:6, cap:6, give:3, reason:'below subregion count' }
+          { name:'Indica 5-pack', batches:[ {batch:'HW-2406-08',thc:19.8,pkg:'Sep 1',exp:'Mar 1',age:9,sold:12,need:12,cap:14,give:12,reason:''} ] },
+          { name:'Cereal Milk Pre-Roll 5-pack', batches:[ {batch:'HW-2412-04',thc:21.5,pkg:'Sep 4',exp:'Mar 4',age:6,sold:0,need:6,cap:6,give:3,reason:'below subregion count'} ] }
         ]}
       ]}
     ]},
     { id:'inlandempire', name:'Inland Empire', held:false, kits:[
       { id:'tg2', driver:'Tomás G.', route:'Route 2', doneCount:1, boxes:[
         { name:'Flower Box 1', type:'flower', products:[
-          { name:'Blue Dream 3.5g', sold:24, need:24, cap:24, give:24, reason:'' }
+          { name:'Blue Dream 3.5g', batches:[ {batch:'HW-2405-11',thc:26.9,pkg:'Sep 3',exp:'Mar 1',age:7,sold:24,need:24,cap:24,give:24,reason:''} ] }
         ]},
         { name:'Edible Bin', type:'edible', products:[
-          { name:'Gummies 100mg', sold:18, need:18, cap:22, give:18, reason:'' }
+          { name:'Gummies 100mg', batches:[ {batch:'HW-2403-27',thc:10.0,pkg:'Aug 15',exp:'Aug 15, 2027',age:26,sold:18,need:18,cap:22,give:18,reason:''} ] }
         ]}
       ]}
     ]},
@@ -584,10 +624,10 @@ table.boxtbl tr:last-child td{border-bottom:none;}
   ];
   var activeRegion = 'westla';
 
-  function boxTotal(box){ return box.products.reduce(function(s,p){ return s+(p.give||0); }, 0); }
+  function boxTotal(box){ return box.products.reduce(function(s,p){ return s + p.batches.reduce(function(ss,b){ return ss+(b.give||0); },0); },0); }
   function kitUnits(kit){ var n=0; kit.boxes.forEach(function(b){ n+=boxTotal(b); }); return n; }
-  function rowClass(p){ if (p.mixed) return 'row-mixed'; if (p.give===0) return 'row-skip'; if (p.give<p.need) return 'row-short'; return ''; }
-  function reasonCellClass(p){ if (p.mixed) return 'reasoncell r-bad'; if (p.give===0) return 'reasoncell r-bad'; if (p.give<p.need) return 'reasoncell r-warn'; return 'reasoncell'; }
+  function rowClass(b){ if (b.loud) return 'row-mixed'; if (b.give===0) return 'row-skip'; if (b.give<b.need) return 'row-short'; return ''; }
+  function reasonCellClass(b){ if (b.loud || b.give===0) return 'reasoncell r-bad'; if (b.give<b.need) return 'reasoncell r-warn'; return 'reasoncell'; }
 
   function renderTimeline(doneCount){
     return STEPS.map(function(s, i){
@@ -597,26 +637,31 @@ table.boxtbl tr:last-child td{border-bottom:none;}
   }
   function renderBox(regionId, kitId, box, bi){
     var id = 'box-'+regionId+'-'+kitId+'-'+bi;
-    var rows = box.products.map(function(p){
-      var mixedRow = p.mixed ? '<span class="mixed-flag">MIXED BATCH</span>' + p.mixed.batches.map(function(b){ return '<span class="mixed-detail">'+esc(b)+'</span>'; }).join('') : '';
-      return '<tr class="'+rowClass(p)+'">'
-        + '<td class="pn">'+esc(p.name)+mixedRow+'</td>'
-        + '<td class="num">'+p.sold+'</td>'
-        + '<td class="num">'+p.need+'</td>'
-        + '<td class="num">'+p.cap+'</td>'
-        + '<td class="num">'+p.give+'</td>'
-        + '<td class="'+reasonCellClass(p)+'">'+(p.reason||(p.mixed?'two batches, same kit line':'—'))+'</td>'
-        + '</tr>';
-    }).join('');
+    var rows = [];
+    box.products.forEach(function(p){
+      p.batches.forEach(function(b){
+        var nameCell = esc(p.name) + (b.loud ? '<span class="mixed-flag">LOUD — MIXED BATCH</span><span class="mixed-detail">'+chipMeta(b)+'</span>' : '<span class="batchline">'+chipMeta(b)+'</span>');
+        rows.push('<tr class="'+rowClass(b)+'">'
+          + '<td class="pn">'+nameCell+'</td>'
+          + '<td class="num">'+b.sold+'</td>'
+          + '<td class="num">'+b.need+'</td>'
+          + '<td class="num">'+b.cap+'</td>'
+          + '<td class="num">'+b.give+'</td>'
+          + '<td class="'+reasonCellClass(b)+'">'+(b.reason||(b.loud?'two batches, same kit line':'—'))+'</td>'
+          + '</tr>');
+      });
+    });
     return '<div class="box-card" id="'+id+'" style="--box-c:'+catColor(box.type)+'">'
       + '<div class="box-head"><span class="bname">'+esc(box.name)+'</span><span class="btotal">'+boxTotal(box)+' u</span></div>'
-      + '<table class="boxtbl"><thead><tr><th>Product</th><th title="14-day average daily units sold, used for the first build">Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      + '<table class="boxtbl"><thead><tr><th>Product · batch</th><th title="14-day average daily units sold, used for the first build">Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>'
       + '</div>';
   }
   function renderKit(regionId, kit){
     return '<div class="kit-lane"><div class="kit-tl">'+renderTimeline(kit.doneCount)+'</div>'
       + '<div class="kit-col"><div class="kit-head"><div class="kname">'+esc(kit.driver)+'</div><div class="kroute">'+esc(kit.route)+'</div>'
-      + '<div class="kit-progress"><div class="bar"><span style="width:100%"></span></div><div class="txt"><span>Built</span><span>'+kitUnits(kit)+' u</span></div></div></div>'
+      + '<div class="kit-progress"><div class="bar"><span style="width:100%"></span></div><div class="txt"><span>Built</span><span>'+kitUnits(kit)+' u</span></div></div>'
+      + '<button class="btn btn-ghost btn-sm slipbtn" data-slip-region="'+regionId+'" data-slip-kit="'+kit.id+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M20 14v3h-3M14 20h7"/></svg>Pick slip</button>'
+      + '</div>'
       + kit.boxes.map(function(b,bi){ return renderBox(regionId, kit.id, b, bi); }).join('')
       + '</div></div>';
   }
@@ -653,11 +698,13 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       region.kits.forEach(function(kit){
         kit.boxes.forEach(function(box, bi){
           box.products.forEach(function(p){
-            if (p.mixed){ items.push({ kind:'skip', title:region.name+' · '+kit.driver+' · '+box.name, text: esc(p.name)+' spans two batches in one kit line — flagged LOUD on screen and on the pick slip.', target:'box-'+region.id+'-'+kit.id+'-'+bi, region:region.id }); }
-            if (!p.reason) return;
-            var kind = p.give===0 ? 'skip' : 'short';
-            var verb = p.give===0 ? 'not included' : ('gave '+p.give+' of '+p.need+' needed');
-            items.push({ kind:kind, title:region.name+' · '+kit.driver+' · '+box.name, text: esc(p.name)+' — '+verb+' ('+p.reason+').', target:'box-'+region.id+'-'+kit.id+'-'+bi, region:region.id });
+            p.batches.forEach(function(b){
+              if (b.loud){ items.push({ kind:'skip', title:region.name+' · '+kit.driver+' · '+box.name, text: esc(p.name)+' — batch '+chipMeta(b)+' shares this kit line with another batch, flagged LOUD on screen and on the pick slip.', target:'box-'+region.id+'-'+kit.id+'-'+bi, region:region.id }); }
+              if (!b.reason) return;
+              var kind = b.give===0 ? 'skip' : 'short';
+              var verb = b.give===0 ? 'not included' : ('gave '+b.give+' of '+b.need+' needed');
+              items.push({ kind:kind, title:region.name+' · '+kit.driver+' · '+box.name, text: esc(p.name)+' ('+esc(b.batch)+') — '+verb+' ('+b.reason+').', target:'box-'+region.id+'-'+kit.id+'-'+bi, region:region.id });
+            });
           });
         });
       });
@@ -681,6 +728,36 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     });
   }
 
+  /* ---------------- pick slip: paper artifact, one line per batch, one QR closes the kit ---------------- */
+  function buildSlipRows(products){
+    var out = [];
+    products.forEach(function(p){
+      p.batches.forEach(function(b){
+        out.push('<div class="slipline'+(b.loud?' loud':'')+'"><span>'+(b.loud?'LOUD ':'')+esc(p.name)+'<span class="sname">'+chipMeta(b)+'</span></span><span class="sqty">'+b.give+'</span></div>');
+      });
+    });
+    return out.join('');
+  }
+  function openSlip(region, kit){
+    var body = '<button class="slipclose" onclick="closeSlip()">✕</button>' + qrSvg() + '<div class="slipqrcap">Scan to close kit</div>'
+      + '<h3>'+esc(kit.driver)+' · '+esc(kit.route)+'</h3>'
+      + '<div class="slipmeta">'+esc(region.name)+' · Business day Thu Sep 10, 2026 · pick slip — printed and tablet lines match</div>'
+      + kit.boxes.map(function(b){ return '<div class="slipbox"><h4>'+esc(b.name)+'</h4>'+buildSlipRows(b.products)+'</div>'; }).join('');
+    document.getElementById('slipSheet').innerHTML = body;
+    document.getElementById('slipOverlay').classList.add('open');
+  }
+  window.closeSlip = function(){ document.getElementById('slipOverlay').classList.remove('open'); };
+  document.getElementById('slipOverlay').addEventListener('click', function(e){ if (e.target===this) closeSlip(); });
+  function wireSlipButtons(){
+    document.querySelectorAll('[data-slip-kit]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var region = findRegion(btn.getAttribute('data-slip-region'));
+        var kit = region.kits.filter(function(k){ return k.id===btn.getAttribute('data-slip-kit'); })[0];
+        openSlip(region, kit);
+      });
+    });
+  }
+
   document.getElementById('previewBtn').addEventListener('click', function(){
     document.getElementById('previewPrompt').style.display = 'none';
     document.getElementById('previewArea').style.display = 'block';
@@ -688,6 +765,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     document.getElementById('regionBoards').innerHTML = REGIONS.map(renderRegionBoard).join('');
     showRegion(activeRegion);
     renderSkips();
+    wireSlipButtons();
     updateCommitBar();
     toast('Preview ready', 'Allocation computed against current stock and driver assignments — nothing written yet.');
   });

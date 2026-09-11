@@ -6,21 +6,13 @@
 <title>Distribution Refill — Concept C — Exceptions First</title>
 <style>
 /* ============================================================================
-   Distribution Refill — Concept C: "Exceptions First"
-   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK) and the
-   table/pill/button patterns of shared/hd-ui.jsx, so this reads as the same
-   visual system as Bounty, Verify and Concepts A/B/D. No build step, no
-   external scripts or fonts (system font stack stands in for Inter /
-   JetBrains Mono — this file must render offline from file://). Every
-   region, driver, kit, box and quantity on this screen is EXAMPLE DATA —
-   see the banner below.
-
-   The idea: the operator's morning is decisions, not rows. Everything that
-   needs a human — a new SKU to place, a shortfall to split, a skip, a
-   capped kit — surfaces as one queue at the top. Resolve the queue and the
-   Region → Kit → Box preview underneath is just a green wall of checkmarks
-   you never had to read line by line. Commit unlocks when the queue is
-   empty (or explicitly deferred).
+   Distribution Refill — Concept C: "Exceptions First" (Round 2 revision).
+   Static mockup, tokens copied inline from pos/tokens.jsx and hd-ui.jsx.
+   No build step, no external requests — must render offline from file://.
+   Revision adds: every product row is a batch row (monospace chip: number ·
+   THC · pkg · exp · age), a mixed-batch SKU shows two rows with a LOUD red
+   flag, decision cards name the batch, and a QR affordance closes a kit's
+   pick slip by scan. All region/driver/kit/box/batch/quantity data is EXAMPLE.
    ========================================================================= */
 :root{
   --fontSans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -81,185 +73,75 @@ html[data-theme="dark"]{
     --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
   }
 }
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;height:100%;}
-body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
-button,select,input,textarea{font-family:inherit;}
-::-webkit-scrollbar{width:10px;height:10px;}
-::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
-::-webkit-scrollbar-track{background:transparent;}
-button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:2;border-radius:6px;}
+*{box-sizing:border-box;} html,body{margin:0;padding:0;height:100%;} body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;} ::-webkit-scrollbar{width:10px;height:10px;} ::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;} button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:2;border-radius:6px;}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
-
-.app{display:flex;min-height:100vh;}
-.rail{width:70px;flex:0 0 70px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
-.rail-logo{width:32px;height:32px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
-.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
-.rail-item:hover{background:var(--railHover);}
-.rail-item.active{background:var(--railActive);color:var(--railBright);}
-.rail-item.active::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
-.rail-item .lbl{font-size:9.5px;font-weight:500;white-space:nowrap;}
-.rail-item.active .lbl{font-weight:700;}
-.rail-spacer{flex:1;min-height:8px;}
-.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
-
-.main{flex:1;min-width:0;display:flex;flex-direction:column;}
-.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:11px 22px;flex-wrap:wrap;}
-.topbar .titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
-.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
-.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
-.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
-.clock-now{font-size:var(--f-strong);font-weight:600;font-variant-numeric:tabular-nums;}
-.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
-.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.app{display:flex;min-height:100vh;} .rail{width:70px;flex:0 0 70px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;} .rail-logo{width:32px;height:32px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;} .rail-item:hover{background:var(--railHover);} .rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;} .rail-item .lbl{font-size:9.5px;font-weight:500;white-space:nowrap;} .rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;} .rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;} .topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:11px 22px;flex-wrap:wrap;} .topbar .titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;} .h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;} .clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;font-variant-numeric:tabular-nums;} .clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;} .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
 .iconbtn:hover{background:var(--surface3);color:var(--ink);}
-
 /* slim status strip — a thread of segments, detail on hover only */
-.stepstrip{position:sticky;top:60px;z-index:29;background:var(--surface2);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;padding:8px 22px;overflow-x:auto;gap:0;}
-.seg{position:relative;flex:1;min-width:64px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:default;}
-.seg .bar{width:100%;height:6px;border-radius:99px;background:var(--hairline3);}
-.seg.done .bar{background:var(--good);}
-.seg.active .bar{background:var(--accent);}
-.seg .slabel{font-size:10px;font-weight:700;color:var(--inkMute);}
-.seg.done .slabel,.seg.active .slabel{color:var(--ink);}
-.seg .tip{position:absolute;top:100%;left:50%;transform:translateX(-50%) translateY(4px);background:var(--ink);color:var(--bg);font-size:10.5px;font-family:var(--fontMono);padding:5px 8px;border-radius:7px;white-space:nowrap;box-shadow:var(--shadowMd);opacity:0;pointer-events:none;transition:opacity .1s;z-index:5;}
-.seg:hover .tip{opacity:1;}
-
-.content{padding:16px 22px 96px;display:flex;flex-direction:column;gap:16px;max-width:1180px;width:100%;margin:0 auto;}
-.example-banner{display:flex;align-items:center;gap:9px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 13px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
-.example-banner svg{flex:0 0 auto;}
-.banner{display:flex;align-items:flex-start;gap:11px;border-radius:var(--r12);padding:12px 15px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);}
-.banner.warn{background:var(--warnSoft);border-color:var(--warn);color:var(--warnText);}
-.banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;}
-.banner .b-body{color:var(--inkDim);}
-.banner.warn .b-body{color:var(--warnText);opacity:.92;}
-.banner .b-actions{margin-left:auto;display:flex;gap:8px;flex:0 0 auto;}
-
-.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
-.card-head{display:flex;align-items:center;gap:10px;padding:13px 16px 10px;flex-wrap:wrap;}
-.card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
-.card-head .hint{font-size:var(--f-body);color:var(--inkMute);}
-.card-head .spacer{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 13px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
-.btn-primary{background:var(--accent);color:var(--accentInk);}
-.btn-primary:hover{background:var(--accentHover);}
-.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
-.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
-.btn-ghost:hover{background:var(--surface3);}
-.btn-quiet{background:var(--surface3);color:var(--ink);}
-.btn-quiet:hover{background:var(--hairline2);}
-.btn-sm{height:29px;padding:0 10px;font-size:var(--f-meta);border-radius:var(--r8);}
+.stepstrip{position:sticky;top:60px;z-index:29;background:var(--surface2);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;padding:8px 22px;overflow-x:auto;gap:0;} .seg{position:relative;flex:1;min-width:64px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:default;} .seg .bar{width:100%;height:6px;border-radius:99px;background:var(--hairline3);}
+.seg.done .bar{background:var(--good);} .seg.active .bar{background:var(--accent);} .seg .slabel{font-size:10px;font-weight:700;color:var(--inkMute);}
+.seg.done .slabel,.seg.active .slabel{color:var(--ink);} .seg .tip{position:absolute;top:100%;left:50%;transform:translateX(-50%) translateY(4px);background:var(--ink);color:var(--bg);font-size:10.5px;font-family:var(--fontMono);padding:5px 8px;border-radius:7px;white-space:nowrap;box-shadow:var(--shadowMd);opacity:0;pointer-events:none;transition:opacity .1s;z-index:5;} .seg:hover .tip{opacity:1;}
+.content{padding:16px 22px 96px;display:flex;flex-direction:column;gap:16px;max-width:1180px;width:100%;margin:0 auto;} .example-banner{display:flex;align-items:center;gap:9px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 13px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;} .example-banner svg{flex:0 0 auto;}
+.banner{display:flex;align-items:flex-start;gap:11px;border-radius:var(--r12);padding:12px 15px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);} .banner.warn{background:var(--warnSoft);border-color:var(--warn);color:var(--warnText);} .banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;}
+.banner .b-body{color:var(--inkDim);} .banner.warn .b-body{color:var(--warnText);opacity:.92;} .banner .b-actions{margin-left:auto;display:flex;gap:8px;flex:0 0 auto;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);} .card-head{display:flex;align-items:center;gap:10px;padding:13px 16px 10px;flex-wrap:wrap;} .card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
+.card-head .hint{font-size:var(--f-body);color:var(--inkMute);} .card-head .spacer{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 13px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;} .btn-primary{background:var(--accent);color:var(--accentInk);} .btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;} .btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);} .btn-ghost:hover{background:var(--surface3);}
+.btn-quiet{background:var(--surface3);color:var(--ink);} .btn-quiet:hover{background:var(--hairline2);} .btn-sm{height:29px;padding:0 10px;font-size:var(--f-meta);border-radius:var(--r8);}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
-
 /* ---- the decision queue ---- */
-.queue-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 2px 2px;}
-.queue-head .qn{font-size:28px;font-weight:800;font-family:var(--fontMono);color:var(--ink);line-height:1;}
-.queue-head .ql{font-size:var(--f-body);color:var(--inkMute);}
-.queue-empty{display:flex;align-items:center;gap:10px;background:var(--goodSoft);color:var(--good);border:1px solid var(--good);border-radius:var(--r12);padding:14px 16px;font-weight:700;font-size:var(--f-strong);}
-.qgroup{display:flex;flex-direction:column;gap:8px;}
-.qgroup-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--inkMute);margin:6px 2px 0;display:flex;align-items:center;gap:7px;}
-.qgroup-label .n{background:var(--surface3);color:var(--ink);border-radius:99px;padding:1px 7px;font-family:var(--fontMono);}
-.qcard{display:flex;gap:12px;background:var(--surface);border:1px solid var(--hairline2);border-left:4px solid var(--neutral);border-radius:var(--r12);box-shadow:var(--shadowSm);padding:12px 14px;transition:opacity .18s,transform .18s;}
-.qcard.received{border-left-color:var(--info);}
-.qcard.shortfall{border-left-color:var(--bad);}
-.qcard.skipped{border-left-color:var(--warn);}
-.qcard.capped{border-left-color:var(--accentBorder);}
-.qcard.resolving{opacity:0;transform:translateX(10px) scale(.98);}
-.qicon{width:32px;height:32px;border-radius:var(--r10);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
-.qcard.received .qicon{background:var(--infoSoft);color:var(--info);}
-.qcard.shortfall .qicon{background:var(--badSoft);color:var(--bad);}
-.qcard.skipped .qicon{background:var(--warnSoft);color:var(--warnText);}
-.qcard.capped .qicon{background:var(--accentSoft);color:var(--accentText);}
-.qbody{flex:1;min-width:0;}
-.qtitle{font-size:var(--f-strong);font-weight:700;}
-.qmeta{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);margin-top:1px;}
-.qconseq{font-size:var(--f-body);color:var(--inkDim);margin-top:5px;}
-.qactions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap;}
-
+.queue-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 2px 2px;} .queue-head .qn{font-size:28px;font-weight:800;font-family:var(--fontMono);color:var(--ink);line-height:1;} .queue-head .ql{font-size:var(--f-body);color:var(--inkMute);}
+.queue-empty{display:flex;align-items:center;gap:10px;background:var(--goodSoft);color:var(--good);border:1px solid var(--good);border-radius:var(--r12);padding:14px 16px;font-weight:700;font-size:var(--f-strong);} .qgroup{display:flex;flex-direction:column;gap:8px;} .qgroup-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--inkMute);margin:6px 2px 0;display:flex;align-items:center;gap:7px;}
+.qgroup-label .n{background:var(--surface3);color:var(--ink);border-radius:99px;padding:1px 7px;font-family:var(--fontMono);} .qcard{display:flex;gap:12px;background:var(--surface);border:1px solid var(--hairline2);border-left:4px solid var(--neutral);border-radius:var(--r12);box-shadow:var(--shadowSm);padding:12px 14px;transition:opacity .18s,transform .18s;} .qcard.received{border-left-color:var(--info);}
+.qcard.shortfall{border-left-color:var(--bad);} .qcard.skipped{border-left-color:var(--warn);} .qcard.capped{border-left-color:var(--accentBorder);}
+.qcard.resolving{opacity:0;transform:translateX(10px) scale(.98);} .qicon{width:32px;height:32px;border-radius:var(--r10);display:flex;align-items:center;justify-content:center;flex:0 0 auto;} .qcard.received .qicon{background:var(--infoSoft);color:var(--info);}
+.qcard.shortfall .qicon{background:var(--badSoft);color:var(--bad);} .qcard.skipped .qicon{background:var(--warnSoft);color:var(--warnText);} .qcard.capped .qicon{background:var(--accentSoft);color:var(--accentText);}
+.qbody{flex:1;min-width:0;} .qtitle{font-size:var(--f-strong);font-weight:700;} .qtitle .batchchip{margin-left:6px;}
+.qmeta{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);margin-top:1px;} .qconseq{font-size:var(--f-body);color:var(--inkDim);margin-top:5px;} .qactions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap;}
 /* ---- collapsed region/kit/box preview ---- */
-.tree{display:flex;flex-direction:column;}
-.trow-region{display:flex;align-items:center;gap:9px;padding:11px 16px;border-top:1px solid var(--hairline);cursor:pointer;}
-.trow-region:first-child{border-top:none;}
-.trow-region:hover{background:var(--surface2);}
-.trow-kit{display:flex;align-items:center;gap:9px;padding:9px 16px 9px 40px;border-top:1px solid var(--hairline);cursor:pointer;background:var(--surface2);}
-.trow-kit:hover{background:var(--surface3);}
-.chev{display:inline-flex;transition:transform .12s;color:var(--inkMute);flex:0 0 auto;}
-.chev.open{transform:rotate(90deg);}
-.tname{font-size:var(--f-strong);font-weight:700;}
-.tmeta{font-size:10.5px;color:var(--inkMute);margin-left:2px;}
-.tspacer{flex:1;}
-.check-ok{display:inline-flex;align-items:center;gap:5px;color:var(--good);font-size:var(--f-meta);font-weight:700;}
-.check-flag{display:inline-flex;align-items:center;gap:5px;color:var(--warnText);font-size:var(--f-meta);font-weight:700;}
-.kitbody{padding:2px 16px 12px 40px;background:var(--surface2);border-top:1px solid var(--hairline);}
-.boxblock{margin-top:8px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);overflow:hidden;}
-.boxhead{display:flex;align-items:center;gap:8px;padding:7px 11px;background:var(--surface3);font-size:var(--f-meta);font-weight:700;}
-table.ptable{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--f-body);}
-table.ptable th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);padding:6px 10px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
-table.ptable td{padding:6px 10px;border-bottom:1px solid var(--hairline);vertical-align:middle;}
-table.ptable tr:last-child td{border-bottom:none;}
-.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;}
-.willgive-input{width:52px;height:27px;text-align:right;border-radius:7px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:12.5px;font-weight:600;padding:0 6px;}
-.willgive-input.edited{border-color:var(--accentBorder);background:var(--accentSoft);}
-.pill{display:inline-flex;align-items:center;gap:4px;height:19px;padding:0 7px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap;}
-.pill-bad{background:var(--badSoft);color:var(--bad);}
-.pill-warn{background:var(--warnSoft);color:var(--warnText);}
-.pill-info{background:var(--infoSoft);color:var(--info);}
-.pill-neutral{background:var(--neutralSoft);color:var(--neutral);}
-.dash{color:var(--inkFaint);}
-
+.tree{display:flex;flex-direction:column;} .trow-region{display:flex;align-items:center;gap:9px;padding:11px 16px;border-top:1px solid var(--hairline);cursor:pointer;} .trow-region:first-child{border-top:none;}
+.trow-region:hover{background:var(--surface2);} .trow-kit{display:flex;align-items:center;gap:9px;padding:9px 16px 9px 40px;border-top:1px solid var(--hairline);cursor:pointer;background:var(--surface2);} .trow-kit:hover{background:var(--surface3);}
+.chev{display:inline-flex;transition:transform .12s;color:var(--inkMute);flex:0 0 auto;} .chev.open{transform:rotate(90deg);} .tname{font-size:var(--f-strong);font-weight:700;}
+.tmeta{font-size:10.5px;color:var(--inkMute);margin-left:2px;} .tspacer{flex:1;} .check-ok{display:inline-flex;align-items:center;gap:5px;color:var(--good);font-size:var(--f-meta);font-weight:700;}
+.check-flag{display:inline-flex;align-items:center;gap:5px;color:var(--warnText);font-size:var(--f-meta);font-weight:700;} .kitbody{padding:2px 16px 12px 40px;background:var(--surface2);border-top:1px solid var(--hairline);} .boxblock{margin-top:8px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);overflow:hidden;}
+.boxhead{display:flex;align-items:center;gap:8px;padding:7px 11px;background:var(--surface3);font-size:var(--f-meta);font-weight:700;} table.ptable{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--f-body);} table.ptable th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);padding:6px 10px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+table.ptable td{padding:6px 10px;border-bottom:1px solid var(--hairline);vertical-align:middle;} table.ptable tr:last-child td{border-bottom:none;} table.ptable tr.loud td{background:var(--badSoft);}
+.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;} .willgive-input{width:52px;height:27px;text-align:right;border-radius:7px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:12.5px;font-weight:600;padding:0 6px;} .willgive-input.edited{border-color:var(--accentBorder);background:var(--accentSoft);}
+.pill{display:inline-flex;align-items:center;gap:4px;height:19px;padding:0 7px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap;} .pill-bad{background:var(--badSoft);color:var(--bad);} .pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-info{background:var(--infoSoft);color:var(--info);} .pill-neutral{background:var(--neutralSoft);color:var(--neutral);} .dash{color:var(--inkFaint);}
+.pname{font-weight:700;} .batchchip{font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);white-space:nowrap;} .loudflag{display:inline-flex;align-items:center;gap:4px;background:var(--badSoft);color:var(--bad);border:1px solid var(--bad);border-radius:7px;padding:2px 7px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-top:4px;}
+.qrbtn{display:inline-flex;align-items:center;gap:5px;height:25px;padding:0 9px;border-radius:99px;border:1px dashed var(--hairline3);background:transparent;color:var(--inkMute);font-size:10.5px;font-weight:700;cursor:pointer;} .qrbtn:hover{color:var(--ink);border-color:var(--inkMute);} .qrgrid{width:126px;height:126px;margin:10px auto;display:grid;grid-template-columns:repeat(9,1fr);gap:2px;}
+.qrgrid div{background:var(--ink);} .qrgrid div.off{background:transparent;}
 /* ---- exceptions log ---- */
-.loglist{display:flex;flex-direction:column;}
-.logitem{display:flex;gap:9px;padding:10px 16px;border-top:1px solid var(--hairline);align-items:flex-start;}
-.logitem:first-child{border-top:none;}
-.logdot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:0 0 auto;}
-.logitem.pending .logdot{background:var(--warn);}
-.logitem.resolved .logdot{background:var(--good);}
-.logtext{font-size:var(--f-body);color:var(--ink2);}
-.logtext b{font-weight:700;color:var(--ink);}
-.logwhen{font-size:10.5px;color:var(--inkMute);margin-top:2px;font-family:var(--fontMono);}
-
-.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 16px;font-size:var(--f-meta);color:var(--inkDim);}
-.legend b{color:var(--ink);}
-.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkMute);padding:6px 0 20px;}
-
-.commitbar{position:fixed;left:70px;right:0;bottom:0;z-index:40;display:flex;align-items:center;gap:16px;padding:11px 22px;border-top:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowLg);flex-wrap:wrap;}
-.commitbar .sumitem{display:flex;flex-direction:column;gap:0;}
-.commitbar .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
-.commitbar .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
-.commitbar .defer{margin-left:auto;font-size:var(--f-meta);color:var(--inkMute);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;}
-.commitbar .btn-primary{margin-left:12px;}
-.deferconfirm{position:fixed;left:70px;right:0;bottom:64px;z-index:41;background:var(--ink);color:var(--bg);padding:12px 22px;display:none;align-items:center;gap:14px;box-shadow:var(--shadowLg);}
-.deferconfirm.open{display:flex;}
-.deferconfirm span{font-size:var(--f-body);}
-
-.modal-scrim{position:fixed;inset:0;background:rgba(20,18,12,.5);z-index:60;display:none;align-items:center;justify-content:center;}
-.modal-scrim.open{display:flex;}
-.modal{width:440px;max-width:92vw;max-height:80vh;overflow:auto;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowLg);padding:18px;}
-.modal h3{margin:0 0 4px;font-size:var(--f-h2);}
-.modal p{font-size:var(--f-body);color:var(--inkDim);}
-.modal .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:var(--f-body);}
-.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
-.chiplist{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0;}
-.btchip{display:inline-flex;align-items:center;gap:6px;background:var(--surface3);border:1px solid var(--hairline2);border-radius:99px;padding:4px 6px 4px 11px;font-size:var(--f-body);}
-.btchip button{width:17px;height:17px;border-radius:50%;border:none;background:var(--hairline2);color:var(--inkDim);cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.addbtype{display:flex;gap:7px;margin-top:4px;}
-.addbtype input{flex:1;height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 9px;font-size:var(--f-body);}
-
-.demo-toggle{position:fixed;left:78px;bottom:66px;z-index:39;display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--hairline2);border-radius:99px;padding:5px 10px 5px 5px;font-size:10.5px;color:var(--inkMute);box-shadow:var(--shadowMd);}
-.demo-toggle input{margin:0;}
-
+.loglist{display:flex;flex-direction:column;} .logitem{display:flex;gap:9px;padding:10px 16px;border-top:1px solid var(--hairline);align-items:flex-start;} .logitem:first-child{border-top:none;}
+.logdot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:0 0 auto;} .logitem.pending .logdot{background:var(--warn);} .logitem.resolved .logdot{background:var(--good);}
+.logtext{font-size:var(--f-body);color:var(--ink2);} .logtext b{font-weight:700;color:var(--ink);} .logwhen{font-size:10.5px;color:var(--inkMute);margin-top:2px;font-family:var(--fontMono);}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 16px;font-size:var(--f-meta);color:var(--inkDim);} .legend b{color:var(--ink);} .footerline{text-align:center;font-size:var(--f-meta);color:var(--inkMute);padding:6px 0 20px;}
+.commitbar{position:fixed;left:70px;right:0;bottom:0;z-index:40;display:flex;align-items:center;gap:16px;padding:11px 22px;border-top:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowLg);flex-wrap:wrap;} .commitbar .sumitem{display:flex;flex-direction:column;gap:0;} .commitbar .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.commitbar .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;} .commitbar .defer{margin-left:auto;font-size:var(--f-meta);color:var(--inkMute);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;} .commitbar .btn-primary{margin-left:12px;}
+.deferconfirm{position:fixed;left:70px;right:0;bottom:64px;z-index:41;background:var(--ink);color:var(--bg);padding:12px 22px;display:none;align-items:center;gap:14px;box-shadow:var(--shadowLg);} .deferconfirm.open{display:flex;} .deferconfirm span{font-size:var(--f-body);}
+.modal-scrim{position:fixed;inset:0;background:rgba(20,18,12,.5);z-index:60;display:none;align-items:center;justify-content:center;} .modal-scrim.open{display:flex;} .modal{width:440px;max-width:92vw;max-height:80vh;overflow:auto;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowLg);padding:18px;}
+.modal h3{margin:0 0 4px;font-size:var(--f-h2);} .modal p{font-size:var(--f-body);color:var(--inkDim);} .modal .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:var(--f-body);}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;} .chiplist{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0;} .btchip{display:inline-flex;align-items:center;gap:6px;background:var(--surface3);border:1px solid var(--hairline2);border-radius:99px;padding:4px 6px 4px 11px;font-size:var(--f-body);}
+.btchip button{width:17px;height:17px;border-radius:50%;border:none;background:var(--hairline2);color:var(--inkDim);cursor:pointer;display:flex;align-items:center;justify-content:center;} .addbtype{display:flex;gap:7px;margin-top:4px;} .addbtype input{flex:1;height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 9px;font-size:var(--f-body);}
+.demo-toggle{position:fixed;left:78px;bottom:66px;z-index:39;display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--hairline2);border-radius:99px;padding:5px 10px 5px 5px;font-size:10.5px;color:var(--inkMute);box-shadow:var(--shadowMd);} .demo-toggle input{margin:0;}
 @media (max-width:760px){
   .rail{width:58px;flex-basis:58px;} .rail-item .lbl{display:none;}
-  .commitbar,.deferconfirm{left:58px;}
-  .demo-toggle{left:66px;}
+.commitbar,.deferconfirm{left:58px;} .demo-toggle{left:66px;}
   .topbar{padding:9px 12px;} .content{padding:12px 12px 96px;}
-  .stepstrip{padding:8px 12px;}
+.stepstrip{padding:8px 12px;}
 }
 @media print{
-  .rail,.topbar .iconbtn,.commitbar,.demo-toggle,.qactions,.deferconfirm{display:none !important;}
-  body{background:#fff;color:#000;}
-  .card{box-shadow:none;border-color:#999;}
+.rail,.topbar .iconbtn,.commitbar,.demo-toggle,.qactions,.deferconfirm,.qrbtn{display:none !important;} body{background:#fff;color:#000;} .card{box-shadow:none;border-color:#999;}
 }
 </style>
 </head>
@@ -306,7 +188,7 @@ table.ptable tr:last-child td{border-bottom:none;}
 
       <div class="example-banner">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-        Design mockup — every region, driver, kit, box and quantity below is example data, not a live refill.
+        Design mockup — every region, driver, kit, box, batch and quantity below is example data, not a live refill.
       </div>
 
       <div class="banner warn" id="alreadyRanBanner" style="display:none;">
@@ -335,7 +217,7 @@ table.ptable tr:last-child td{border-bottom:none;}
       <section class="card">
         <div class="card-head">
           <h2 style="font-size:15px;">Full refill preview</h2>
-          <span class="hint">Collapsed by default — a region only needs your eyes if it is flagged above. Box types vary by kit and change over time. <a href="#" id="manageBoxTypesBtn" style="color:var(--accentText);font-weight:600;">Manage box types</a></span>
+          <span class="hint">Collapsed by default — a region only needs your eyes if it is flagged above. Every line is a batch, oldest first. Box types vary by kit and change over time. <a href="#" id="manageBoxTypesBtn" style="color:var(--accentText);font-weight:600;">Manage box types</a></span>
           <div class="spacer">
             <button class="btn btn-ghost btn-sm" id="showAllBtn">Show everything</button>
           </div>
@@ -357,6 +239,8 @@ table.ptable tr:last-child td{border-bottom:none;}
           <span><span class="pill pill-warn">Not in template</span> sold before, but no box template row</span>
           <span><span class="pill pill-neutral">No sales counted</span> nothing sold since the last refill</span>
           <span><span class="pill pill-info">Capped</span> demand is above the box's cap</span>
+          <span><span class="loudflag" style="margin-top:0;">Mixed batch</span> two batches of one SKU share this kit line — oldest ships first, both batch numbers always shown</span>
+          <span>▦ <b>QR</b> — scan a kit's pick slip to close it; the printed slip carries the same lines, flags and QR</span>
           <span><b style="color:var(--good);">✓ green check</b> — no decision needed, nothing to read</span>
         </div>
       </section>
@@ -385,7 +269,7 @@ table.ptable tr:last-child td{border-bottom:none;}
 <div class="modal-scrim" id="commitModal">
   <div class="modal">
     <h3>Commit today's refill?</h3>
-    <p>This sends the current "will give" quantities to Blaze for dispatch across every region, kit and box in the preview.</p>
+    <p>This sends the current "will give" quantities to Blaze for dispatch across every region, kit, box and batch in the preview.</p>
     <div class="row"><span>Regions / kits</span><span id="modalScope" style="font-family:var(--fontMono);font-weight:700;"></span></div>
     <div class="row"><span>Units going out</span><span id="modalUnits" style="font-family:var(--fontMono);font-weight:700;"></span></div>
     <div class="row" id="modalDeferRow" style="border-bottom:none;display:none;"><span>Deferred, still open</span><span id="modalDeferred" style="font-weight:700;color:var(--warnText);"></span></div>
@@ -403,6 +287,15 @@ table.ptable tr:last-child td{border-bottom:none;}
     <div class="chiplist" id="boxTypesChips"></div>
     <div class="addbtype"><input id="newBoxTypeInput" placeholder="Add a box type, e.g. Topical Bin"/><button class="btn btn-quiet btn-sm" id="addBoxTypeBtn">Add</button></div>
     <div class="modal-foot"><button class="btn btn-ghost" id="boxTypesClose">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-scrim" id="kitQrModal">
+  <div class="modal">
+    <h3 id="kitQrTitle">Pick slip</h3>
+    <p>Scan at the bench to close this pick slip by QR — the printed sheet carries the same lines, batch numbers and flags.</p>
+    <div class="qrgrid" id="kitQrGrid"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" id="kitQrPrint">Print pick slip</button><button class="btn btn-primary" id="kitQrClose">Close</button></div>
   </div>
 </div>
 
@@ -449,8 +342,9 @@ function toast(title, body){
   setTimeout(function(){ el.remove(); }, 4600);
 }
 function nowPT(){ try { return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date())+' PT'; } catch(e){ return 'just now'; } }
+function esc(s){ return String(s).replace(/"/g,'&quot;'); }
 
-/* ================= domain data (EXAMPLE DATA) ================= */
+/* ================= domain data (EXAMPLE DATA) — batch is the unit ================= */
 var PENDING = {short:1,below:1,template:1,nosales:1,capped:1};
 var REASON = {
   short:{label:'Short stock', cls:'pill-bad'},
@@ -462,154 +356,133 @@ var REASON = {
   skip:{label:'Skipped today', cls:'pill-neutral'}
 };
 function pill(reason){ if(!reason) return '<span class="dash">—</span>'; var r=REASON[reason]; return '<span class="pill '+r.cls+'">'+r.label+'</span>'; }
-function pi(name,sold,need,cap,give,reason){ return {name:name,sold:sold,need:need,cap:cap,give:give,reason:reason||''}; }
+function bt(num,thc,pkg,exp,age){ return {num:num,thc:thc,pkg:pkg,exp:exp,age:age}; }
+function chip(b){ return '<span class="batchchip">'+b.num+' · THC '+b.thc+'% · pkg '+b.pkg+' · exp '+b.exp+' · '+b.age+' d on hand</span>'; }
+function pi(name,b,sold,need,cap,give,reason){ return {name:name,b:b,sold:sold,need:need,cap:cap,give:give,reason:reason||''}; }
 function bx(name,items){ return {name:name,items:items}; }
 function kit(id,name,boxes){ return {id:id,name:name,boxes:boxes}; }
+
+/* the standard batch pool — most SKUs carry one batch; Blue Dream 3.5g carries two
+   (the standard mixed pair) wherever both are on hand in the same kit's box line */
+var B_BD=bt('#HW-2408-11','22.8','Aug 22','Feb 18',19), B_OG=bt('#HW-2408-06','26.4','Aug 17','Feb 13',24),
+    B_SD=bt('#HW-2408-27','19.2','Aug 27','Feb 23',14), B_SLT=bt('#HW-2409-03','2.4','Sep 3','Mar 3',7),
+    B_WC=bt('#HW-2408-14','29.1','Aug 14','Feb 10',27), B_IB=bt('#HW-2408-30','21.4','Aug 30','Feb 25',11),
+    B_CART=bt('#HW-2408-20','82.6','Aug 20','Feb 16',21), B_LRB=bt('#HW-2408-24','71.3','Aug 24','Feb 20',17),
+    B_CHOC=bt('#HW-2407-18','9.8','Jul 18','Jan 14',54), B_GEL=bt('#HW-2409-04','24.9','Sep 4','Mar 2',6),
+    B_GUM=bt('#HW-2407-22','9.8','Jul 22','Jan 18',50), B_DIA=bt('#HW-2408-29','76.4','Aug 29','Feb 25',12),
+    B_LRG=bt('#HW-2408-02','9.8','Aug 2','Jan 29',39), B_VAPE=bt('#HW-2408-16','68.9','Aug 16','Feb 12',25),
+    B_RUNTZ=bt('#HW-2409-09','78.2','Sep 9','Mar 9',1);
+var B_BDA=bt('#HW-2409-01','24.1','Aug 28','Feb 24',13), B_BDB=bt('#HW-2411-07','31.6','Sep 6','Apr 6',4);
 
 var REGIONS = [
   {id:'wla', name:'West LA', kits:[
     kit('wla-k1','Marcus R. · Route 3',[
-      bx('Flower Box 1',[ pi('Blue Dream 3.5g',14,14,20,14), pi('OG Kush 3.5g',9,9,12,9) ]),
-      bx('Pre-Roll Box 1',[ pi('Sour Diesel Pre-Roll 1g',22,22,24,22) ]),
-      bx('Cooler',[ pi('THC Seltzer 4-Pack',6,6,10,6) ])
+      bx('Flower Box 1',[ pi('Blue Dream 3.5g',B_BD,14,14,20,14), pi('OG Kush 3.5g',B_OG,9,9,12,9) ]),
+      bx('Pre-Roll Box 1',[ pi('Sour Diesel Pre-Roll 1g',B_SD,22,22,24,22) ]),
+      bx('Cooler',[ pi('THC Seltzer 4-Pack',B_SLT,6,6,10,6) ])
     ]),
     kit('wla-k2','Dana K. · Route 1',[
-      bx('Flower Box 1',[ pi('Wedding Cake 7g',5,5,8,5) ]),
-      bx('Pre-Roll Box 1',[ pi('Indica Blend 5-Pack',7,7,10,7) ]),
-      bx('Vape Box 1',[ pi('510 Cart 1g — GG4',4,4,6,4) ]),
-      bx('Concentrate Bin 1',[ pi('Live Resin Badder 1g',3,3,6,3), pi('Chocolate Bar 100mg',0,2,4,0,'template') ])
+      bx('Flower Box 1',[ pi('Wedding Cake 7g',B_WC,5,5,8,5) ]),
+      bx('Pre-Roll Box 1',[ pi('Indica Blend 5-Pack',B_IB,7,7,10,7) ]),
+      bx('Vape Box 1',[ pi('510 Cart 1g — GG4',B_CART,4,4,6,4) ]),
+      bx('Concentrate Bin 1',[ pi('Live Resin Badder 1g',B_LRB,3,3,6,3) ])
     ]),
     kit('wla-k3','Priya N. · Route 5',[
-      bx('Flower Box 1',[ pi('Gelato 1g Pre-Pack',6,6,8,6) ]),
-      bx('Edible Bin',[ pi('Gummies 100mg — Watermelon',4,4,6,4) ]),
-      bx('Cooler',[ pi('THC Seltzer 4-Pack',2,4,6,2,'nosales') ])
+      bx('Flower Box 1',[ pi('Gelato 1g Pre-Pack',B_GEL,6,6,8,6) ]),
+      bx('Edible Bin',[ pi('Gummies 100mg — Watermelon',B_GUM,4,4,6,4) ]),
+      bx('Cooler',[ pi('THC Seltzer 4-Pack',B_SLT,2,4,6,2,'nosales') ])
     ])
   ]},
   {id:'ie', name:'Inland Empire', kits:[
     kit('ie-k1','Tomas V. · Route 2',[
-      bx('Flower Box 1',[ pi('Blue Dream 3.5g',10,10,14,10) ]),
-      bx('Flower Box 2',[ pi('OG Kush 3.5g',30,30,20,20,'capped') ]),
-      bx('Concentrate Bin 1',[ pi('Diamonds 1g',5,5,8,5) ]),
-      bx('Concentrate Bin 2',[ pi('Live Resin Badder 1g',2,2,4,2) ])
+      bx('Flower Box 1',[ pi('Blue Dream 3.5g',B_BD,10,10,14,10) ]),
+      bx('Flower Box 2',[ pi('OG Kush 3.5g',B_OG,30,30,20,20,'capped') ]),
+      bx('Concentrate Bin 1',[ pi('Diamonds 1g',B_DIA,5,5,8,5) ]),
+      bx('Concentrate Bin 2',[ pi('Live Resin Badder 1g',B_LRB,2,2,4,2) ])
     ]),
     kit('ie-k2','Aaliyah B. · Route 4',[
-      bx('Pre-Roll Box 1',[ pi('Sour Diesel Pre-Roll 1g',9,9,12,9) ]),
-      bx('Edible Bin',[ pi('Wana Gummies 100mg',1,0,4,0,'below') ]),
-      bx('Cooler',[ pi('Live Rosin Gummies 100mg',20,36,40,20,'short') ])
+      bx('Pre-Roll Box 1',[ pi('Sour Diesel Pre-Roll 1g',B_SD,9,9,12,9) ]),
+      bx('Cooler',[ pi('Live Rosin Gummies 100mg',B_LRG,20,36,40,20,'short') ])
     ])
   ]},
   {id:'oc', name:'Orange County', kits:[
     kit('oc-k1','Wes H. · Route 6',[
-      bx('Flower Box 1',[ pi('Blue Dream 3.5g',38,50,60,30,'short') ]),
-      bx('Vape Box 1',[ pi('Disposable Vape 0.5g — Pineapple Express',12,12,16,12) ]),
-      bx('Edible Bin',[ pi('Chocolate Bar 100mg',3,3,6,3) ])
+      bx('Flower Box 1',[ pi('Blue Dream 3.5g',B_BDA,20,20,25,20), pi('Blue Dream 3.5g',B_BDB,18,30,35,16,'short') ]),
+      bx('Vape Box 1',[ pi('Disposable Vape 0.5g — Pineapple Express',B_VAPE,12,12,16,12) ]),
+      bx('Edible Bin',[ pi('Chocolate Bar 100mg',B_CHOC,3,3,6,3) ])
     ]),
     kit('oc-k2','Grace L. · Route 7',[
-      bx('Flower Box 1',[ pi('Blue Dream 3.5g',10,24,40,24) ]),
-      bx('Pre-Roll Box 1',[ pi('Indica Blend 5-Pack',5,5,8,5) ]),
-      bx('Cooler',[ pi('THC Seltzer 4-Pack',4,4,6,4) ])
+      bx('Flower Box 1',[ pi('Blue Dream 3.5g',B_BDB,10,24,40,30,'split') ]),
+      bx('Pre-Roll Box 1',[ pi('Indica Blend 5-Pack',B_IB,5,5,8,5) ]),
+      bx('Cooler',[ pi('THC Seltzer 4-Pack',B_SLT,4,4,6,4) ])
     ])
   ]},
   {id:'sb', name:'South Bay', kits:[
     kit('sb-k1','Devon P. · Route 8',[
-      bx('Flower Box 1',[ pi('OG Kush 3.5g',8,8,12,8) ]),
-      bx('Pre-Roll Box 1',[ pi('Sour Diesel Pre-Roll 1g',10,10,14,10) ]),
-      bx('Concentrate Bin 1',[ pi('Diamonds 1g',4,4,6,4) ])
+      bx('Flower Box 1',[ pi('OG Kush 3.5g',B_OG,8,8,12,8) ]),
+      bx('Pre-Roll Box 1',[ pi('Sour Diesel Pre-Roll 1g',B_SD,10,10,14,10) ]),
+      bx('Concentrate Bin 1',[ pi('Diamonds 1g',B_DIA,4,4,6,4) ])
     ])
   ]}
 ];
 
 function findKit(rid,kid){ var r=REGIONS.find(function(x){return x.id===rid;}); return r.kits.find(function(x){return x.id===kid;}); }
+function anyKit(kid){ for(var i=0;i<REGIONS.length;i++){ var k=REGIONS[i].kits.find(function(x){return x.id===kid;}); if(k) return k; } }
 function findBox(rid,kid,bname){ return findKit(rid,kid).boxes.find(function(b){return b.name===bname;}); }
-function findItem(rid,kid,bname,iname){ return findBox(rid,kid,bname).items.find(function(p){return p.name===iname;}); }
+function findItem(rid,kid,bname,iname,bnum){ return findBox(rid,kid,bname).items.find(function(p){return p.name===iname && p.b.num===bnum;}); }
 function ensureBoxItem(rid,kid,bname,item){ var k=findKit(rid,kid); var b=k.boxes.find(function(x){return x.name===bname;}); if(!b){ b=bx(bname,[]); k.boxes.push(b); } b.items.push(item); }
 
 var QUEUE = [
-  {id:'q1', group:'received', title:'Runtz Live Resin Cart 1g — received this morning', meta:'96 units in stock · new premium SKU', kits:['wla-k1','ie-k1'],
-   fact:'None of it has been placed in a kit yet.',
+  {id:'q1', group:'received', title:'Runtz Live Resin Cart 1g <span class="batchchip">'+B_RUNTZ.num+'</span> — received this morning', meta:'96 units in stock · new premium SKU · THC '+B_RUNTZ.thc+'% · pkg '+B_RUNTZ.pkg, kits:['wla-k1','ie-k1'],
+   fact:'One RFID tag per unit was recorded to this batch at receiving; none of it has been placed in a kit yet.',
    conseq:'If it does not go out today it ages another full day before the next tranche builds.',
    actions:[
      {label:'Send today', tone:'good', run:function(){
-        ensureBoxItem('wla','wla-k1','Vape Box 1', pi('Runtz Live Resin Cart 1g',0,48,48,48));
-        ensureBoxItem('ie','ie-k1','Vape Box 1', pi('Runtz Live Resin Cart 1g',0,48,48,48));
-        return 'Sent 48 units to Marcus R. (West LA) and 48 to Tomas V. (Inland Empire) — all 96 placed.';
+        ensureBoxItem('wla','wla-k1','Vape Box 1', pi('Runtz Live Resin Cart 1g',B_RUNTZ,0,48,48,48));
+        ensureBoxItem('ie','ie-k1','Vape Box 1', pi('Runtz Live Resin Cart 1g',B_RUNTZ,0,48,48,48));
+        return 'Sent 48 units of '+B_RUNTZ.num+' to Marcus R. (West LA) and 48 to Tomas V. (Inland Empire) — all 96 placed.';
      }},
      {label:'Hold for tomorrow', tone:'ghost', run:function(){ return 'Held — it will reappear at the top of tomorrow’s received lane.'; }}
    ]},
-  {id:'q2', group:'received', title:'Gelato 1g Pre-Pack — received yesterday', meta:'40 units in stock · premium SKU', kits:['oc-k2','sb-k1'],
-   fact:'It has sat one day already.',
-   conseq:'Waiting another day risks it aging out of the premium window entirely.',
-   actions:[
-     {label:'Send today', tone:'good', run:function(){
-        ensureBoxItem('oc','oc-k2','Flower Box 2', pi('Gelato 1g Pre-Pack',0,20,20,20));
-        ensureBoxItem('sb','sb-k1','Flower Box 2', pi('Gelato 1g Pre-Pack',0,20,20,20));
-        return 'Sent 20 units to Grace L. (Orange County) and 20 to Devon P. (South Bay) — all 40 placed.';
-     }},
-     {label:'Hold for tomorrow', tone:'ghost', run:function(){ return 'Held for tomorrow’s received lane.'; }}
-   ]},
-  {id:'q3', group:'received', title:'Diamonds 1g — new SKU, received 3 days ago', meta:'18 units in stock · limited', kits:['ie-k1'],
-   fact:'Only enough on hand for one kit.',
-   conseq:'Splitting it thinner than one full kit just means every driver runs out on day one.',
-   actions:[
-     {label:'Send today (one kit)', tone:'good', run:function(){
-        findBox('ie','ie-k1','Concentrate Bin 2').items.push(pi('Diamonds 1g',0,18,18,18));
-        return 'Sent all 18 units to Tomas V. (Inland Empire).';
-     }},
-     {label:'Skip today', tone:'ghost', run:function(){ return 'Skipped — stays in the received lane tomorrow.'; }}
-   ]},
-  {id:'q4', group:'shortfall', title:'Blue Dream 3.5g is short in Orange County', meta:'54 units on hand · 74 needed across 2 kits', kits:['oc-k1','oc-k2'],
-   fact:'Wes H. needs 50, only has 30. Grace L. is padded 6 above her own need of 24.',
+  {id:'q2', group:'shortfall', title:'Blue Dream 3.5g <span class="batchchip">'+B_BDB.num+'</span> is short in Orange County', meta:'46 units on hand (newer batch) · 54 needed across 2 kits — older batch '+B_BDA.num+' already fully placed', kits:['oc-k1','oc-k2'],
+   fact:'The older batch '+B_BDA.num+' already fully covers Wes H.\'s first 20 units, oldest first. The newer batch '+B_BDB.num+' has only 46 on hand for 54 needed: Wes H. is allotted 16 of his 30, Grace L. is padded 6 above her need of 24.',
    conseq:'Someone runs a register short today unless the surplus moves.',
    actions:[
      {label:'Move 6 from Grace L. to Wes H.', tone:'good', run:function(){
-        var g=findItem('oc','oc-k2','Flower Box 1','Blue Dream 3.5g'); var w=findItem('oc','oc-k1','Flower Box 1','Blue Dream 3.5g');
-        g.give=24; g.reason=''; w.give=36; w.reason='split';
-        return 'Moved 6 units from Grace L. to Wes H. — Wes H. still runs 14 short today, Grace L. is at her exact need.';
+        var g=findItem('oc','oc-k2','Flower Box 1','Blue Dream 3.5g',B_BDB.num), w=findItem('oc','oc-k1','Flower Box 1','Blue Dream 3.5g',B_BDB.num);
+        g.give=24; g.reason=''; w.give=22; w.reason='short';
+        return 'Moved 6 units of '+B_BDB.num+' from Grace L. to Wes H. — Wes H. still runs 8 short on the newer batch today, Grace L. is at her exact need.';
      }},
      {label:'Split evenly', tone:'quiet', run:function(){
-        var g=findItem('oc','oc-k2','Flower Box 1','Blue Dream 3.5g'); var w=findItem('oc','oc-k1','Flower Box 1','Blue Dream 3.5g');
-        g.give=27; g.reason='split'; w.give=27; w.reason='split';
-        return 'Split the 54 units evenly — 27 to each driver, rather than by need.';
+        var g=findItem('oc','oc-k2','Flower Box 1','Blue Dream 3.5g',B_BDB.num), w=findItem('oc','oc-k1','Flower Box 1','Blue Dream 3.5g',B_BDB.num);
+        g.give=23; g.reason='split'; w.give=23; w.reason='split';
+        return 'Split the 46 units of '+B_BDB.num+' evenly — 23 to each driver, rather than by need.';
      }},
      {label:'Skip the gap today', tone:'ghost', run:function(){
-        var w=findItem('oc','oc-k1','Flower Box 1','Blue Dream 3.5g'); w.reason='skip';
-        return 'Left as-is — Wes H. runs the day 20 short of what he asked for.';
+        var w=findItem('oc','oc-k1','Flower Box 1','Blue Dream 3.5g',B_BDB.num); w.reason='skip';
+        return 'Left as-is — Wes H. runs the day 14 short of what he asked for on the newer batch.';
      }}
    ]},
-  {id:'q5', group:'shortfall', title:'Live Rosin Gummies 100mg short for Aaliyah B. · Route 4', meta:'20 available · 36 needed', kits:['ie-k2'],
-   fact:'Cap allows 40, but only 20 units exist in the warehouse today.',
+  {id:'q3', group:'shortfall', title:'Live Rosin Gummies 100mg <span class="batchchip">'+B_LRG.num+'</span> short for Aaliyah B. · Route 4', meta:'20 available · 36 needed', kits:['ie-k2'],
+   fact:'Cap allows 40, but only 20 units of this batch exist in the warehouse today.',
    conseq:'This is a supply problem, not a template problem — raising the cap will not create more units.',
    actions:[
-     {label:'Send what is available (20)', tone:'good', run:function(){ var it=findItem('ie','ie-k2','Cooler','Live Rosin Gummies 100mg'); it.reason='split'; return 'Sending the 20 units on hand — 16 short of Aaliyah B.’s need, logged as a supply shortfall.'; }},
-     {label:'Skip today', tone:'ghost', run:function(){ var it=findItem('ie','ie-k2','Cooler','Live Rosin Gummies 100mg'); it.give=0; it.reason='skip'; return 'Skipped — nothing shipped for this line today.'; }}
+     {label:'Send what is available (20)', tone:'good', run:function(){ var it=findItem('ie','ie-k2','Cooler','Live Rosin Gummies 100mg',B_LRG.num); it.reason='split'; return 'Sending the 20 units of '+B_LRG.num+' on hand — 16 short of Aaliyah B.’s need, logged as a supply shortfall.'; }},
+     {label:'Skip today', tone:'ghost', run:function(){ var it=findItem('ie','ie-k2','Cooler','Live Rosin Gummies 100mg',B_LRG.num); it.give=0; it.reason='skip'; return 'Skipped — nothing shipped for this batch today.'; }}
    ]},
-  {id:'q6', group:'skipped', title:'Chocolate Bar 100mg skipped for Dana K. · Route 1', meta:'Concentrate Bin 1 · not in refill template', kits:['wla-k2'],
-   fact:'It sold before, but no template row exists for this box.',
-   conseq:'It will keep silently skipping every morning until someone adds it.',
-   actions:[
-     {label:'Add to template & send', tone:'good', run:function(){ var it=findItem('wla','wla-k2','Concentrate Bin 1','Chocolate Bar 100mg'); it.give=2; it.reason=''; return 'Added to the template and sent 2 units to Dana K.'; }},
-     {label:'Skip', tone:'ghost', run:function(){ var it=findItem('wla','wla-k2','Concentrate Bin 1','Chocolate Bar 100mg'); it.reason='skip'; return 'Skipped again today.'; }}
-   ]},
-  {id:'q7', group:'skipped', title:'THC Seltzer 4-Pack skipped for Priya N. · Route 5', meta:'Cooler · no sales counted since last refill', kits:['wla-k3'],
-   fact:'Zero sales recorded since the last refill.',
+  {id:'q4', group:'skipped', title:'THC Seltzer 4-Pack <span class="batchchip">'+B_SLT.num+'</span> skipped for Priya N. · Route 5', meta:'Cooler · no sales counted since last refill', kits:['wla-k3'],
+   fact:'Zero sales recorded since the last refill on this batch.',
    conseq:'Sending nothing risks an empty shelf the moment demand does show up.',
    actions:[
-     {label:'Send a starter amount (2)', tone:'good', run:function(){ var it=findItem('wla','wla-k3','Cooler','THC Seltzer 4-Pack'); it.give=2; it.reason=''; return 'Sent 2 units to Priya N. as a starter amount.'; }},
-     {label:'Skip', tone:'ghost', run:function(){ var it=findItem('wla','wla-k3','Cooler','THC Seltzer 4-Pack'); it.give=0; it.reason='skip'; return 'Skipped — no units sent.'; }}
+     {label:'Send a starter amount (2)', tone:'good', run:function(){ var it=findItem('wla','wla-k3','Cooler','THC Seltzer 4-Pack',B_SLT.num); it.give=2; it.reason=''; return 'Sent 2 units of '+B_SLT.num+' to Priya N. as a starter amount.'; }},
+     {label:'Skip', tone:'ghost', run:function(){ var it=findItem('wla','wla-k3','Cooler','THC Seltzer 4-Pack',B_SLT.num); it.give=0; it.reason='skip'; return 'Skipped — no units sent.'; }}
    ]},
-  {id:'q8', group:'skipped', title:'Wana Gummies 100mg skipped for Aaliyah B. · Route 4', meta:'Edible Bin · below subregion count', kits:['ie-k2'],
-   fact:'The template only sends this once the region carries 3 active subregions — Inland Empire currently has 2.',
-   conseq:'It stays out of every Inland Empire kit until the subregion count catches up, unless overridden.',
-   actions:[
-     {label:'Send a starter pack (2)', tone:'good', run:function(){ var it=findItem('ie','ie-k2','Edible Bin','Wana Gummies 100mg'); it.give=2; it.reason=''; return 'Sent 2 units to Aaliyah B. ahead of the subregion threshold.'; }},
-     {label:'Skip', tone:'ghost', run:function(){ var it=findItem('ie','ie-k2','Edible Bin','Wana Gummies 100mg'); it.reason='skip'; return 'Skipped — will re-check once the subregion count rises.'; }}
-   ]},
-  {id:'q9', group:'capped', title:'OG Kush 3.5g capped for Tomas V. · Route 2', meta:'Flower Box 2 · sold 30 since last refill, cap is 20', kits:['ie-k1'],
-   fact:'Demand outran the box cap by 10 units.',
+  {id:'q5', group:'capped', title:'OG Kush 3.5g <span class="batchchip">'+B_OG.num+'</span> capped for Tomas V. · Route 2', meta:'Flower Box 2 · sold 30 since last refill, cap is 20', kits:['ie-k1'],
+   fact:'Demand on this batch outran the box cap by 10 units.',
    conseq:'Keeping the cap means Tomas V. sells out early again, same as last week.',
    actions:[
-     {label:'Raise cap to 30 & send', tone:'good', run:function(){ var it=findItem('ie','ie-k1','Flower Box 2','OG Kush 3.5g'); it.cap=30; it.give=30; it.reason=''; return 'Raised the Flower Box 2 cap to 30 and sent the full amount.'; }},
-     {label:'Keep cap (send 20)', tone:'ghost', run:function(){ var it=findItem('ie','ie-k1','Flower Box 2','OG Kush 3.5g'); it.reason='skip'; return 'Kept the cap at 20 — Tomas V. runs short again today.'; }}
+     {label:'Raise cap to 30 & send', tone:'good', run:function(){ var it=findItem('ie','ie-k1','Flower Box 2','OG Kush 3.5g',B_OG.num); it.cap=30; it.give=30; it.reason=''; return 'Raised the Flower Box 2 cap to 30 and sent the full amount of '+B_OG.num+'.'; }},
+     {label:'Keep cap (send 20)', tone:'ghost', run:function(){ var it=findItem('ie','ie-k1','Flower Box 2','OG Kush 3.5g',B_OG.num); it.reason='skip'; return 'Kept the cap at 20 — Tomas V. runs short again today.'; }}
    ]}
 ];
 
@@ -709,13 +582,36 @@ function renderQueue(){
   });
 }
 
-/* ================= render: tree ================= */
+/* ================= render: tree (every row is a batch row) ================= */
 function toggle(id, defaultVal){
   var cur = expandState.hasOwnProperty(id) ? expandState[id] : (showEverything || defaultVal);
   expandState[id] = !cur;
   renderTree();
 }
 function isOpen(id, defaultVal){ return expandState.hasOwnProperty(id) ? expandState[id] : (showEverything || defaultVal); }
+
+function groupByName(items){
+  var groups = [];
+  items.forEach(function(it){
+    var g = groups[groups.length-1];
+    if (!g || g.name!==it.name){ g={name:it.name, its:[]}; groups.push(g); }
+    g.its.push(it);
+  });
+  return groups;
+}
+
+function renderBoxRows(r,k,b){
+  return groupByName(b.items).map(function(g){
+    var loud = g.its.length>1;
+    return g.its.map(function(it,i){
+      return '<tr'+(loud?' class="loud"':'')+'>'+
+        (i===0 ? '<td rowspan="'+g.its.length+'"><div class="pname">'+g.name+'</div>'+(loud?'<span class="loudflag">Mixed batch — oldest first</span>':'')+'</td>' : '')+
+        '<td>'+chip(it.b)+'</td><td class="num">'+it.sold+'</td><td class="num">'+it.need+'</td><td class="num">'+it.cap+'</td>'+
+        '<td class="num"><input class="willgive-input" type="number" min="0" value="'+it.give+'" data-region="'+r.id+'" data-kit="'+k.id+'" data-box="'+esc(b.name)+'" data-item="'+esc(g.name)+'" data-batch="'+esc(it.b.num)+'" data-orig="'+it.give+'"/></td>'+
+        '<td>'+pill(it.reason)+'</td></tr>';
+    }).join('');
+  }).join('');
+}
 
 function renderTree(){
   var host = document.getElementById('treeHost');
@@ -731,16 +627,12 @@ function renderTree(){
         : '<span class="check-ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>No decisions needed</span>';
       var boxesOut = kOpen ? k.boxes.map(function(b){
         var bFlag = b.items.some(itemPending);
-        var rowsHtml = b.items.map(function(it,ii){
-          var edited = ''; // static demo — editing marks the input, computed live
-          return '<tr><td>'+it.name+'</td><td class="num">'+it.sold+'</td><td class="num">'+it.need+'</td><td class="num">'+it.cap+'</td>'+
-            '<td class="num"><input class="willgive-input" type="number" min="0" value="'+it.give+'" data-region="'+r.id+'" data-kit="'+k.id+'" data-box="'+b.name.replace(/"/g,'&quot;')+'" data-item="'+it.name.replace(/"/g,'&quot;')+'" data-orig="'+it.give+'"/></td>'+
-            '<td>'+pill(it.reason)+'</td></tr>';
-        }).join('');
-        return '<div class="boxblock"><div class="boxhead">'+b.name+' <span style="font-weight:400;color:var(--inkMute);margin-left:auto;">'+b.items.length+' products'+(bFlag?'':' · all clear')+'</span></div>'+
-          '<table class="ptable"><thead><tr><th>Product</th><th>Sold since refill</th><th>Need</th><th>Cap</th><th>Will give</th><th>Reason</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
+        return '<div class="boxblock"><div class="boxhead">'+b.name+' <span style="font-weight:400;color:var(--inkMute);margin-left:auto;">'+b.items.length+' batch line'+(b.items.length===1?'':'s')+(bFlag?'':' · all clear')+'</span>'+
+          '<button class="qrbtn" data-qrtitle="'+esc('Pick slip — '+b.name+' · '+k.name)+'" data-qrseed="'+esc(k.id+b.name)+'">▦ QR</button></div>'+
+          '<table class="ptable"><thead><tr><th>Product</th><th>Batch</th><th>Sold since refill</th><th>Need</th><th>Cap</th><th>Will give</th><th>Reason</th></tr></thead><tbody>'+renderBoxRows(r,k,b)+'</tbody></table></div>';
       }).join('') : '';
-      return '<div class="trow-kit" data-toggle-kit="'+k.id+'" data-default="'+(kFlagged?1:0)+'"><span class="chev '+(kOpen?'open':'')+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span><span class="tname">'+k.name+'</span><span class="tmeta">'+k.boxes.length+' boxes</span><span class="tspacer"></span>'+status+'</div>'+
+      return '<div class="trow-kit" data-toggle-kit="'+k.id+'" data-default="'+(kFlagged?1:0)+'"><span class="chev '+(kOpen?'open':'')+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span><span class="tname">'+k.name+'</span><span class="tmeta">'+k.boxes.length+' boxes</span>'+
+        '<button class="qrbtn" data-qrtitle="'+esc('Pick slip — '+k.name)+'" data-qrseed="'+esc(k.id)+'">▦ QR</button><span class="tspacer"></span>'+status+'</div>'+
         (kOpen ? '<div class="kitbody">'+boxesOut+'</div>' : '');
     }).join('');
     var flagCount = r.kits.filter(kitFlagged).length;
@@ -758,16 +650,30 @@ function renderTree(){
   host.querySelectorAll('[data-toggle-kit]').forEach(function(el){
     el.addEventListener('click', function(e){ e.stopPropagation(); toggle('k-'+el.getAttribute('data-toggle-kit'), el.getAttribute('data-default')==='1'); });
   });
+  host.querySelectorAll('[data-qrtitle]').forEach(function(el){
+    el.addEventListener('click', function(e){ e.stopPropagation(); openQr(el.getAttribute('data-qrtitle'), el.getAttribute('data-qrseed')); });
+  });
   host.querySelectorAll('.willgive-input').forEach(function(inp){
     inp.addEventListener('click', function(e){ e.stopPropagation(); });
     inp.addEventListener('change', function(){
-      var it = findItem(inp.getAttribute('data-region'), inp.getAttribute('data-kit'), inp.getAttribute('data-box'), inp.getAttribute('data-item'));
+      var it = findItem(inp.getAttribute('data-region'), inp.getAttribute('data-kit'), inp.getAttribute('data-box'), inp.getAttribute('data-item'), inp.getAttribute('data-batch'));
       it.give = Number(inp.value)||0;
       inp.classList.toggle('edited', String(it.give)!==inp.getAttribute('data-orig'));
       renderCommitBar();
     });
   });
 }
+
+/* ================= kit/box pick-slip QR (paper equivalent, closes by scan) ================= */
+function qrBit(seed,i){ var h=0; for(var c=0;c<seed.length;c++) h=(h*31+seed.charCodeAt(c))|0; return ((h>>(i%24))&1)===1 || i%9===0 || i%9===8 || i<9 || i>71; }
+function openQr(title, seed){
+  document.getElementById('kitQrTitle').textContent = title;
+  var cells=''; for(var i=0;i<81;i++) cells+='<div'+(qrBit(seed,i)?'':' class="off"')+'></div>';
+  document.getElementById('kitQrGrid').innerHTML = cells;
+  document.getElementById('kitQrModal').classList.add('open');
+}
+document.getElementById('kitQrClose').addEventListener('click', function(){ document.getElementById('kitQrModal').classList.remove('open'); });
+document.getElementById('kitQrPrint').addEventListener('click', function(){ window.print(); });
 
 /* ================= render: exceptions log ================= */
 function renderLog(){

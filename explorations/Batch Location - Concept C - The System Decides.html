@@ -9,6 +9,11 @@
    Concept C — The System Decides. Maximum automation, minimum taps. Every
    rack carries an RFID location tag; the handheld knows which rack it is
    standing at from the strongest tag read, so the clerk never scans a rack.
+   Revision pass (2026-09-10): RFID first — every row shows read vs expected,
+   shelf/rack codes carry a QR that opens that location's window, pick slips
+   carry a QR that closes the kit. Batch level everywhere — every product row
+   is a batch row with the monospace chip; a SKU with two batches on hand is
+   two rows with the LOUD flag, never one row with a mixed-batch footnote.
    Tokens copied inline from pos/tokens.jsx (LIGHT/DARK), table/pill/button
    shapes from shared/hd-ui.jsx, rail shell reproduced from Hyperwolf
    Bounty.html, box-card rows kept from Concept B, steppers/pack-button
@@ -102,7 +107,7 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .titleblock{min-width:180px;}
 .h1{font-size:var(--f-h1);font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.1;}
 .crumb{font-size:var(--f-meta);color:var(--inkMute);}
-.conceptnote{max-width:420px;font-size:var(--f-meta);color:var(--inkDim);line-height:1.4;}
+.conceptnote{max-width:460px;font-size:var(--f-meta);color:var(--inkDim);line-height:1.4;}
 .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
 .iconbtn:hover{background:var(--surface3);color:var(--ink);}
 .clock{margin-left:auto;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);text-align:right;line-height:1.35;}
@@ -116,6 +121,11 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
 .btn-ghost:hover{background:var(--surface3);}
 .btn-sm{height:34px;padding:0 12px;font-size:var(--f-meta);}
+
+/* qr affordance — shelf/rack labels open a location window, slips/sheets close by scan */
+.qrbtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:1px solid var(--hairline3);background:var(--surface3);color:var(--inkDim);cursor:pointer;margin-left:6px;vertical-align:2px;padding:0;flex:0 0 auto;}
+.qrbtn:hover{background:var(--hairline2);color:var(--ink);}
+.slipqr{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:var(--f-meta);color:var(--inkMute);font-weight:600;}
 
 /* tabs */
 .tabsbar{display:flex;gap:8px;padding:14px 20px 0;flex-wrap:wrap;}
@@ -150,6 +160,9 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .kindtag.exc{background:var(--bad);color:#fff;}
 .instr{font-size:var(--f-body);margin-top:5px;}
 .instr b{font-weight:800;}
+.batchchip{font-family:var(--fontMono);font-size:11px;color:var(--inkMute);margin-top:3px;letter-spacing:.01em;}
+.batchchip.loud{color:var(--bad);font-weight:700;}
+.rfidline{font-size:11.5px;color:var(--inkMute);margin-top:4px;font-family:var(--fontMono);}
 .adj{font-size:var(--f-meta);color:var(--inkMute);margin-top:3px;}
 .walk-step .actions{display:flex;align-items:center;gap:10px;margin-top:11px;flex-wrap:wrap;}
 .readtag{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700;}
@@ -189,9 +202,9 @@ table.boxtbl tr:last-child td{border-bottom:none;}
 .boxtbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
 .boxtbl tr.row-short{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
 .boxtbl tr.row-mixed{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+.boxtbl tr.prodhead td{padding:10px 10px 0;border-bottom:none;font-size:var(--f-meta);background:var(--surface2);}
 .loudflag{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:5px;background:var(--bad);color:#fff;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;}
-.mixedline{font-size:11.5px;color:var(--bad);margin-top:6px;font-weight:700;}
-.mixedline .locs{font-family:var(--fontMono);font-weight:800;}
+.pill-oldest{display:inline-flex;height:19px;padding:0 8px;border-radius:5px;background:var(--goodSoft);color:var(--good);font-size:10px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;align-items:center;}
 .shortreason{font-size:11.5px;color:var(--warnText);font-weight:700;}
 
 .slip{font-family:var(--fontMono);font-size:11.5px;line-height:1.6;background:var(--surface2);border:1px dashed var(--hairline3);border-radius:var(--r10);padding:14px 16px;white-space:pre-wrap;}
@@ -236,7 +249,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
         <div class="crumb">Distribution · Batch Location</div>
         <h1 class="h1">The System Decides</h1>
       </div>
-      <div class="conceptnote">Every rack carries an RFID location tag. The handheld knows where it's standing from the strongest tag read — nobody scans a rack, ever.</div>
+      <div class="conceptnote">Every rack carries an RFID location tag — the handheld knows where it's standing from the strongest tag read, nobody scans a rack. Every line below is a batch, never a bare SKU: two batches of one item are two rows, LOUD, oldest first.</div>
       <div class="clock"><b id="clockNow">7:42 AM PT</b>Thu Sep 10 · rolls 12:00 AM PT</div>
       <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle theme">
         <svg id="themeIcon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
@@ -270,19 +283,28 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       <div class="refill-grid">
         <div class="refill-main">
           <div class="box-card" style="--box-c:var(--cat-concentrate)">
-            <div class="box-head">Concentrate Box 1 · All <span class="cnt">3 lines</span></div>
+            <div class="box-head">Concentrate Box 1 · All <span class="cnt">4 lines</span></div>
             <table class="boxtbl">
-              <thead><tr><th>Product</th><th>Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead>
+              <thead><tr><th>Product · batch</th><th>Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead>
               <tbody>
                 <tr>
-                  <td class="pn">GMO Live Resin 1g</td><td class="num">10</td><td class="num">10</td><td class="num">16</td><td class="num">10</td><td>—</td>
+                  <td class="pn">GMO Live Resin 1g<div class="batchchip">#HW-2406-14 · THC 26.4% · pkg Aug 20 · exp Feb 16 · 21 d on hand · Metrc 1A40…3C81</div></td>
+                  <td class="num">10</td><td class="num">10</td><td class="num">16</td><td class="num">10</td><td>—</td>
+                </tr>
+                <tr class="prodhead"><td colspan="6"><b>Wedding Cake Live Resin 1g</b> <span class="loudflag">Two batches — LOUD</span></td></tr>
+                <tr class="row-mixed">
+                  <td class="pn"><div class="batchchip loud">#HW-2409-01 · THC 24.1% · pkg Aug 28 · exp Feb 24 · 42 d on hand · Metrc 1A40…9021</div></td>
+                  <td class="num">7</td><td class="num">7</td><td class="num">12</td><td class="num">7</td>
+                  <td><span class="pill-oldest">Pick first — oldest</span></td>
                 </tr>
                 <tr class="row-mixed">
-                  <td class="pn">Wedding Cake Live Resin 1g</td><td class="num">12</td><td class="num">12</td><td class="num">20</td><td class="num">12</td>
-                  <td><span class="loudflag">Two batches</span><div class="mixedline">Older batch first: <span class="locs">A-03-2 then A-03-3</span></div></td>
+                  <td class="pn"><div class="batchchip loud">#HW-2411-07 · THC 31.6% · pkg Sep 6 · exp Mar 6 · 4 d on hand · Metrc 1A40…7F3</div></td>
+                  <td class="num">5</td><td class="num">5</td><td class="num">8</td><td class="num">5</td>
+                  <td>After #HW-2409-01 empties</td>
                 </tr>
                 <tr class="row-short">
-                  <td class="pn">Blue Dream Live Resin 1g</td><td class="num">18</td><td class="num">18</td><td class="num">15</td><td class="num">15</td>
+                  <td class="pn">Blue Dream Live Resin 1g<div class="batchchip">#HW-2405-22 · THC 19.8% · pkg Jul 30 · exp Jan 26 · 42 d on hand · Metrc 1A40…5512</div></td>
+                  <td class="num">18</td><td class="num">18</td><td class="num">15</td><td class="num">15</td>
                   <td><span class="shortreason">Short stock — 3 short, capped at 15</span></td>
                 </tr>
               </tbody>
@@ -297,13 +319,14 @@ DRIVER: J. Alvarez
 ------------------------------------------
 Wedding Cake Live Resin 1g     QTY 12
 <span class="flagline">!! TWO BATCHES — PICK OLDER FIRST</span>
-   A-03-2  Batch B-1122  exp 11/02  x7
-   A-03-3  Batch B-1150  exp 12/18  x5
+   #HW-2409-01  THC 24.1%  exp Feb 24  x7
+   #HW-2411-07  THC 31.6%  exp Mar 6   x5
 ------------------------------------------</div>
+            <div class="slipqr"><button class="qrbtn" title="Scan to close this kit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="15" y="15" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="19" y="15" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="15" y="19" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="19" y="19" width="2.4" height="2.4" fill="currentColor" stroke="none"/></svg></button>Scan to close this kit — same QR the bench prints on the paper slip.</div>
           </div>
           <div class="vault-card">
             <h3>Walk the vault</h3>
-            <div class="vault-sub">Cycle-count mode — racks are read as you pass; drift (a batch read where it should not be) is reported without a scan.</div>
+            <div class="vault-sub">Cycle-count mode — racks are read as you pass, no rack is ever scanned by hand; drift (a batch read where it should not be) is reported without a scan. Reads propose — nothing here adjusts stock until a manager approves the proposal list.</div>
             <button class="btn btn-ghost btn-sm" id="vaultBtn">Start vault walk (demo)</button>
             <div class="vault-log" id="vaultLog"><div class="ln empty">Not started.</div></div>
           </div>
@@ -351,6 +374,12 @@ function toast(title, body){
   toastTimer = setTimeout(function(){ el.remove(); }, 4400);
 }
 
+/* ---------- batch chip + QR helpers (batch level everywhere / RFID first) ---------- */
+function thcStr(b){ return b.thc ? b.thc.toFixed(1)+'%' : '—'; }
+function fmtBatch(b){ return '#'+b.batch+' · THC '+thcStr(b)+' · pkg '+b.pkg+' · exp '+b.exp+' · '+b.age+' d on hand · Metrc '+b.metrc; }
+function chipHtml(b, loud){ return b ? '<div class="batchchip'+(loud?' loud':'')+'">'+fmtBatch(b)+'</div>' : ''; }
+function qrIcon(){ return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="15" y="15" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="19" y="15" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="15" y="19" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="19" y="19" width="2.4" height="2.4" fill="currentColor" stroke="none"/></svg>'; }
+
 /* ---------- tabs ---------- */
 $$('.tabbtn').forEach(function(btn){
   btn.addEventListener('click', function(){ selectTab(btn.dataset.tab); });
@@ -360,16 +389,21 @@ function selectTab(name){
   $$('.view').forEach(function(v){ v.classList.toggle('active', v.id==='view-'+name); });
 }
 
-/* ---------- data: the receiving walk list ---------- */
+/* ---------- data: the receiving walk list — one line per batch, never per SKU ---------- */
 var WALK = [
-  { id:1, status:'done', kind:'newbatch', kindLbl:'New batch', rack:'C-02-1', product:'GMO 7g Jar', batch:'B-1145', qty:40,
-    adj:'Beside existing batch B-1091 at C-02-2 — kept separate, never merged.' },
-  { id:2, status:'done', kind:'restock', kindLbl:'Restock', rack:'P-04-3', product:'Blue Dream Pre-Roll 5pk', batch:'B-1098', qty:60, adj:null },
-  { id:3, status:'current', kind:'new', kindLbl:'New SKU', rack:'V-01-2', product:'Rosin Cart 1g', batch:'B-1151', qty:24,
+  { id:1, status:'done', kind:'newbatch', kindLbl:'New batch', rack:'C-02-1', product:'GMO 7g Jar', qty:40, expected:40, read:40,
+    b:{batch:'HW-2405-11', thc:22.8, pkg:'Aug 12', exp:'Feb 8', age:29, metrc:'1A40…2C19'},
+    adj:'Beside existing batch #HW-2402-03 at C-02-2 — kept separate, never merged.' },
+  { id:2, status:'done', kind:'restock', kindLbl:'Restock', rack:'P-04-3', product:'Blue Dream Pre-Roll 5pk', qty:60, expected:60, read:60,
+    b:{batch:'HW-2406-05', thc:19.2, pkg:'Aug 18', exp:'Feb 14', age:23, metrc:'1A40…9E02'}, adj:null },
+  { id:3, status:'current', kind:'new', kindLbl:'New SKU', rack:'V-01-2', product:'Rosin Cart 1g', qty:24, expected:24,
+    b:{batch:'HW-2409-14', thc:81.0, pkg:'Sep 2', exp:'Sep 2 2027', age:8, metrc:'1A40…5B77'},
     adj:'First unit of this SKU received — zone assigned by category (Vape).' },
-  { id:4, status:'blocked', excId:'wrongrack', kind:'newbatch', kindLbl:'New batch', rack:'V-02-4', product:'Wedding Cake Vape Pods', batch:'B-1150', qty:30,
-    adj:'Beside existing batch B-1122 at V-02-3 — kept separate, never merged.' },
-  { id:5, status:'blocked', excId:'nocap', kind:'restock', kindLbl:'Restock', rack:'E-01-1', product:'Live Resin Gummies', batch:'B-1077', qty:50, adj:null }
+  { id:4, status:'blocked', excId:'wrongrack', kind:'newbatch', kindLbl:'New batch', rack:'V-02-4', product:'Wedding Cake Vape Pods', qty:30, expected:30,
+    b:{batch:'HW-2411-11', thc:33.2, pkg:'Sep 6', exp:'Mar 6', age:4, metrc:'1A40…6C40'},
+    adj:'Beside existing batch #HW-2407-02 at V-02-3 — kept separate, never merged.' },
+  { id:5, status:'blocked', excId:'nocap', kind:'restock', kindLbl:'Restock', rack:'E-01-1', product:'Live Resin Gummies', qty:50, expected:50,
+    b:{batch:'HW-2408-09', thc:0, pkg:'Jul 30', exp:'Jan 26', age:42, metrc:'1A40…4410'}, adj:null }
 ];
 
 function renderWalk(){
@@ -381,23 +415,21 @@ function renderWalk(){
       : s.status==='current' ? '<span class="readtag pending">Awaiting placement read</span>'
       : '<span class="readtag pending" style="background:var(--badSoft);color:var(--bad);">Sent to Exceptions</span>';
     var confirmBtn = s.status==='current' ? '<button class="btn btn-primary btn-sm" data-confirm="'+s.id+'">Confirm placed (handheld read)</button>' : '';
-    var printBtn = s.status!=='blocked' ? '<button class="iconlink" data-print="'+s.id+'">Print shelf label</button>' : '<button class="iconlink" data-jump="'+s.excId+'">View in Exceptions</button>';
+    var printBtn = s.status!=='blocked' ? '<button class="iconlink" data-print="'+s.id+'">Print shelf label (QR)</button>' : '<button class="iconlink" data-jump="'+s.excId+'">View in Exceptions</button>';
     var kindClass = s.status==='blocked' ? 'exc' : s.kind;
+    var rfid = s.status==='done' ? '<div class="rfidline">Read '+s.read+' of '+s.expected+' expected — placement confirmed.</div>'
+      : s.status==='current' ? '<div class="rfidline">Awaiting placement read — expect '+s.expected+'.</div>' : '';
     return '<div class="walk-step '+s.status+'">'
       + '<div class="stepnum">'+s.id+'</div>'
       + '<div class="body">'
-      + '<span class="rack">'+s.rack+'</span><span class="kindtag '+kindClass+'">'+(s.status==='blocked'?'Exception':s.kindLbl)+'</span>'
-      + '<div class="instr">Put these <b>'+s.qty+'</b> down: <b>'+s.product+'</b> · Batch '+s.batch+'</div>'
+      + '<span class="rack">'+s.rack+'</span><button class="qrbtn" title="Rack QR opens this location\'s window">'+qrIcon()+'</button><span class="kindtag '+kindClass+'">'+(s.status==='blocked'?'Exception':s.kindLbl)+'</span>'
+      + '<div class="instr">Put these <b>'+s.qty+'</b> down: <b>'+s.product+'</b></div>'
+      + chipHtml(s.b,false)
+      + rfid
       + (s.adj ? '<div class="adj">'+s.adj+'</div>' : '')
       + '<div class="actions">'+tag+confirmBtn+printBtn+'</div>'
       + '</div></div>';
   }).join('');
-}
-
-function nextCurrent(afterId){
-  var idx = WALK.findIndex(function(s){ return s.id===afterId; });
-  for(var i=idx+1;i<WALK.length;i++){ if(WALK[i].status==='pending' || WALK[i].status==='blocked') return WALK[i]; }
-  return null;
 }
 
 document.addEventListener('click', function(e){
@@ -405,8 +437,8 @@ document.addEventListener('click', function(e){
   if(cb){
     var id = Number(cb.dataset.confirm);
     var step = WALK.find(function(s){ return s.id===id; });
-    step.status = 'done';
-    toast('Confirmed by read', step.rack+' now holds '+step.qty+' units of '+step.product+' — shelf label sent to bench printer.');
+    step.status = 'done'; step.read = step.expected;
+    toast('Confirmed by read', step.rack+' now holds '+step.qty+' units of '+step.product+' — shelf label (with location QR) sent to bench printer.');
     var nxt = WALK.find(function(s){ return s.status==='pending'; });
     if(nxt) nxt.status='current';
     renderWalk();
@@ -415,7 +447,7 @@ document.addEventListener('click', function(e){
   var pb = e.target.closest('[data-print]');
   if(pb){
     var s2 = WALK.find(function(s){ return s.id===Number(pb.dataset.print); });
-    toast('Shelf label sent to bench printer', s2.rack+' · '+s2.product+' · Batch '+s2.batch);
+    toast('Shelf label sent to bench printer', s2.rack+' · '+s2.product+' · #'+s2.b.batch+' · label carries a QR that opens this location.');
     return;
   }
   var jb = e.target.closest('[data-jump]');
@@ -424,17 +456,20 @@ document.addEventListener('click', function(e){
   if(reread){ toast('Delivery re-read', 'Same 214 units confirmed on the second bulk pass — no new tags found.'); return; }
 });
 
-/* ---------- data: exceptions ---------- */
+/* ---------- data: exceptions — a batch read at the wrong rack, or no rack at all ---------- */
 var EXC = [
   { id:'wrongrack', tone:'bad', kind:'Wrong rack detected', title:"You're standing at C-03 — this belongs at V-02-4",
-    body:'Wedding Cake Vape Pods · Batch B-1150 · 30 units. The handheld reads a Zone C location tag; the plan assigns Vape stock to Zone V, beside existing batch B-1122 at V-02-3 — never merged.',
+    b:{batch:'HW-2411-11', thc:33.2, pkg:'Sep 6', exp:'Mar 6', age:4, metrc:'1A40…6C40'},
+    body:'Wedding Cake Vape Pods · 30 units. The handheld reads a Zone C location tag; the plan assigns Vape stock to Zone V, beside existing batch #HW-2407-02 at V-02-3 — never merged.',
     resolved:false, primary:'Redirect to V-02-4', secondary:'Force place at C-03' },
   { id:'nocap', tone:'warn2', kind:'No capacity', title:'E-01-1 is full — 0 of 50 slots free',
-    body:'Live Resin Gummies · Batch B-1077 · 50 units. System suggests overflow rack E-01-4, same zone, 62 slots free.',
+    b:{batch:'HW-2408-09', thc:0, pkg:'Jul 30', exp:'Jan 26', age:42, metrc:'1A40…4410'},
+    body:'Live Resin Gummies · 50 units. System suggests overflow rack E-01-4, same zone, 62 slots free.',
     resolved:false, primary:'Send to E-01-4', secondary:'Expand capacity here' },
-  { id:'unknown', tone:'bad', kind:'Unknown SKU', title:'Tag matches no known product',
-    body:'Raw tag 3400E282A81... read at the bench. No SKU record exists yet — the unit cannot be placed until one does.',
-    resolved:false, primary:'Create new SKU', secondary:'Match to existing SKU' }
+  { id:'unknown', tone:'bad', kind:'Unknown tag', title:'Tag matches no known batch',
+    b:null,
+    body:'Raw tag 3400E282A81... read at the bench. No batch record exists yet — the unit cannot be placed until one does.',
+    resolved:false, primary:'Create new batch', secondary:'Match to existing batch' }
 ];
 
 function updateBadge(){
@@ -446,13 +481,14 @@ function updateBadge(){
 function renderExc(){
   var host = $('#excList');
   host.innerHTML = EXC.map(function(x){
+    var chip = chipHtml(x.b, true);
     if(x.resolved){
       return '<div class="exc-card '+(x.tone==='warn2'?'warn2':'')+' resolved">'
-        + '<div class="exc-kind">'+x.kind+'</div><div class="exc-title">'+x.title+'</div><div class="exc-body">'+x.body+'</div>'
+        + '<div class="exc-kind">'+x.kind+'</div><div class="exc-title">'+x.title+'</div>'+chip+'<div class="exc-body">'+x.body+'</div>'
         + '<div class="resolvedflag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Resolved — '+x.resolution+'</div></div>';
     }
     return '<div class="exc-card '+(x.tone==='warn2'?'warn2':'')+'" id="exc-'+x.id+'">'
-      + '<div class="exc-kind">'+x.kind+'</div><div class="exc-title">'+x.title+'</div><div class="exc-body">'+x.body+'</div>'
+      + '<div class="exc-kind">'+x.kind+'</div><div class="exc-title">'+x.title+'</div>'+chip+'<div class="exc-body">'+x.body+'</div>'
       + '<div class="exc-actions">'
       + '<button class="btn btn-primary btn-sm" data-resolve="'+x.id+'">'+x.primary+'</button>'
       + '<button class="btn btn-ghost btn-sm" data-override="'+x.id+'">'+x.secondary+'</button>'
@@ -470,7 +506,7 @@ document.addEventListener('click', function(e){
     x.resolved = true;
     if(x.id==='wrongrack'){ x.resolution = 'sent back to the walk list at V-02-4.'; var s=WALK.find(function(s){return s.id===4;}); s.rack='V-02-4'; s.status='current'; }
     if(x.id==='nocap'){ x.resolution = 'sent back to the walk list at E-01-4.'; var s2=WALK.find(function(s){return s.id===5;}); s2.rack='E-01-4'; s2.status='current'; }
-    if(x.id==='unknown'){ x.resolution = 'new SKU record created — item returns to the walk list.'; }
+    if(x.id==='unknown'){ x.resolution = 'new batch record created — item returns to the walk list.'; }
     renderExc(); renderWalk();
     toast('Exception resolved', x.title);
     return;
@@ -489,22 +525,22 @@ document.addEventListener('click', function(e){
     if(!val){ box2.querySelector('input').focus(); return; }
     var x2 = EXC.find(function(x){ return x.id===id; });
     x2.resolved = true; x2.resolution = 'placed as-is on the clerk’s override — "'+val+'"';
-    if(id==='wrongrack'){ var s3=WALK.find(function(s){return s.id===4;}); s3.rack='C-03 (override)'; s3.status='done'; }
-    if(id==='nocap'){ var s4=WALK.find(function(s){return s.id===5;}); s4.status='done'; }
+    if(id==='wrongrack'){ var s3=WALK.find(function(s){return s.id===4;}); s3.rack='C-03 (override)'; s3.status='done'; s3.read=s3.expected; }
+    if(id==='nocap'){ var s4=WALK.find(function(s){return s.id===5;}); s4.status='done'; s4.read=s4.expected; }
     renderExc(); renderWalk();
     toast('Override recorded', x2.resolution);
     return;
   }
 });
 
-/* ---------- walk the vault (cycle count) ---------- */
+/* ---------- walk the vault (cycle count) — RFID reads propose, a manager approves ---------- */
 var VAULT_LINES = [
   { text:'Passed C-01 … C-04 — 118 tags read, all match plan.', drift:false },
   { text:'Passed P-01 … P-05 — 214 tags read, all match plan.', drift:false },
   { text:'Passed V-01 … V-03 — 96 tags read, all match plan.', drift:false },
-  { text:'DRIFT: Batch B-1077 read at E-01-4 — plan says E-01-1. Flagged for review.', drift:true },
+  { text:'DRIFT: Batch #HW-2408-09 read at E-01-4 — plan says E-01-1. Flagged for review.', drift:true },
   { text:'Passed A-01 … A-04 — 140 tags read, all match plan.', drift:false },
-  { text:'Vault walk complete — 1 drift found, 0 missing, 0 unexpected.', drift:false }
+  { text:'Vault walk complete — 1 drift found, 0 missing, 0 unexpected. Proposal sent for manager approval.', drift:false }
 ];
 var vaultRunning = false;
 $('#vaultBtn').addEventListener('click', function(){

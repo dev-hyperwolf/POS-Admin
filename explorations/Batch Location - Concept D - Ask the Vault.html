@@ -7,6 +7,12 @@
 <style>
 /* ============================================================================
    Concept D — Ask the Vault. Search-first, conversational batch location.
+   Revision pass (2026-09-10): RFID first — the search box doubles as an RFID
+   scan target, shelf/rack labels shown here carry a QR that opens that
+   location's window, the pick slip carries a QR that closes the kit. Batch
+   level everywhere — every answer leads with the monospace batch chip
+   (#number · THC · pkg · exp · age on hand · Metrc), a SKU with two batches
+   is two full batch rows with the LOUD flag, never a footnote.
    Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); table/pill/button
    shapes from shared/hd-ui.jsx; rail + topbar shell reproduced from
    Hyperwolf Bounty.html; box-card row schema (Sold/Need/Cap/Give/Reason) and
@@ -117,6 +123,11 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 
 .example-banner{display:flex;align-items:center;gap:8px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 14px;font-size:var(--f-meta);font-weight:600;margin:12px 18px 0;}
 
+/* qr affordance — shelf/rack labels open a location window, slips close by scan */
+.qrbtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:1px solid var(--hairline3);background:var(--surface3);color:var(--inkDim);cursor:pointer;margin-left:6px;padding:0;flex:0 0 auto;}
+.qrbtn:hover{background:var(--hairline2);color:var(--ink);}
+.slipqr{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:var(--f-meta);color:var(--inkMute);font-weight:600;}
+
 /* ---- mode tabs ---- */
 .modetabs{display:flex;gap:6px;padding:12px 18px 0;flex-wrap:wrap;}
 .modetab{background:var(--surface);border:1px solid var(--hairline2);border-bottom:none;color:var(--inkDim);font-weight:700;font-size:var(--f-body);padding:10px 16px;border-radius:var(--r12) var(--r12) 0 0;cursor:pointer;display:flex;align-items:center;gap:7px;}
@@ -128,7 +139,7 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 /* ---- Ask: hero search ---- */
 .searchhero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:20px 8px 8px;}
 .searchhero h2{margin:0 0 4px;font-size:var(--f-h2);}
-.searchhero .sub{color:var(--inkMute);font-size:var(--f-body);margin-bottom:16px;}
+.searchhero .sub{color:var(--inkMute);font-size:var(--f-body);margin-bottom:16px;max-width:520px;}
 .searchbox{width:100%;max-width:640px;display:flex;align-items:center;gap:8px;background:var(--field);border:1.5px solid var(--fieldBorder);border-radius:99px;padding:6px 6px 6px 20px;box-shadow:var(--shadowSm);}
 .searchbox:focus-within{border-color:var(--accentBorder);box-shadow:0 0 0 3px var(--accentSoft);}
 .searchbox input{flex:1;border:none;background:transparent;outline:none;font-size:17px;color:var(--ink);height:40px;}
@@ -155,16 +166,14 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .loudflag svg{flex:0 0 auto;margin-top:1px;}
 .batchrow{display:flex;gap:16px;align-items:center;padding:14px 18px;border-top:1px solid var(--hairline);flex-wrap:wrap;}
 .batchrow:first-of-type{border-top:none;}
+.batchrow.loud{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
 .batchrow .oldest{background:var(--good);color:#fff;}
-.rackphoto{flex:0 0 auto;}
-.batch-meta{flex:1 1 220px;min-width:180px;}
-.batch-meta .bno{font-family:var(--fontMono);font-weight:800;font-size:var(--f-body);}
-.batch-meta .bsub{font-size:var(--f-meta);color:var(--inkMute);margin-top:2px;}
-.batch-stat3{display:flex;gap:16px;font-family:var(--fontMono);flex:0 0 auto;}
-.batch-stat3 div{text-align:center;}
-.batch-stat3 .k{font-size:9.5px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
-.batch-stat3 .v{font-size:var(--f-body);font-weight:700;}
+.rackphoto{flex:0 0 auto;position:relative;}
+.batch-meta{flex:1 1 260px;min-width:220px;}
+.batch-meta .batchchip{font-family:var(--fontMono);font-weight:800;font-size:12.5px;color:var(--ink);}
+.batch-meta .batchchip.loud{color:var(--bad);}
 .loclabel{flex:0 0 auto;text-align:center;}
+.loclabel .locrow{display:flex;align-items:center;gap:4px;justify-content:center;}
 .loclabel .big{font-family:var(--fontMono);font-size:22px;font-weight:800;background:var(--surface3);border:1px solid var(--hairline3);border-radius:var(--r10);padding:6px 12px;letter-spacing:.02em;}
 .loclabel .cap{font-size:9.5px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;margin-top:4px;}
 
@@ -175,10 +184,11 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;b
 .nsitem{padding:8px 0;border-top:1px solid var(--hairline);}
 .nsitem:first-of-type{border-top:none;}
 .nsitem .n{font-weight:700;font-size:var(--f-body);}
-.nsitem .m{font-size:var(--f-meta);color:var(--inkDim);}
+.nsitem .batchchip{font-family:var(--fontMono);font-size:11px;color:var(--inkDim);margin-top:2px;}
 .nsitem .loc{font-family:var(--fontMono);font-weight:700;font-size:var(--f-meta);color:var(--info);}
 .nsitem.loud{background:var(--warnSoft);margin:0 -14px;padding:8px 14px;border-top:1px solid var(--warn);}
 .nsitem.loud .loc{color:var(--warnText);}
+.nsitem.loud .batchchip{color:var(--warnText);}
 
 /* ---- Receive: where do I put this ---- */
 .recv-grid{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
@@ -206,20 +216,25 @@ table.boxtbl td{padding:10px;border-bottom:1px solid var(--hairline);vertical-al
 table.boxtbl tr:last-child td{border-bottom:none;}
 .boxtbl .num{font-family:var(--fontMono);text-align:right;white-space:nowrap;}
 .boxtbl tr.row-loud{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+.boxtbl tr.prodhead td{padding:10px 10px 0;border-bottom:none;font-size:var(--f-meta);background:var(--surface2);}
 .boxtbl .pn{font-weight:700;}
+.boxtbl .batchchip{font-family:var(--fontMono);font-size:11px;color:var(--inkMute);margin-top:3px;}
+.boxtbl .batchchip.loud{color:var(--bad);font-weight:700;}
 .boxtbl .reasoncell{max-width:230px;font-size:11.5px;}
 .boxtbl .reasoncell.r-warn{color:var(--warnText);font-weight:700;}
-.batchloc-mini{display:inline-flex;align-items:center;gap:4px;font-family:var(--fontMono);font-size:11px;background:var(--surface3);border-radius:6px;padding:1px 6px;margin:2px 3px 0 0;}
+.pill-oldest{display:inline-flex;height:19px;padding:0 8px;border-radius:5px;background:var(--goodSoft);color:var(--good);font-size:10px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;align-items:center;}
 
-.pickslip-head{display:flex;align-items:center;gap:10px;margin:22px 0 10px;}
+.pickslip-head{display:flex;align-items:center;gap:10px;margin:22px 0 10px;flex-wrap:wrap;}
 .pickslip-head h3{margin:0;font-size:var(--f-strong);}
 .pickslip-strip{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;}
-.rackstop{flex:0 0 220px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px;box-shadow:var(--shadowSm);}
+.rackstop{flex:0 0 230px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px;box-shadow:var(--shadowSm);}
 .rackstop .stopno{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--surface);font-size:11px;font-weight:800;font-family:var(--fontMono);}
 .rackstop .rname{font-family:var(--fontMono);font-weight:800;font-size:var(--f-body);margin-left:8px;}
-.rackstop .rline{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:6px 0;border-top:1px solid var(--hairline);}
+.rackstop .rline{padding:6px 0;border-top:1px solid var(--hairline);}
 .rackstop .rline:first-of-type{border-top:none;margin-top:8px;}
+.rackstop .rline .rtop{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;}
 .rackstop .rline .q{font-family:var(--fontMono);font-weight:700;}
+.rackstop .rline .batchchip{font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);margin-top:2px;}
 
 .legend{display:flex;flex-wrap:wrap;gap:10px 18px;padding:14px 20px 6px;font-size:var(--f-meta);color:var(--inkDim);}
 .legend .li{display:flex;align-items:center;gap:6px;}
@@ -229,7 +244,6 @@ table.boxtbl tr:last-child td{border-bottom:none;}
   .rail{width:58px;flex-basis:58px;}
   .rail-item .lbl{display:none;}
   .h1{font-size:22px;}
-  .batch-stat3{gap:10px;}
 }
 </style>
 </head>
@@ -268,10 +282,10 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     <div class="view active" id="view-ask"><div class="viewband">
       <div class="searchhero">
         <h2>Ask the vault anything.</h2>
-        <div class="sub">A SKU, a batch number, a rack — or scan a tag or a rack QR code.</div>
+        <div class="sub">RFID first: scan a tag or a rack QR and the vault answers by batch, read against what's expected. Or type a SKU, a batch number, or a rack.</div>
         <div class="searchbox">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--inkFaint);flex:0 0 auto;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-          <input id="searchInput" type="text" placeholder="GMO 3.5g, B-2291, Rack A…" autocomplete="off"/>
+          <input id="searchInput" type="text" placeholder="GMO 3.5g, HW-2411-07, Rack A…" autocomplete="off"/>
           <button class="roundbtn" id="voiceBtn" title="Ask by voice (UI only)" aria-label="Ask by voice">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0014 0"/><path d="M12 19v3"/></svg>
           </button>
@@ -284,7 +298,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
           <button class="chip" data-q="__new_since__">What's new since my last refill?</button>
           <button class="chip" data-q="GMO 3.5g">GMO 3.5g</button>
           <button class="chip" data-q="Rack A">Rack A</button>
-          <button class="chip" data-q="B-2338">B-2338</button>
+          <button class="chip" data-q="HW-2411-07">HW-2411-07</button>
         </div>
       </div>
       <div class="answers" id="answers"></div>
@@ -295,7 +309,7 @@ table.boxtbl tr:last-child td{border-bottom:none;}
       <div class="recv-grid">
         <div class="recv-form">
           <div style="font-weight:800;font-size:var(--f-title);margin-bottom:2px;">Where do I put this?</div>
-          <div style="font-size:var(--f-meta);color:var(--inkMute);">Set at receiving, on the handheld — before the unit's tag is put away anywhere.</div>
+          <div style="font-size:var(--f-meta);color:var(--inkMute);">Set at receiving, on the handheld, right after the unit's tag is read — no location dropdown, ever.</div>
           <label>What kind of arrival is this?</label>
           <div class="kindrow" id="kindRow">
             <button class="kindbtn active" data-kind="new">New SKU</button>
@@ -304,8 +318,8 @@ table.boxtbl tr:last-child td{border-bottom:none;}
           </div>
           <label>SKU</label>
           <input class="field" id="recvSku" value="GMO 3.5g" />
-          <label>New batch number (tag already scanned to it)</label>
-          <input class="field" id="recvBatch" value="B-2402" />
+          <label>New batch (tag already read to it)</label>
+          <input class="field" id="recvBatch" value="HW-2411-09" />
           <button class="btn btn-ghost btn-sm" id="fillArrivalBtn" style="margin-top:12px;">Fill from example arrival ▸</button>
           <button class="btn btn-primary" id="askSlotBtn" style="width:100%;margin-top:14px;">Where do I put this?</button>
         </div>
@@ -321,12 +335,14 @@ table.boxtbl tr:last-child td{border-bottom:none;}
     <!-- ============ REFILL ROW + PICK SLIP ============ -->
     <div class="view" id="view-refill"><div class="viewband">
       <div style="font-weight:800;font-size:var(--f-title);">Flower Box 2 · Orange County · Driver: M. Alvarez</div>
-      <div class="refill-note">Same row schema as Box Cards (Concept B) — Sold · Need · Cap · Give · Reason — with the mixed-batch flag now naming both locations, so the refill person never has to guess where the second batch lives.</div>
+      <div class="refill-note">Same row schema as Box Cards (Concept B) — Sold · Need · Cap · Give · Reason — but every product row is a batch row now: a SKU with two batches on hand is two rows, both LOUD, oldest first.</div>
       <table class="boxtbl" id="refillTable"></table>
 
       <div class="pickslip-head">
         <h3>Pick slip — grouped by rack, walking order</h3>
-        <span class="pill pill-info">4 stops</span>
+        <span class="pill pill-info" id="stopCount">4 stops</span>
+        <button class="qrbtn" title="Scan to close this kit" id="closeKitBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="15" y="15" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="19" y="15" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="15" y="19" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="19" y="19" width="2.4" height="2.4" fill="currentColor" stroke="none"/></svg></button>
+        <span style="font-size:var(--f-meta);color:var(--inkMute);">Scan to close this kit — same QR the console prints on the paper slip</span>
       </div>
       <div class="pickslip-strip" id="pickStrip"></div>
     </div></div>
@@ -364,13 +380,19 @@ $('#themeToggle').addEventListener('click',function(){
   paintThemeIcon();
 });
 
-/* ---------- example data ---------- */
+/* ---------- batch chip + QR helpers (batch level everywhere / RFID first) ---------- */
+function thcStr(b){ return b.thc ? b.thc.toFixed(1)+'%' : '—'; }
+function fmtBatch(b){ return '#'+b.batch+' · THC '+thcStr(b)+' · pkg '+b.pkg+' · exp '+b.exp+' · '+b.age+' d on hand · Metrc '+b.metrc; }
+function chipHtml(b, loud){ return '<div class="batchchip'+(loud?' loud':'')+'">'+fmtBatch(b)+'</div>'; }
+function qrBtn(title){ return '<button class="qrbtn" title="'+title+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="15" y="15" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="19" y="15" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="15" y="19" width="2.4" height="2.4" fill="currentColor" stroke="none"/><rect x="19" y="19" width="2.4" height="2.4" fill="currentColor" stroke="none"/></svg></button>'; }
+
+/* ---------- example data — every row is a batch, a SKU is only a grouping label ---------- */
 var CAT={flower:'#3F9E72',vape:'#3F73D6',edibles:'#E0477C'};
 var BATCHES=[
-  {sku:'GMO 3.5g',cat:'flower',batch:'B-2291',thc:24.1,packaged:'2026-07-02',qty:42,rack:'A',pos:'03',shelf:'2',ageDays:70},
-  {sku:'GMO 3.5g',cat:'flower',batch:'B-2338',thc:31.6,packaged:'2026-08-20',qty:18,rack:'A',pos:'04',shelf:'1',ageDays:21},
-  {sku:'Blue Dream Cart 1g',cat:'vape',batch:'V-1187',thc:88.4,packaged:'2026-06-14',qty:60,rack:'B',pos:'02',shelf:'2',ageDays:88},
-  {sku:'Wana Gummies 100mg',cat:'edibles',batch:'E-0552',thc:0,packaged:'2026-08-01',qty:96,rack:'B',pos:'02',shelf:'3',ageDays:40},
+  {sku:'GMO 3.5g',cat:'flower',batch:'HW-2409-01',thc:24.1,pkg:'Aug 28',exp:'Feb 24',qty:22,rack:'A',pos:'03',shelf:'2',age:42,metrc:'1A40…9021'},
+  {sku:'GMO 3.5g',cat:'flower',batch:'HW-2411-07',thc:31.6,pkg:'Sep 6',exp:'Mar 6',qty:14,rack:'A',pos:'04',shelf:'1',age:4,metrc:'1A40…7F3'},
+  {sku:'Blue Dream Cart 1g',cat:'vape',batch:'HW-2406-19',thc:88.4,pkg:'Jun 14',exp:'Jun 14 2027',qty:60,rack:'B',pos:'02',shelf:'2',age:88,metrc:'1A40…C204'},
+  {sku:'Wana Gummies 100mg',cat:'edibles',batch:'HW-2408-05',thc:0,pkg:'Aug 1',exp:'Feb 1',qty:96,rack:'B',pos:'02',shelf:'3',age:40,metrc:'1A40…88E1'},
 ];
 function loc(b){ return 'Rack '+b.rack+' — '+b.rack+'-'+b.pos+'-'+b.shelf; }
 function locShort(b){ return b.rack+'-'+b.pos+'-'+b.shelf; }
@@ -395,17 +417,16 @@ function matches(b,q){
   return b.sku.toLowerCase().indexOf(q)>-1 || b.batch.toLowerCase().indexOf(q)>-1 || ('rack '+b.rack).toLowerCase().indexOf(q)>-1 || b.rack.toLowerCase()===q;
 }
 function renderProductCard(sku){
-  var rows=BATCHES.filter(function(b){return b.sku===sku;}).sort(function(a,b2){return b2.ageDays-a.ageDays;});
+  var rows=BATCHES.filter(function(b){return b.sku===sku;}).sort(function(a,b2){return b2.age-a.age;});
   var loud=rows.length>1;
   var html='<div class="pcard"><div class="pcard-head"><span class="catdot" style="background:'+CAT[rows[0].cat]+'"></span><span class="pname">'+sku+'</span><span class="ptotal">'+rows.reduce(function(s,b){return s+b.qty;},0)+' units on hand · '+rows.length+' batch'+(rows.length>1?'es':'')+'</span></div>';
   if(loud){
-    html+='<div class="loudflag"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.6" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>Two batches in stock — not interchangeable. A kit line pulls from one batch only; finish '+rows[0].batch+' before opening '+rows[rows.length-1].batch+'.</div>';
+    html+='<div class="loudflag"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.6" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>Two batches in stock — not interchangeable. A kit line pulls from one batch only; finish #'+rows[0].batch+' before opening #'+rows[rows.length-1].batch+'.</div>';
   }
   rows.forEach(function(b,i){
-    html+='<div class="batchrow"><span class="rackphoto">'+rackSVG(b.rack,b.pos,b.shelf)+'</span>'
-      +'<div class="batch-meta"><div class="bno">'+b.batch+(i===0?' <span class="pill oldest" style="height:19px;">Pick first — oldest</span>':'')+'</div><div class="bsub">Packaged '+b.packaged+' · '+b.ageDays+' days on hand</div></div>'
-      +'<div class="batch-stat3"><div><div class="k">THC</div><div class="v">'+(b.thc?b.thc+'%':'—')+'</div></div><div><div class="k">Qty</div><div class="v">'+b.qty+'</div></div></div>'
-      +'<div class="loclabel"><div class="big">'+locShort(b)+'</div><div class="cap">'+loc(b)+'</div></div></div>';
+    html+='<div class="batchrow'+(loud?' loud':'')+'"><span class="rackphoto">'+rackSVG(b.rack,b.pos,b.shelf)+'</span>'
+      +'<div class="batch-meta">'+chipHtml(b,loud)+(i===0&&loud?'<span class="pill oldest" style="height:19px;margin-top:5px;display:inline-flex;">Pick first — oldest</span>':'')+'</div>'
+      +'<div class="loclabel"><div class="locrow"><div class="big">'+locShort(b)+'</div>'+qrBtn('Shelf QR opens '+locShort(b)+' — this window')+'</div><div class="cap">'+loc(b)+'</div></div></div>';
   });
   html+='</div>';
   return html;
@@ -413,9 +434,9 @@ function renderProductCard(sku){
 function renderNewSince(){
   return '<div class="pcard"><div class="pcard-head"><span class="pname">New since your last refill</span><span class="ptotal">6:12 AM PT → now</span></div>'
     +'<div style="padding:14px 18px;"><div class="newsince">'
-    +'<div class="nsgroup"><h4>New SKU</h4><div class="nsitem"><div class="n">Rove Live Resin Cart 0.5g</div><div class="m">First arrival, 24 units</div><div class="loc">C-01-4</div></div></div>'
-    +'<div class="nsgroup"><h4>Restock</h4><div class="nsitem"><div class="n">Wana Gummies 100mg</div><div class="m">+60 units, sold out since Tue</div><div class="loc">B-02-2</div></div></div>'
-    +'<div class="nsgroup"><h4>New batch, in-stock SKU</h4><div class="nsitem loud"><div class="n">GMO 3.5g — batch B-2402</div><div class="m">B-2291 already in kits — loud flag applied</div><div class="loc">A-04-3</div></div></div>'
+    +'<div class="nsgroup"><h4>New SKU</h4><div class="nsitem"><div class="n">Rove Live Resin Cart 0.5g</div><div class="batchchip">#HW-2411-14 · THC 78.2% · pkg Sep 8 · exp Sep 8 2027 · 2 d on hand · Metrc 1A40…F102</div><div class="loc">C-01-4</div></div></div>'
+    +'<div class="nsgroup"><h4>Restock</h4><div class="nsitem"><div class="n">Wana Gummies 100mg</div><div class="batchchip">#HW-2408-05 · THC — · pkg Aug 1 · exp Feb 1 · 40 d on hand · Metrc 1A40…88E1</div><div class="loc">B-02-2</div></div></div>'
+    +'<div class="nsgroup"><h4>New batch, in-stock SKU</h4><div class="nsitem loud"><div class="n">GMO 3.5g</div><div class="batchchip">#HW-2411-07 · THC 31.6% · pkg Sep 6 · exp Mar 6 · 4 d on hand · Metrc 1A40…7F3</div><div class="m" style="font-size:var(--f-meta);color:var(--warnText);">#HW-2409-01 already in kits — LOUD flag applied</div><div class="loc">A-04-1</div></div></div>'
     +'</div></div></div>';
 }
 function renderRackList(rack){
@@ -423,13 +444,13 @@ function renderRackList(rack){
   if(!rows.length) return '';
   var html='<div class="pcard"><div class="pcard-head"><span class="pname">Rack '+rack.toUpperCase()+'</span><span class="ptotal">'+rows.length+' batch'+(rows.length>1?'es':'')+' stored here</span></div>';
   rows.forEach(function(b){
-    html+='<div class="batchrow"><span class="rackphoto">'+rackSVG(b.rack,b.pos,b.shelf)+'</span><div class="batch-meta"><div class="bno">'+b.sku+'</div><div class="bsub">Batch '+b.batch+' · Qty '+b.qty+'</div></div><div class="loclabel"><div class="big">'+locShort(b)+'</div></div></div>';
+    html+='<div class="batchrow"><span class="rackphoto">'+rackSVG(b.rack,b.pos,b.shelf)+'</span><div class="batch-meta"><div style="font-weight:700;">'+b.sku+'</div>'+chipHtml(b,false)+'</div><div class="loclabel"><div class="locrow"><div class="big">'+locShort(b)+'</div>'+qrBtn('Shelf QR opens '+locShort(b)+' — this window')+'</div></div></div>';
   });
   return html+'</div>';
 }
 function runSearch(q){
   q=(q||'').trim();
-  if(!q){ answers.innerHTML='<div class="emptyanswer">Search a SKU, a batch number, or a rack — the answer always leads with location.</div>'; return; }
+  if(!q){ answers.innerHTML='<div class="emptyanswer">Search a SKU, a batch number, or a rack — or scan — the answer always leads with the batch and its location.</div>'; return; }
   if(q==='__new_since__'){ answers.innerHTML=renderNewSince(); return; }
   var lower=q.toLowerCase();
   if(/^rack\s|^[a-z]$/i.test(lower) || (lower.length<=1)){
@@ -447,7 +468,7 @@ searchInput.addEventListener('input',function(){ runSearch(this.value); });
 $$('.chip').forEach(function(c){ c.addEventListener('click',function(){ var q=c.getAttribute('data-q'); if(q!=='__new_since__'){ searchInput.value=q; } else { searchInput.value=''; } runSearch(q); }); });
 runSearch('');
 
-/* voice + scan — UI only, per owner's optional ask */
+/* voice + scan — UI only, per owner's optional ask; scan is the RFID-first path */
 var voiceOn=false;
 $('#voiceBtn').addEventListener('click',function(){
   voiceOn=!voiceOn;
@@ -462,8 +483,8 @@ $('#voiceBtn').addEventListener('click',function(){
   }
 });
 $('#scanBtn').addEventListener('click',function(){
-  searchInput.value='B-2338'; runSearch('B-2338');
-  $('#voiceHint').textContent='Scanned tag → batch B-2338.';
+  searchInput.value='HW-2411-07'; runSearch('HW-2411-07');
+  $('#voiceHint').textContent='RFID read → batch #HW-2411-07, read vs expected match.';
 });
 
 /* ---------- mode tabs ---------- */
@@ -476,71 +497,68 @@ $$('.modetab').forEach(function(t){
   });
 });
 
-/* ---------- Receive: where do I put this ---------- */
+/* ---------- Receive: where do I put this — decided per batch, no dropdown ---------- */
 var kind='new';
 $$('.kindbtn').forEach(function(k){
   k.addEventListener('click',function(){ $$('.kindbtn').forEach(function(x){x.classList.remove('active');}); k.classList.add('active'); kind=k.getAttribute('data-kind'); });
 });
 $('#fillArrivalBtn').addEventListener('click',function(){
-  $('#recvSku').value='GMO 3.5g'; $('#recvBatch').value='B-2402';
+  $('#recvSku').value='GMO 3.5g'; $('#recvBatch').value='HW-2411-09';
   $$('.kindbtn').forEach(function(x){x.classList.remove('active');});
   $('.kindbtn[data-kind="batch"]').classList.add('active'); kind='batch';
 });
 var SLOT_ANSWERS={
   new:{slot:'C-01-4', reason:'No existing stock of this SKU — nearest empty slot in the receiving-adjacent zone.'},
   restock:{slot:'B-02-2', reason:'Same slot the SKU already occupies — restocks return to their existing home.'},
-  batch:{slot:'A-04-3', reason:'Existing GMO 3.5g batch (B-2291) lives on Rack A — keeps the SKU together and keeps the older batch reachable first. Flagged: a second batch of this SKU is now on hand.'}
+  batch:{slot:'A-04-2', reason:'Existing GMO 3.5g batch (#HW-2409-01) lives on Rack A — keeps the SKU together and keeps the older batch reachable first. Flagged: a second batch of this SKU is now on hand, LOUD.'}
 };
 $('#askSlotBtn').addEventListener('click',function(){
   var ans=SLOT_ANSWERS[kind];
   var sku=$('#recvSku').value||'this item', batch=$('#recvBatch').value||'';
-  $('#recvAnswer').querySelector('.askedfor').textContent='Where do I put '+sku+(batch?' · batch '+batch:'')+'?';
+  $('#recvAnswer').querySelector('.askedfor').textContent='Where do I put '+sku+(batch?' · batch #'+batch:'')+'?';
   $('#recvAnswer').querySelector('.slot').textContent=ans.slot;
   $('#recvAnswer').querySelector('.reason').textContent=ans.reason;
   $('#confirmedBox').classList.remove('show');
   if(!$('#confirmScanBtn')){
     var b=document.createElement('button');
     b.className='btn btn-primary'; b.id='confirmScanBtn'; b.style.width='100%'; b.style.marginTop='14px';
-    b.textContent='Scan rack '+ans.slot+' to confirm';
+    b.textContent='Scan rack '+ans.slot+' to confirm (RFID read)';
     b.addEventListener('click',function(){
       $('#confirmedBox').classList.add('show');
-      $('#confirmedBox').innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'+batch+' → '+ans.slot+' recorded. Refill and pick-slip screens will show this location immediately.';
+      $('#confirmedBox').innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>#'+batch+' → '+ans.slot+' read confirmed. Refill and pick-slip screens will show this location immediately.';
     });
     $('#recvAnswer').appendChild(b);
   } else {
-    $('#confirmScanBtn').textContent='Scan rack '+ans.slot+' to confirm';
+    $('#confirmScanBtn').textContent='Scan rack '+ans.slot+' to confirm (RFID read)';
   }
 });
 
-/* ---------- Refill row (Box Cards schema, loud flag with both locations) ---------- */
-var REFILL_ROWS=[
-  {name:'GMO 3.5g', loud:true, sold:14, need:14, cap:20, give:14,
-    batches:[{b:'B-2291',loc:'A-03-2',given:10},{b:'B-2338',loc:'A-04-1',given:4}],
-    reason:'Two batches in this line — B-2291 @ A-03-2 (10) + B-2338 @ A-04-1 (4).'},
-  {name:'Blue Dream Cart 1g', loud:false, sold:6, need:6, cap:12, give:6, batches:[{b:'V-1187',loc:'B-02-2',given:6}], reason:'—'},
-  {name:'Wana Gummies 100mg', loud:false, sold:9, need:9, cap:10, give:9, batches:[{b:'E-0552',loc:'B-02-3',given:9}], reason:'—'}
-];
+/* ---------- Refill row (Box Cards schema) — a SKU with two batches is two rows, both LOUD ---------- */
 (function(){
-  var rowsHtml=REFILL_ROWS.map(function(r){
-    var chips=r.batches.map(function(x){return '<span class="batchloc-mini">'+x.b+' @ '+x.loc+' · '+x.given+'</span>';}).join('');
-    return '<tr class="'+(r.loud?'row-loud':'')+'"><td class="pn">'+r.name+chips+'</td><td class="num">'+r.sold+'</td><td class="num">'+r.need+'</td><td class="num">'+r.cap+'</td><td class="num">'+r.give+'</td>'
-      +'<td class="reasoncell'+(r.loud?' r-warn':'')+'">'+r.reason+'</td></tr>';
-  }).join('');
-  $('#refillTable').innerHTML='<thead><tr><th>Product · batches given</th><th>Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead><tbody>'+rowsHtml+'</tbody>';
-})();
+  var gmo=BATCHES.filter(function(b){return b.sku==='GMO 3.5g';}).sort(function(a,b){return b.age-a.age;});
+  var bd=BATCHES.filter(function(b){return b.sku==='Blue Dream Cart 1g';})[0];
+  var wg=BATCHES.filter(function(b){return b.sku==='Wana Gummies 100mg';})[0];
+  var rows='<tr class="prodhead"><td colspan="6"><b>GMO 3.5g</b> <span class="pill pill-warn">Two batches — LOUD</span></td></tr>';
+  rows+='<tr class="row-loud"><td class="pn">'+chipHtml(gmo[0],true)+'<span class="pill-oldest" style="margin-top:5px;">Pick first — oldest</span></td><td class="num">10</td><td class="num">10</td><td class="num">14</td><td class="num">10</td><td class="reasoncell r-warn">'+locShort(gmo[0])+' — pick before #'+gmo[1].batch+'</td></tr>';
+  rows+='<tr class="row-loud"><td class="pn">'+chipHtml(gmo[1],true)+'</td><td class="num">4</td><td class="num">4</td><td class="num">8</td><td class="num">4</td><td class="reasoncell r-warn">'+locShort(gmo[1])+' — after #'+gmo[0].batch+' empties</td></tr>';
+  rows+='<tr><td class="pn"><div style="font-weight:700;">Blue Dream Cart 1g</div>'+chipHtml(bd,false)+'</td><td class="num">6</td><td class="num">6</td><td class="num">12</td><td class="num">6</td><td class="reasoncell">'+locShort(bd)+'</td></tr>';
+  rows+='<tr><td class="pn"><div style="font-weight:700;">Wana Gummies 100mg</div>'+chipHtml(wg,false)+'</td><td class="num">9</td><td class="num">9</td><td class="num">10</td><td class="num">9</td><td class="reasoncell">'+locShort(wg)+'</td></tr>';
+  $('#refillTable').innerHTML='<thead><tr><th>Product · batch</th><th>Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead><tbody>'+rows+'</tbody>';
 
-var PICK_STOPS=[
-  {rack:'Rack A', items:[{n:'GMO 3.5g — B-2291',loc:'A-03-2',q:10},{n:'GMO 3.5g — B-2338',loc:'A-04-1',q:4}]},
-  {rack:'Rack B', items:[{n:'Blue Dream Cart 1g',loc:'B-02-2',q:6},{n:'Wana Gummies 100mg',loc:'B-02-3',q:9}]},
-  {rack:'Rack C', items:[{n:'Rove Live Resin Cart 0.5g',loc:'C-01-4',q:5}]},
-];
-(function(){
+  var PICK_STOPS=[
+    {rack:'Rack A', items:[{n:'GMO 3.5g',b:gmo[0],q:10},{n:'GMO 3.5g',b:gmo[1],q:4}]},
+    {rack:'Rack B', items:[{n:'Blue Dream Cart 1g',b:bd,q:6},{n:'Wana Gummies 100mg',b:wg,q:9}]},
+    {rack:'Rack C', items:[{n:'Rove Live Resin Cart 0.5g',b:{batch:'HW-2411-14',thc:78.2,pkg:'Sep 8',exp:'Sep 8 2027',age:2,metrc:'1A40…F102'},q:5}]},
+  ];
   $('#pickStrip').innerHTML = PICK_STOPS.map(function(s,i){
-    var lines=s.items.map(function(it){return '<div class="rline"><span>'+it.n+' <span style="color:var(--inkMute);font-family:var(--fontMono);">'+it.loc+'</span></span><span class="q">'+it.q+'</span></div>';}).join('');
+    var lines=s.items.map(function(it){return '<div class="rline"><div class="rtop"><span>'+it.n+' <span style="color:var(--inkMute);font-family:var(--fontMono);">'+locShort(it.b)+'</span></span><span class="q">'+it.q+'</span></div>'+chipHtml(it.b,false)+'</div>';}).join('');
     return '<div class="rackstop"><span class="stopno">'+(i+1)+'</span><span class="rname">'+s.rack+'</span>'+lines+'</div>';
   }).join('');
-  $('#pickslip-count') && ($('#pickslip-count').textContent=PICK_STOPS.length);
+  $('#stopCount').textContent = PICK_STOPS.length+' stops';
 })();
+$('#closeKitBtn').addEventListener('click',function(){
+  var hint=$('#voiceHint'); if(hint) hint.textContent='Pick-slip QR scanned — kit closed, all lines matched read vs expected.';
+});
 
 })();
 </script>
