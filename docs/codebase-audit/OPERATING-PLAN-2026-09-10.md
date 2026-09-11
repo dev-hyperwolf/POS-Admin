@@ -157,10 +157,16 @@ What we could verify ourselves (`tools/hw_security_recheck.sh`, read-only GETs, 
   reads are recorded, and everything before mid-June is already gone.
 - Consequence for counsel: the account cannot answer "did anyone other than the researcher pull
   data from S3". The only remaining sources are the developers' application/API logs.
-- Owner decision A7 (new): create a multi-region CloudTrail trail with S3 data events and switch
-  on server access logging for the asset and signature buckets, so the next question has an
-  answer. Cost is small (trail management events free; data events ~$0.10 per 100k; log storage
-  pennies).
+- **A7 done (owner authorised, 2026-09-11 09:10, CloudShell as root):** multi-region CloudTrail trail
+  `hyperwolf-audit` (management events + S3 data events for the six buckets, log-file validation
+  on, IsLogging true, no delivery error) writing to new private bucket
+  `hyperwolf-audit-logs-913839484704` (us-east-1); server access logging on
+  hyperwolf-website-assets, hemp-website-assets, stilo-assets -> that bucket, and on
+  hyperdrives3bucket, hyperdriver-signatures -> `hyperwolf-audit-logs-913839484704-us-west-1`
+  (S3 refuses cross-region logging; those two buckets live in us-west-1). Both log buckets: public
+  access fully blocked, 400-day expiry. Every asset bucket policy read back unchanged (public
+  GetObject still true, so the websites are unaffected). Backups bucket not touched. Setup script
+  left at CloudShell `~/hw_audit_setup.sh`.
 
 Asked of the developers, per item: commit diff, deploy timestamp and host, a before/after request.
 Asked separately: S3 access logs, CloudTrail and API access logs for the exposure window, so counsel
