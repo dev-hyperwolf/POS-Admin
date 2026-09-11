@@ -135,6 +135,11 @@ What we could verify ourselves (`tools/hw_security_recheck.sh`, read-only GETs, 
   `distribution-backend.js.thcs.in` (consistent with their "under review").
 - **Consistent with a fix:** `GET /api/v1/admin/products` now 401 (the audit's finding was on
   POST/PUT, which we do not exercise).
+- **Confirmed still open (08:36 run):** `GET /api/v1/admin/banners`, `/admin/brand`,
+  `/admin/distributor` answer 200 with no login; the audit found these routers carry no auth on
+  any method, so writes are presumed open too. `/admin/blogs`, `/admin/shop/time`,
+  `/product/carousel`, `/timeslots` now 404 (moved or renamed; not evidence either way).
+  `hyperdrive.hyperwolf.com` does not answer on http or https from the owner's network.
 - **No evidence in git:** all twelve Hyper-Tech repos on GitHub still sit at their single Initial
   commit of 2026-09-08/09. Whatever was deployed did not pass through the repositories the owner
   holds.
