@@ -369,3 +369,7 @@ locations are never chosen from a dropdown. Hand entry only as an exception (dea
 untagged category) and flagged as hand-counted on the record. Reads propose; a manager approves.
 The middleware's CYCLE session mode is the cycle-count path; KIT mode the pack path; RETURN mode
 is still to be added.
+
+**Batch level everywhere (owner, 2026-09-10):** "it's critical that we always include the batch
+level data — revise that everywhere it's needed across all screens and concepts." Rule added to
+the brief; revision pass over all 24 concepts dispatched (batch rows + RFID-first in one sweep).

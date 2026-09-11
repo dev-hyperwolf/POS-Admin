@@ -98,3 +98,16 @@ read vs expected per batch; typed steppers appear only in an "exception" row for
 an untagged category and are flagged hand-counted. Shelf and rack labels carry a QR that opens
 that location's window; count sheets and pick slips carry a QR that closes them by scan. No
 location dropdowns. Reads propose; a manager approves.
+
+## Added 2026-09-10 — Batch level everywhere (hard rule, every screen, every concept)
+The batch is the unit on every screen; a SKU is only a grouping label. Every product line is a
+**batch line**: product name on top, then a batch chip line in monospace —
+`#HW-2409-01 · THC 24.1% · pkg Aug 28 · exp Feb 24 · 42 d on hand · Metrc 1A40…7F3` (Metrc tag
+where relevant: quarantine, recall, transfers, Metrc screens). Quantities (expected, read, sold,
+need, cap, give, on shelf, par, counted, variance) are **per batch**. A SKU with two batches on
+hand shows two batch rows grouped under the product, with the LOUD mixed-batch flag when they
+would share a kit line, a shelf, or an order. Counts: read vs expected per batch, drift = a batch
+read where it should not be. Register: the batch on the line and on the receipt. Pick slips and
+count sheets: one line per batch. Received ledger: the arrival kind is decided per batch. Never a
+SKU-only quantity anywhere. Example batches: `#HW-2409-01` (older, pkg Aug 28, THC 24.1%) and
+`#HW-2411-07` (newer, pkg Sep 6, THC 31.6%) for the same SKU are the standard mixed pair.
