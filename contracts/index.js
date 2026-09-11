@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.4.1'; // 0.4.1: attribution on Plan (planned_by, engine_version, approved_by/at) and PlanLine (picked/packed/verified by+at, overridden_by). 0.4.0: inventory — LocationKind, ArrivalKind, MovementReason, PlanReason, ChannelKind, CountState; Location, Batch, Movement, ReceivedItem, PlanLine, Plan. 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
+  var VERSION = '0.4.2'; // 0.4.2: LocationSide, ShellLocationBinding (per-store FOH/BOH placement, shell default, variations inherit). 0.4.1: attribution on Plan (planned_by, engine_version, approved_by/at) and PlanLine (picked/packed/verified by+at, overridden_by). 0.4.0: inventory — LocationKind, ArrivalKind, MovementReason, PlanReason, ChannelKind, CountState; Location, Batch, Movement, ReceivedItem, PlanLine, Plan. 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -156,6 +156,8 @@
       source: 'OWNER-NOTES.md — ASAP from the kit drives refill; scheduled from the safe counts for loss prevention only' },
     CountState: { values: ['proposed', 'recount_required', 'awaiting_approval', 'approved', 'rejected'],
       source: 'OWNER-NOTES.md — second-person recount above threshold; manager approves every adjustment' },
+    LocationSide: { values: ['foh', 'boh'],
+      source: 'OWNER-NOTES.md 2026-09-10 — every shell carries an optional front-of-house and back-of-house location per store' },
   };
   var HTTP_STATUS = { bad_request: 400, unauthorized: 401, forbidden: 403, not_found: 404,
     conflict: 409, unprocessable: 422, rate_limited: 429, internal: 500, not_built: 501 };
@@ -424,6 +426,10 @@
         packed_by: { type: 'string', nullable: true }, packed_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
         verified_by: { type: 'string', nullable: true }, verified_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
         overridden_by: { type: 'string', nullable: true } } },
+    // 0.4.2 — placement: which Location a shell (or a store's override of it) uses per side. Variations inherit.
+    ShellLocationBinding: { type: 'object', required: ['shell_id', 'side', 'location_id'], additionalProperties: true,
+      properties: { shell_id: ID, store_id: { type: 'string', nullable: true }, side: { type: 'string', $enum: 'LocationSide' },
+        location_id: ID, updated_at: { type: 'string', pattern: ISO_UTC.source, nullable: true }, updated_by: { type: 'string', nullable: true } } },
     Plan: { type: 'object', required: ['id', 'kind', 'business_day', 'generated_at', 'channel', 'lines'], additionalProperties: true,
       properties: { id: ID, kind: { type: 'string', enum: ['build', 'refill', 'restock', 'handoff'] }, business_day: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
         generated_at: ISO, channel: { type: 'string', $enum: 'ChannelKind' }, store_id: { type: 'string', nullable: true },

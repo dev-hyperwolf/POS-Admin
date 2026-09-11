@@ -1,5 +1,5 @@
 {
-  "contract": "0.4.1",
+  "contract": "0.4.2",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -477,6 +477,10 @@
       "awaiting_approval",
       "approved",
       "rejected"
+    ],
+    "LocationSide": [
+      "foh",
+      "boh"
     ]
   }
 }

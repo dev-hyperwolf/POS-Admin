@@ -1,6 +1,6 @@
 {
   "$id": "ExternalId",
-  "contract": "0.4.1",
+  "contract": "0.4.2",
   "type": "object",
   "required": [
     "source",

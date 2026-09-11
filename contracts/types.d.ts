@@ -25,6 +25,7 @@ export type MovementReason = 'receive' | 'put_away' | 'build' | 'refill' | 'rest
 export type PlanReason = 'sold' | 'new_arrival' | 'oldest_first' | 'partial_placement' | 'short_stock' | 'below_subregion_count' | 'not_in_template' | 'no_sales_counted' | 'capped' | 'mixed_batch' | 'reserved' | 'expiring' | 'held' | 'manual';
 export type ChannelKind = 'asap' | 'scheduled' | 'register' | 'pickup' | 'express';
 export type CountState = 'proposed' | 'recount_required' | 'awaiting_approval' | 'approved' | 'rejected';
+export type LocationSide = 'foh' | 'boh';
 export type IdSource = 'blaze' | 'meadow' | 'treez' | 'weedmaps' | 'didit' | 'hwpos' | 'connecteam' | 'airtable' | 'hyperwolf' | 'metrc' | 'onfleet' | 'twilio' | 'sendgrid' | 'alpineiq' | 'hyperdrive';
 export type FulfillmentStage = 'verify' | 'pack' | 'packing' | 'ready' | 'done' | 'canceled';
 export type WeedmapsOrderStatus = 'DRAFT' | 'PENDING' | 'IN_PROGRESS' | 'READY_FOR_ATTAINMENT' | 'COMPLETE' | 'CANCELED_SELLER';
@@ -64,6 +65,7 @@ export interface Batch { id: string; product_id: string; sku?: string | null; ba
 export interface Movement { id: string; at: string; reason: MovementReason; product_id: string; batch_id: string; quantity: number; from_location_id?: string | null; to_location_id: string; tag_ids?: string[]; actor_id?: string | null; ref?: string | null; note?: string | null }
 export interface ReceivedItem { id: string; received_at: string; kind: ArrivalKind; product_id: string; batch_id: string; quantity: number; location_id?: string | null; included_in?: string[]; reason?: PlanReason | null; premium?: boolean }
 export interface PlanLine { product_id: string; batch_id: string; from_location_id?: string | null; to_location_id: string; sold: number; need: number; cap: number; give: number; reasons: PlanReason[]; mixed_batch?: boolean; note?: string | null; picked_by?: string | null; picked_at?: string | null; packed_by?: string | null; packed_at?: string | null; verified_by?: string | null; verified_at?: string | null; overridden_by?: string | null }
+export interface ShellLocationBinding { shell_id: string; store_id?: string | null; side: LocationSide; location_id: string; updated_at?: string | null; updated_by?: string | null }
 export interface Plan { id: string; kind: 'build' | 'refill' | 'restock' | 'handoff'; business_day: string; generated_at: string; channel: ChannelKind; store_id?: string | null; lines: PlanLine[]; skipped?: PlanLine[]; warnings?: string[]; inputs?: Record<string, unknown> | null; planned_by?: string | null; engine_version?: string | null; approved_by?: string | null; approved_at?: string | null }
 export interface Standing { person: Person; metric: Metric; value: number; rank: number; tied?: boolean; earned?: Money | null; progress?: number | null }
 export interface Contest { id: string; name: string; kind: ContestKind; status: ContestStatus; metric: Metric; audience: Classification[]; store_ids: string[]; starts_at?: string | null; ends_at?: string | null; prize?: Money | null }
