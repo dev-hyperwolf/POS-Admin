@@ -12,6 +12,7 @@
     ['Hyperwolf Engage.html', 'Engage', 'eng'],
     ['Hyperwolf Bounty.html', 'Bounty', 'bty'],
     ['Hyperwolf Docs.html', 'Docs', 'doc'],
+    ['Hyperwolf Forms.html', 'Forms', 'frm'],
     ['Hyperwolf Verify.html', 'Verify', 'idv'],
     ['Hyperwolf Delivery.html', 'Delivery', 'del'],
     ['Hyperdrive Logistics.html', 'Logistics', 'log'],

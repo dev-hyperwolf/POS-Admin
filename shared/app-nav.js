@@ -25,6 +25,10 @@
     // neighbor among the staff-facing items above, so it sits right after
     // Bounty — the last "internal ops" item before Verify's identity group.
     { id: 'docs', label: 'Docs', icon: 'note', href: 'Hyperwolf Docs.html' },
+    // Forms is the generated-form runtime (docs/migration/FORM-GENERATOR-PROPOSAL.md):
+    // one renderer (shared/hd-form.jsx) turns a saved FormDef into a fillable
+    // screen. Sits right after Docs, same "internal ops console" neighborhood.
+    { id: 'forms', label: 'Forms', icon: 'note', href: 'Hyperwolf Forms.html' },
     // Identity-adjacent to Members and Bounty on purpose: Verify is the ID
     // check/liveness/review console. docs/IDV-PLAN-2026-09-08.md §10.
     { id: 'idv', label: 'Verify', icon: 'shield', href: 'Hyperwolf Verify.html' },
