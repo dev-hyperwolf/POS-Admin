@@ -401,3 +401,22 @@ Location records (kind, rack-shelf-bin address, QR, capacity, parent, units, mov
 contract shape; the shells module owns product placement (per-store FOH/BOH defaults, overrides,
 box on the shell, delete-then-rebind with segment selection) over those location ids — one list
 of places, never two. Routes: `/api/shells/locations`, `/api/shells/products/<sku>/location?store_id=`.
+
+## 2026-09-10 · build status, end of day
+
+| Piece | Where | Proof |
+|---|---|---|
+| Contracts 0.4.2 (inventory shapes, attribution, placement) | POS-Admin `contracts/` | 13 parity tests |
+| Decision engine (JS) | POS-Admin `distribution-engine/` | 53 tests |
+| POS adapter (Blaze / hwpos / memory) | POS-Admin `pos-provider/` | 31 tests |
+| Inventory storage + `/api/inventory/*` | wm-demo `inventory.py`, `inventory_api.py` | 49 + 21 checks |
+| Placement (per-store FOH/BOH on the shell, boxes, rebind) | wm-demo `shells.py`, `shells_api.py`; POS-Admin `pos/shell-locations.jsx`, `shell-boxes.jsx`, Placement on the shell form | 66 checks; 5 UI tests |
+| Python restock engine, parity with the JS | wm-demo `restock_engine.py` | 83 checks, 31 goldens |
+| Form generator phases 0–1 | wm-demo `forms.py`, `forms_api.py`; POS-Admin `shared/hd-form.jsx`, `Hyperwolf Forms.html` | 57 checks; 8 tests |
+| RFID middleware: batch-keyed plans, RETURN mode, station meta | `~/Documents/hyperwolf-repos/rfid-middleware` commit `ed18bcf` (local) | 177 → 199 tests |
+| 24 concepts, batch level everywhere, RFID first | POS-Admin `explorations/` + index | live on Render |
+| Migration inventories + form proposal | POS-Admin `docs/migration/` | — |
+
+Not done yet: a manager-approval route for return proposals in the middleware and its conformance
+kit; Floor Restock wired to `plan_restock_for_store`; a route for the restock plan; the form
+builder screen (phase 3); the LP migration.
