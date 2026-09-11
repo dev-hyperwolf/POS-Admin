@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cycle Count Review</title></head><body>
+<style>
+:root{--bg:#f2f4f6;--panel:#fff;--ink:#141a20;--ink2:#4b5560;--ink3:#7b8590;--line:#d5dbe1;--brand:#0f6e6e;--soft:#dff0ee;--keep:#1f8a4c;--change:#c2580a;--drop:#b3261e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1317;--panel:#171c22;--ink:#e8edf2;--ink2:#aeb8c2;--ink3:#7c8792;--line:#2c353f;--brand:#3fb3ad;--soft:#123a3a}}
+:root[data-theme="dark"]{--bg:#0f1317;--panel:#171c22;--ink:#e8edf2;--ink2:#aeb8c2;--ink3:#7c8792;--line:#2c353f;--brand:#3fb3ad;--soft:#123a3a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,system-ui,"Segoe UI",sans-serif;height:100vh;display:grid;grid-template-rows:auto 1fr;grid-template-columns:1fr 340px}
+header{grid-column:1/-1;display:flex;gap:14px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:16px;margin:0 12px 0 0}.blurb{color:var(--ink3);font-size:12px;flex:1}
+.tabs{display:flex;gap:4px}.tab{border:1px solid var(--line);background:transparent;color:var(--ink2);border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit}.tab[aria-selected="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+main{position:relative;min-height:0}iframe{width:100%;height:100%;border:0;background:#fff}
+aside{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.who{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}.who label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+input,select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+.new{padding:10px 12px;border-bottom:1px solid var(--line);display:grid;gap:6px}.row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.verdict button{border:1px solid var(--line);background:transparent;color:var(--ink2);border-radius:6px;padding:6px;cursor:pointer;font:inherit}
+.verdict button[aria-pressed="true"][data-v="keep"]{background:var(--keep);color:#fff}.verdict button[aria-pressed="true"][data-v="change"]{background:var(--change);color:#fff}.verdict button[aria-pressed="true"][data-v="drop"]{background:var(--drop);color:#fff}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:6px;padding:8px;cursor:pointer;font-weight:600}.btn:disabled{opacity:.5}
+.notes{overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px}.note{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}.note .m{color:var(--ink3);font-size:11px;display:flex;justify-content:space-between}.note .v{font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.06em}.v.keep{color:var(--keep)}.v.change{color:var(--change)}.v.drop{color:var(--drop)}
+.status{padding:6px 12px;font-size:11px;color:var(--ink3);border-top:1px solid var(--line)}
+@media(max-width:900px){body{grid-template-columns:1fr;grid-template-rows:auto 1fr 40vh}aside{border-left:0;border-top:1px solid var(--line)}}
+.pin{padding:10px 12px;border-bottom:1px solid var(--line);display:grid;gap:6px;background:var(--soft)}.pin label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}.pin .r{display:flex;gap:6px}.pin .r input{flex:1}.pin .r button{white-space:nowrap}.note .x{border:0;background:transparent;color:var(--ink3);cursor:pointer;font-size:11px;padding:0}
+</style>
+<header><h1>Cycle Count Review</h1><span class="blurb">Counting a location with the RFID handheld, variances, blind recounts and manager approval. Every number on the screens is example data.</span><div class="tabs" id="tabs"></div></header>
+<main><iframe id="frame" title="concept"></iframe></main>
+<aside>
+  <div class="pin" id="pin" hidden><label for="pinv">Team PIN</label><div class="r"><input id="pinv" type="password" placeholder="ask JT for the PIN" autocomplete="off"><button class="btn" id="pinok">Enter</button></div></div>
+  <div class="who"><label for="who">Your name</label><input id="who" placeholder="e.g. Priya"></div>
+  <div class="new">
+    <div class="row"><select id="concept"></select><input id="section" placeholder="Section (e.g. skips panel)"></div>
+    <div class="verdict"><button data-v="keep" aria-pressed="false">Keep</button><button data-v="change" aria-pressed="false">Change</button><button data-v="drop" aria-pressed="false">Drop</button></div>
+    <textarea id="text" rows="3" placeholder="What works, what does not, what you would do instead"></textarea>
+    <button class="btn" id="save" disabled>Add note</button>
+  </div>
+  <div class="notes" id="notes"></div>
+  <div class="status" id="status">connecting to the shared notes…</div>
+</aside>
+
+<script>
+(function(){
+  const TABS=[{"name": "Concept A - Walk the Location", "file": "Cycle Count - Concept A - Walk the Location.html"}, {"name": "Concept B - RFID Walk the Vault", "file": "Cycle Count - Concept B - RFID Walk the Vault.html"}, {"name": "Concept C - Variance Desk", "file": "Cycle Count - Concept C - Variance Desk.html"}, {"name": "Concept D - Count While Open", "file": "Cycle Count - Concept D - Count While Open.html"}]; const ROUND="count";
+  const $=s=>document.querySelector(s); const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let cur=0, verdict='', ok=false, notes=[], timer=null;
+  const tabs=$('#tabs'), sel=$('#concept');
+  TABS.forEach((t,i)=>{const b=document.createElement('button');b.className='tab';b.textContent=String.fromCharCode(65+i)+' · '+t.name;b.setAttribute('aria-selected',i===0);b.onclick=()=>show(i);tabs.appendChild(b);const o=document.createElement('option');o.value=i;o.textContent=String.fromCharCode(65+i)+' · '+t.name;sel.appendChild(o);});
+  function show(i){cur=i;[...tabs.children].forEach((b,j)=>b.setAttribute('aria-selected',j===i));$('#frame').src='../'+encodeURIComponent(TABS[i].file);sel.value=i;}
+  show(0);
+  const ls={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+  $('#who').value=ls.get('hw-review-name'); $('#pinv').value=ls.get('hw-review-pin');
+  $('#who').addEventListener('input',()=>{ls.set('hw-review-name',$('#who').value.trim());ready();});
+  document.querySelectorAll('.verdict button').forEach(b=>b.onclick=()=>{verdict=b.dataset.v;document.querySelectorAll('.verdict button').forEach(x=>x.setAttribute('aria-pressed',x===b));ready();});
+  $('#text').addEventListener('input',ready);
+  function ready(){$('#save').disabled=!(ok&&$('#who').value.trim()&&verdict&&$('#text').value.trim());}
+  function pin(){return $('#pinv').value.trim();}
+  async function api(path,body){const r=await fetch('/api/review/'+path,{method:body?'POST':'GET',headers:{'content-type':'application/json','x-hw-review-pin':pin()},body:body?JSON.stringify(body):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));return j;}
+  function render(){const el=$('#notes');if(!notes.length){el.innerHTML='<div class="note">No notes yet. Pick a concept, name the section, choose keep / change / drop, and add your note. Everyone with this page sees it.</div>';return;}
+    el.innerHTML=notes.slice().sort((a,b)=>(b.at||'').localeCompare(a.at||'')).map(n=>`<div class="note"><div class="m"><span><b>${esc(n.who)}</b> · ${esc(String.fromCharCode(65+(n.concept|0)))} ${esc(n.section||'')}</span><span class="v ${esc(n.verdict)}">${esc(n.verdict)}</span></div><div>${esc(n.text)}</div><div class="m"><span>${esc((n.at||'').replace('T',' ').slice(0,16))}</span><button class="x" data-id="${esc(n.id)}" title="Retract this note">retract</button></div></div>`).join('');
+    el.querySelectorAll('.x').forEach(b=>b.onclick=async()=>{if(!confirm('Retract this note? It stays in the record as retracted.'))return;try{await api('notes/'+b.dataset.id+'/retract',{who:$('#who').value.trim()||'someone'});await load();}catch(e){$('#status').textContent='Could not retract: '+e.message;}});}
+  async function load(){try{const j=await api('notes?round='+ROUND);notes=j.notes||[];render();if(!ok){ok=true;ls.set('hw-review-pin',pin());$('#pin').hidden=true;$('#status').textContent='live: notes are shared with everyone who has the team PIN';ready();}}catch(e){ok=false;$('#pin').hidden=false;$('#status').textContent=/PIN/.test(e.message)?'enter the team PIN to see and add notes':('cannot reach the notes: '+e.message);ready();}}
+  $('#pinok').onclick=load; $('#pinv').addEventListener('keydown',e=>{if(e.key==='Enter')load();});
+  $('#save').onclick=async()=>{const n={round:ROUND,who:$('#who').value.trim(),concept:Number(sel.value),conceptName:TABS[Number(sel.value)].name,section:$('#section').value.trim(),verdict,text:$('#text').value.trim()};try{await api('notes',n);$('#text').value='';$('#section').value='';verdict='';document.querySelectorAll('.verdict button').forEach(x=>x.setAttribute('aria-pressed','false'));ready();await load();}catch(e){$('#status').textContent='Could not save the note: '+e.message;}};
+  load(); timer=setInterval(()=>{if(ok)load();},8000);
+})();
+</script>
+</body></html>
