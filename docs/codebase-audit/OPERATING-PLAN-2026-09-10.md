@@ -171,3 +171,29 @@ What we could verify ourselves (`tools/hw_security_recheck.sh`, read-only GETs, 
 Asked of the developers, per item: commit diff, deploy timestamp and host, a before/after request.
 Asked separately: S3 access logs, CloudTrail and API access logs for the exposure window, so counsel
 can answer whether anyone other than the researcher accessed data (breach-notification question).
+
+## wm-demo outage 2026-09-11 (Render OOM restarts)
+
+Symptom: 502 in bursts all day; the instance restarted every 5-10 min; Render's log showed only
+"Instance restarted" because stdout was block-buffered. Diagnosis from memwatch entries read back
+through `/api/state` -> `events`: RSS jumped from ~400 MB to 1.3-2.0 GB between requests, five
+minutes after every boot, i.e. inside a 300 s background loop, and the process died before that
+loop's own RSS line was written. Each `/api/state` build also costs 250-330 MB transient and the
+dashboard polls it every 3.5 s per open tab.
+
+Applied on Render (owner: "keep working until you fix it; upgrade as a last resort"):
+1. `MALLOC_ARENA_MAX=2`, `PYTHONUNBUFFERED=1` (env): memory now returns after builds; the boot
+   banner and tracebacks reach the log.
+2. Brand-feed warm loop paused (`HW_WARM_EVERY_S/IDLE_S=86400`, `HW_WARM_BUDGET=1`): wrong first
+   guess, restarts continued.
+3. Reconcile sweep paused: config overlay `RECONCILE_EVERY_S=0` on the live DB (POST
+   /api/config-overlay, re-read each pass) plus `HW_RECONCILE_EVERY_S=0` env: restarts continued.
+4. Incentives vendor sync paused (`HW_INC_SYNC_S=0`, `HW_INC_VENDOR_OFF=1`): restarts stopped; the
+   process then held 1.77 GB flat for over an hour, one build from the limit.
+5. Plan standard (1 CPU / 2 GB) -> pro (2 CPU / 4 GB, $85/mo): the authorised last resort.
+All five are also in render.yaml (wm-demo commits 34341b3..9f24e78, unpushed) so a blueprint sync
+cannot revert them. Code in the same commits: `/api/state` result cache (`HW_STATE_CACHE_S`, 3 s
+on Render, any POST invalidates) and bare folder links serving index.html.
+
+Still owed (code, needs a push): make `engine.reconcile_all()`, `incentives.sync.pass_all()` and
+the `/api/state` build run in bounded memory, then restore the three loops and the plan.
