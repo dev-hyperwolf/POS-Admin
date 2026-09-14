@@ -263,6 +263,20 @@ batch id and "THC n/a" and prints the line under "Unboxed".
 
 ---
 
+### 19. Make the batch the unit of control, with Metrc packages underneath it
+
+Today the Hyperwolf catalog has no batch record at all, the hemp backend has `ProductBatch`, and
+Metrc reporting keys on the package tag. Please add one `Batch` record per grower lot (batch
+number, THC result, packaged date, received date, product) and hang the Metrc packages under it:
+`metrc_packages: [{tag, quantity, packaged_at}]`, since one batch is routinely split across
+several packages. Inventory units, sales, counts and the promotion rule builder reference the
+batch; Metrc reporting resolves unit -> batch -> package to find the tag. **Why:** the owner
+controls pricing, rotation and promotions per batch, not per package; two packages of one batch
+must never look like two different products, and two batches of one product must never merge.
+Shape and validator: `@hyper-tech/contracts` 0.4.3 `Batch`.
+
+---
+
 ## Questions we would like answered alongside this list
 
 1. What calls `POST .../kit-refill/cron` and `POST .../manage-distributions/cron` today, and when?

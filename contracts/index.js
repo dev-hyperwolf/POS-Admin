@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.4.2'; // 0.4.2: LocationSide, ShellLocationBinding (per-store FOH/BOH placement, shell default, variations inherit). 0.4.1: attribution on Plan (planned_by, engine_version, approved_by/at) and PlanLine (picked/packed/verified by+at, overridden_by). 0.4.0: inventory — LocationKind, ArrivalKind, MovementReason, PlanReason, ChannelKind, CountState; Location, Batch, Movement, ReceivedItem, PlanLine, Plan. 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
+  var VERSION = '0.4.3'; // 0.4.3: Batch.metrc_packages -- one batch spans many Metrc packages; the batch is the unit of control, the tag is a compliance id (owner 2026-09-14); metrc_tag deprecated to 'first tag'. 0.4.2: LocationSide, ShellLocationBinding (per-store FOH/BOH placement, shell default, variations inherit). 0.4.1: attribution on Plan (planned_by, engine_version, approved_by/at) and PlanLine (picked/packed/verified by+at, overridden_by). 0.4.0: inventory — LocationKind, ArrivalKind, MovementReason, PlanReason, ChannelKind, CountState; Location, Batch, Movement, ReceivedItem, PlanLine, Plan. 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@
         parent_id: { type: 'string', nullable: true }, active: { type: 'boolean' }, capacity: { type: 'integer', nullable: true } } },
     Batch: { type: 'object', required: ['id', 'product_id', 'batch_no', 'received_at'], additionalProperties: true,
       properties: { id: ID, product_id: ID, sku: { type: 'string', nullable: true }, batch_no: { type: 'string' },
-        metrc_tag: { type: 'string', nullable: true }, packaged_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        metrc_tag: { type: 'string', nullable: true }, /* deprecated 0.4.3: first tag */ metrc_packages: { type: 'array', items: { type: 'object', properties: { tag: { type: 'string', minLength: 1 }, quantity: { type: 'integer', minimum: 0, nullable: true }, packaged_at: { type: 'string', pattern: ISO_UTC.source, nullable: true } }, required: ['tag'], additionalProperties: false } }, packaged_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
         expires_at: { type: 'string', pattern: ISO_UTC.source, nullable: true }, received_at: ISO,
         thc_pct: { type: 'number', minimum: 0, maximum: 100, nullable: true }, unit_cost: { $ref: 'Money', nullable: true },
         quantity: { type: 'integer', minimum: 0 }, location_id: { type: 'string', nullable: true },

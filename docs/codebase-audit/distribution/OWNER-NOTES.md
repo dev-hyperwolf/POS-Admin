@@ -441,3 +441,26 @@ batch-keyed plans and a RETURN session mode for return-verify. Conformance kit p
 
 **Adversarial QA.** CSV formula-injection guard added (FA-11d); restock apply trusts the posted
 plan (fix in progress); attachment content-type is client-declared (note). Battery floor 3628.
+
+## 2026-09-14 · batch, not Metrc package, is the unit of control
+
+Owner: "we want to control things at the batch level, not the Metrc package level -- sometimes
+we will have the same batch across multiple Metrc packages."
+
+**Ruling.** The batch (grower's lot: one harvest/run, one THC result, one packaged date) is the
+unit everything keys on: rotation (oldest first), the mixed-batch flag, pick slips, counts, RFID
+tags at receiving, promotions and the rule builder. A Metrc package tag is a compliance
+identifier that a batch is split across, often several per batch. Never the other way round.
+
+**Consequences.**
+- Contracts 0.4.3: `Batch.metrc_packages[] {tag, quantity?, packaged_at?}`; `metrc_tag` stays as
+  the deprecated "first tag" so nothing that reads it breaks.
+- Receiving records every Metrc tag against the batch it belongs to; the handheld asks "which
+  batch" once, then scans tags into it.
+- Metrc reporting (today only in stilo-backend) maps sale -> unit -> batch -> the package the
+  unit came from, so the report still carries the right tag while operators only ever see batches.
+- The promotion rule builder targets batches (batch_no, THC, packaged/received date), never a
+  package tag. DEV-TEAM-CHANGE-LIST item 19.
+- Blaze's "Metrc Batches" screen (one package per row, see the 2026-09-10 tour notes) is the
+  package view, not our batch view; the exit plan maps N of those rows to one of our batches.
+

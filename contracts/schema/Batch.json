@@ -27,7 +27,35 @@
     },
     "metrc_tag": {
       "type": "string",
-      "nullable": true
+      "nullable": true,
+      "description": "DEPRECATED (0.4.3): the first Metrc package tag, kept for readers that expect one. Write metrc_packages."
+    },
+    "metrc_packages": {
+      "type": "array",
+      "description": "Every Metrc package this batch is split across. The BATCH is the unit of control (rotation, promotions, pick slips, counts); a Metrc package tag is a compliance identifier, and one batch is often split across several. Owner ruling 2026-09-14.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "packaged_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tag"
+        ],
+        "additionalProperties": false
+      }
     },
     "packaged_at": {
       "type": "string",

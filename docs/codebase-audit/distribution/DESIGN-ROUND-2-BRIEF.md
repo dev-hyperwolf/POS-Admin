@@ -100,6 +100,11 @@ that location's window; count sheets and pick slips carry a QR that closes them 
 location dropdowns. Reads propose; a manager approves.
 
 ## Added 2026-09-10 — Batch level everywhere (hard rule, every screen, every concept)
+
+**Clarified 2026-09-14 — batch ≠ Metrc package.** The batch is the unit of control. One batch is
+often split across several Metrc packages, so a screen never keys on a package tag: a batch row
+may show "3 Metrc packages" as a detail (expandable, with tags and quantities), and receiving
+scans tags INTO a batch. Promotions, counts, pick slips and rotation all say batch.
 The batch is the unit on every screen; a SKU is only a grouping label. Every product line is a
 **batch line**: product name on top, then a batch chip line in monospace —
 `#HW-2409-01 · THC 24.1% · pkg Aug 28 · exp Feb 24 · 42 d on hand · Metrc 1A40…7F3` (Metrc tag
