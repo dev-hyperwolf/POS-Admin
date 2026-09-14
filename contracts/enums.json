@@ -1,5 +1,5 @@
 {
-  "contract": "0.4.2",
+  "contract": "0.4.3",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
