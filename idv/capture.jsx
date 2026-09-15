@@ -4342,12 +4342,18 @@
       setBusy(true);
       const L = window.HW_LIVE;
       const b = base != null ? resolveBase(base) : (L && L.base ? String(L.base).replace(/\/+$/, '') : '');
+      // The SAME headers every console request carries -- actor, console PIN
+      // token (X-HW-Console-Token) and, same-origin, the write token. A hand
+      // built header set here omitted the console token, so every in-store
+      // override 401'd once the PIN gate was on (review, 2026-09-15).
       const s = window.HWIdv ? window.HWIdv.session() : null;
-      const headers = { 'Content-Type': 'application/json' };
-      if (s && s.id) headers['X-HW-Actor'] = s.id;
+      const headers = (window.HWIdv && typeof window.HWIdv.actorHeaders === 'function')
+        ? window.HWIdv.actorHeaders({ 'Content-Type': 'application/json' })
+        : { 'Content-Type': 'application/json' };
+      if (s && s.id && !headers['X-HW-Actor']) headers['X-HW-Actor'] = s.id;
       let tok = null;
       try { tok = (window.localStorage.getItem('hw-live-token') || '').trim() || null; } catch (e) { tok = null; }
-      if (tok && (!b || b === window.location.origin)) headers['x-hw-write-token'] = tok;
+      if (tok && (!b || b === window.location.origin) && !headers['x-hw-write-token']) headers['x-hw-write-token'] = tok;
       fetch(b + '/api/idv/sessions/' + encodeURIComponent(sessionId) + '/update-status', {
         method: 'PATCH', cache: 'no-store', credentials: 'omit', headers: headers,
         body: JSON.stringify({ new_status: 'Approved', override: true, reason: reason }),
