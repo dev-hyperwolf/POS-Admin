@@ -203,3 +203,17 @@ selfie/liveness (server step states, newest media per kind, absent nodes mid-res
 liveness clip keeps the camera aspect, proof from the full-res selfie, document choice no longer hidden by consent.
 Counts: rules 427, api 204, store 80, import 78, engine 447. Owner's real passport frame 1: valid TD3, MATCH,
 no warnings.
+
+## Audit round — 2026-09-15
+Three audits before the dev hand-off. **Integration parity** (against the real Hyper-Tech code): every
+field matches; cutover = 3 env values + 3 one-line site edits (drop "In Review", add our host to the
+CSP frame list) ≈ 3 h; change list in `docs/IDV-DEV-INTEGRATION-CHANGELIST.md`; found a fourth
+DIDIT_API_KEY call site and fixed a bug in our webhook sample (sign the raw body). **Functional**
+(`qa/idv_site_replay.py`): 67/67 across selfie / ID-only / passport / medical, 0 contract deviations;
+found that outbound webhooks only delivered on a Test click → delivery pump thread added.
+**Security**: CRITICAL actor impersonation via the client-chosen `X-HW-Actor` under a shared PIN →
+console token now binds actor + level, separate `IDV_ADMIN_PIN` for admin actions, audit records the
+level; HIGH webhook SSRF → destination validation at write and delivery; HIGH PIN limiter spoofable
+via X-Forwarded-For → trusted-hop bucket + global backstop; MEDIUM media existence oracle, engine
+/docs public, model notes public → fixed. Render env owed: `IDV_ADMIN_PIN` (≥ 8), `HW_TRUSTED_PROXY_HOPS=1`
+(declared in render.yaml). Counts: rules 448, api 249, store 96, import 78, replay 67, engine 605.
