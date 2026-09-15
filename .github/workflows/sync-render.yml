@@ -11,13 +11,20 @@
 # IT DOES NOT JUST FIRE AND HOPE. Firing a webhook and reporting success would be a
 # check that looks like it covers something and does not. After triggering, this polls
 # Render's own build-info.json until it reports THIS commit, and fails if it never does.
+#
+# MANUAL ONLY (2026-09-15, owner ruling). This used to also fire on every push to main,
+# which meant ANY session's push redeployed production -- restarting the wm-demo
+# instance mid-capture for whoever was testing Verify at the time. Deploys now happen
+# only when someone runs this workflow by hand (Actions tab, or
+# `gh workflow run sync-render.yml -R dev-hyperwolf/POS-Admin`, or
+# `tools/render_deploy.sh` in wm-demo). Pushing to main no longer deploys anything --
+# it only updates GitHub Pages (see .github/workflows/pages.yml), which still publishes
+# on every push as before.
 
 name: Sync Render to main
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:        # so you can re-sync by hand without an empty commit
+  workflow_dispatch:        # manual only -- see the note above
 
 concurrency:
   group: render-sync        # a burst of pushes should produce one final correct deploy

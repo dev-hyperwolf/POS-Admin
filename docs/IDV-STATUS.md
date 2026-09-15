@@ -217,3 +217,26 @@ level; HIGH webhook SSRF → destination validation at write and delivery; HIGH 
 via X-Forwarded-For → trusted-hop bucket + global backstop; MEDIUM media existence oracle, engine
 /docs public, model notes public → fixed. Render env owed: `IDV_ADMIN_PIN` (≥ 8), `HW_TRUSTED_PROXY_HOPS=1`
 (declared in render.yaml). Counts: rules 448, api 249, store 96, import 78, replay 67, engine 605.
+
+## Deploying (2026-09-15, owner ruling)
+Pushes to `main` no longer deploy anything. Both used to redeploy on every push (any session's, to
+either repo) and a deploy restarts the instance — with Verify capture in active testing, that
+drops a guest mid-session. Deploys now happen only when someone runs them by hand:
+
+- **`tools/render_deploy.sh`** (in `/Users/jt/wm-demo`) is the run button.
+  - `--web` (or no flag) — fires the existing Render deploy hook for `hyperwolf-wm-demo` via
+    `gh workflow run sync-render.yml -R dev-hyperwolf/POS-Admin`. Same as the old push trigger:
+    also precompiles the POS-Admin static site into the build, and the workflow's own drift check
+    still runs. Use this for a POS-Admin-only change too.
+  - `--engine` — deploys `hyperwolf-idv-engine` directly via the Render API (`POST
+    /v1/services/{id}/deploys`). That service has no GitHub deploy hook, so the script asks for a
+    Render API key in a hidden macOS dialog, uses it once, and never stores it.
+  - `--both` — both of the above.
+- `POS-Admin/.github/workflows/sync-render.yml` is `workflow_dispatch` only now — it can still be
+  run from the Actions tab or `gh workflow run`, just never fires on `push` anymore.
+- `wm-demo/render.yaml` sets `autoDeploy: false` on both services as a second, independent gate.
+- GitHub Pages is unaffected — `.github/workflows/pages.yml` still publishes on every push, so the
+  static design reference at the Pages URL stays live-updating as before.
+- **Rollback**: redeploy a previous commit from the Render dashboard (service → Deploys → pick the
+  commit → Redeploy). Nothing in `tools/render_deploy.sh` targets a specific commit — it deploys
+  whatever the connected repo/branch currently has at HEAD.
