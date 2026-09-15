@@ -22,7 +22,14 @@ DIDIT_WORKFLOW_ID=<the Verify workflow id for "Cannabis Verification + Selfie">
 
 These are the same three names in your `.env.example` today (lines 137-140). Repoint them; don't
 rename them; no other file reads them except `common/utils.js:75` (`combineBaseurl`, the `didit`
-platform case) and `controllers/didit/didit-controllers.js` (lines 3, 127-129, 156, 280, 295, 311).
+platform case), `controllers/didit/didit-controllers.js` (lines 3, 127-129, 156, 280, 295, 311),
+and **`controllers/blaze/user-auth-controllers.js:408`** — a second, independent
+`diditCustomerStatus()` (not shared code, a copy-pasted duplicate of the one in
+`didit-controllers.js`) that also reads `process.env.DIDIT_API_KEY` directly and calls
+`GET /v2/session/{id}/decision`, gating whether `/register` requires `diditStatus === "Approved"`
+before letting a signup through. Same env var, so repointing it once covers this call site too —
+no separate change needed — but a grep for `DIDIT_API_KEY` limited to `didit-controllers.js` alone
+will miss it.
 
 We'll hand you the base URL and cut the API key for you in the Verify console
 (`POST /api/idv/api-keys`, `scopes: ["sessions:read", "sessions:write"]`) — the plaintext key is
@@ -187,22 +194,23 @@ const router = express.Router();
 const WEBHOOK_SECRET = process.env.DIDIT_WEBHOOK_SECRET;
 const MAX_SKEW_SECONDS = 300;
 
-// Canonical JSON: sorted keys, compact separators, floats rounded to <= 2 decimals.
-function canonicalize(value) {
-  if (Array.isArray(value)) return '[' + value.map(canonicalize).join(',') + ']';
-  if (value !== null && typeof value === 'object') {
-    const keys = Object.keys(value).sort();
-    return '{' + keys.map(k => JSON.stringify(k) + ':' + canonicalize(value[k])).join(',') + '}';
-  }
-  if (typeof value === 'number' && !Number.isInteger(value)) return String(Math.round(value * 100) / 100);
-  return JSON.stringify(value);
-}
-
+// DO NOT JSON.parse() + re-serialize the body to build the signed string. An earlier version of
+// this snippet did (a hand-rolled `canonicalize()` over `JSON.parse(rawBody)`) and it is WRONG:
+// Verify's server (`wmdemo/idv_webhooks.py`) signs over `f"{timestamp}.{canonical_json(payload)}"`
+// and then POSTs that exact canonical string as the literal wire body — so the raw bytes you
+// receive ARE already the thing that was signed. Re-parsing and reformatting in JS reintroduces a
+// cross-language canonicalization problem for no reason, and it is a REAL one, not theoretical:
+// Python's `json.dumps` always prints a float with a decimal point (an exact 100.0 score serializes
+// as `"100.0"`), while `JSON.parse('100.0')` collapses to the JS number `100` — which a
+// `Number.isInteger`-based re-shortener (as the old snippet used) then reprints as `"100"`. A
+// session with a perfect (or zero) score on any decision node would silently fail signature
+// verification under the old approach. Signing the raw body directly sidesteps the whole class of
+// bug — verify what you were sent, not a reconstruction of it.
 function verifySignature(rawBody, timestamp, signatureHeader, secret) {
   const now = Math.floor(Date.now() / 1000);
   const ts = parseInt(timestamp, 10);
   if (!ts || Math.abs(now - ts) > MAX_SKEW_SECONDS) return { ok: false, reason: 'timestamp skew' };
-  const signedString = `${timestamp}.${canonicalize(JSON.parse(rawBody))}`;
+  const signedString = `${timestamp}.${rawBody}`; // rawBody: the exact bytes received, as a string
   const expected = crypto.createHmac('sha256', secret).update(signedString).digest('hex');
   const a = Buffer.from(expected, 'hex');
   const b = Buffer.from(String(signatureHeader || ''), 'hex');
