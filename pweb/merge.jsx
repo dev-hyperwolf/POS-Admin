@@ -82,6 +82,14 @@ function draftToMerged(draft, base){
   const subhead = draft.nativeOffer ? PROMO.offerLabel({ discount }) : ruleSubhead(rule);
   return {
     id: base.id || ('p'+Date.now()),
+    // Carried through, never set by this function -- `engage_id` is the
+    // SERVER's own `engage_promotions.id`, stamped onto `base` only by
+    // pweb/app.jsx's saveBuilder after a successful persist (or already
+    // present when `base` itself came from `M.engageToMerged`, a promo
+    // loaded from the server in the first place). Its presence is what
+    // lets saveBuilder UPDATE the same row on a second save instead of
+    // creating a duplicate.
+    engage_id: base.engage_id,
     name: draft.name || 'Untitled promotion',
     code: draft.code || '',
     campaign: base.campaign || 'weekly',
@@ -132,4 +140,72 @@ function mergedToDraft(promo){
 // seed the unified dataset: rich creative/surfaces/perf + a derived rule
 function seedMerged(){ return PROMO.seedPromos().map(p=>({ ...p, rule: p.rule || discountToRule(p) })); }
 
-Object.assign(window, { MERGE:{ seedMerged, mergedToDraft, draftToMerged, ruleToOffer, discountToRule, ruleSubhead } });
+// ── engage_promotions row (GET /api/promos/internal) → MY merged promo ─────
+// The inverse of draftToMerged()'s own `discount` construction (via
+// pweb/app.jsx's server-side adapter, `engage/api.py::_suite_action_from_
+// discount`) -- NOT a full round-trip for every possible `action` shape:
+// `action.scope` 'items'/'sku' (no native Suite equivalent -- its own
+// "Applies to" control only offers cart/category/brand,
+// promo/builder-native.jsx) folds into 'category' here, items carrying
+// whatever the action itself named, so the promo is still visible and
+// editable rather than dropped -- just not perfectly re-labelled. A tiered
+// action entry with only `reward_cents` (no `percent`) has no honest
+// percent to show in TierEditor's percent-only column and is DROPPED from
+// the reverse-mapped `tiers` array rather than a fabricated percent guessed
+// from reward/threshold -- "honest zero over fabricated number" applied to
+// a promo round-trip, not just a number on a screen.
+function engageDiscountFromAction(action){
+  const a = action || {};
+  const kindMap = { percent:'percent', amount:'dollar', bogo:'bogo', bundle:'bundle', gift:'gift', tiered:'tiered', points:'points' };
+  const kind = kindMap[a.kind] || 'percent';
+  let scope = a.scope === 'category' || a.scope === 'brand' || a.scope === 'cart' ? a.scope : 'category';
+  let items = [];
+  if(scope==='category') items = a.category ? (Array.isArray(a.category)?a.category:[a.category]) : (a.sku ? (Array.isArray(a.sku)?a.sku:[a.sku]) : []);
+  else if(scope==='brand') items = a.brand ? (Array.isArray(a.brand)?a.brand:[a.brand]) : [];
+  const min = a.min_cents ? a.min_cents/100 : undefined;
+  if(kind==='dollar') return { kind, value:(a.value||0)/100, min, scope, items };
+  if(kind==='points') return { kind, value: a.multiplier!=null ? a.multiplier : (a.value||0), scope, items };
+  if(kind==='bundle') return { kind, text: a.description||'', scope, items };
+  if(kind==='tiered') return { kind, scope, items,
+    tiers:(a.value||[]).filter(t=>t && t.percent!=null).map(t=>({ min:(t.threshold_cents||0)/100, value:t.percent })) };
+  return { kind, value:a.value||0, scope, items };  // percent | bogo | gift
+}
+
+function engageToMerged(row){
+  const discount = engageDiscountFromAction(row.action);
+  return {
+    id: row.id, engage_id: row.id,
+    name: row.name || 'Untitled promotion', code: row.code || '',
+    campaign:'weekly', status: row.status, discount,
+    audience: row.audience_id || 'all', regions:'all',
+    stores: (row.stores && row.stores.length) ? row.stores : 'all',
+    schedule: { start: row.starts_at || '2026-07-14', end: row.ends_at || undefined },
+    stackable: !!row.stackable, priority: row.priority || 3,
+    cap: row.usage_limit || null,
+    rewards: { pointsMult:1, redeemable:false, wallet:0 },
+    surfaces: ['home_banner','shop_tile'],
+    creative: { headline: row.name || 'New promotion', subhead: PROMO.offerLabel ? PROMO.offerLabel({ discount }) : '', cta:'Shop now', color:'#FFD100' },
+    rule: discountToRule({ discount }),
+  };
+}
+
+// Merge server rows (by `engage_id`) into a local promo list -- a saved
+// promotion replaces its own seeded/local copy in place (same position);
+// one never yet persisted (`engage_id` on neither side) is untouched; a
+// server row with no local match is prepended as new. Called once on
+// Suite mount (pweb/app.jsx) against `HW_PROMOS_LIVE.listInternal()`'s
+// result -- see that call site for why this is what makes a saved
+// promotion survive a reload.
+function mergeEngageRows(local, rows){
+  const byEngageId = {};
+  (rows||[]).forEach(r=>{ byEngageId[r.id] = engageToMerged(r); });
+  const seen = new Set();
+  const merged = local.map(p=>{
+    if(p.engage_id!=null && byEngageId[p.engage_id]){ seen.add(p.engage_id); return byEngageId[p.engage_id]; }
+    return p;
+  });
+  const fresh = (rows||[]).filter(r=>!seen.has(r.id)).map(engageToMerged);
+  return [...fresh, ...merged];
+}
+
+Object.assign(window, { MERGE:{ seedMerged, mergedToDraft, draftToMerged, ruleToOffer, discountToRule, ruleSubhead, engageToMerged, mergeEngageRows } });

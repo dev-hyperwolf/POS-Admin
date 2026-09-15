@@ -37,7 +37,22 @@
 //
 // PUBLIC SURFACE: window.HW_PROMOS_LIVE = {
 //   status(), hasToken(), registry(), pull(opts), link(fields),
-//   unlink(linkId), upsertInternal(fields), deleteInternal(id), disable() }.
+//   unlink(linkId), upsertInternal(fields), deleteInternal(id),
+//   listInternal(), disable() }.
+//
+// `upsertInternal`/`listInternal`, ADDED 2026-09-10 (ENGAGE-PLAN §4, Phase
+// 4): `POST /api/promos/internal` is now DUAL-SHAPE server-side (see
+// wmdemo/server.py's own comment at that branch) -- a `fields` object
+// carrying a `discount` key (the Promotions Suite's OWN merged-promo shape,
+// `pweb/merge.jsx::draftToMerged`) persists to `engage_promotions` instead
+// of `internal_promos`; this file's `upsertInternal` needed NO signature or
+// body-shaping change at all to carry that, since it already forwards
+// `fields` verbatim -- the shape distinction lives entirely server-side.
+// `listInternal()` (GET, this file's first GET on this seam -- every other
+// method here is POST, the registry route included) is what makes a saved
+// promotion survive a page reload: `pweb/app.jsx`'s `Suite()` calls it once
+// on mount and merges the returned rows into its local promo list by
+// `engage_id` (see `M.engageToMerged` in `pweb/merge.jsx`).
 // Every method returns a Promise of { ok, code, body, gated, error, hint }
 // and NEVER rejects — same contract as shared/hw-live.js's post(), so a
 // caller cannot mistake a refusal for a network error and report a
@@ -112,10 +127,13 @@
     };
   }
 
-  // THE one write/read path — every route this seam calls is a POST
+  // THE write path — every ORIGINAL route this seam calls is a POST
   // (wmdemo/server.py has no GET registry route; reads and writes share one
   // dispatcher and one gate). `timeoutMs` overrides TIMEOUT_MS per call — see
   // PULL_TIMEOUT_MS below for why pull() alone needs a much longer one.
+  // `GET /api/promos/internal` (added 2026-09-10, `get()` just below) is
+  // this seam's first actual GET — engage_promotions' own list route, not
+  // part of the original WM-mirror registry this file's header describes.
   function post(path, body, timeoutMs) {
     if (!armed) {
       return Promise.resolve({ ok: false, code: 0, body: null, gated: false,
@@ -134,6 +152,24 @@
       return res.json().then(function (j) { return settle(res, j); },
                              function () { return settle(res, null); });
     });
+    return withTimeout(req, timeoutMs || TIMEOUT_MS);
+  }
+
+  // The one read path for `GET /api/promos/internal` — no token, no gate
+  // (every GET route in wmdemo/server.py is read-only by construction,
+  // same reasoning shared/hw-live.js's own `get()` gives), so this is
+  // simpler than post(): no settleWrite/gated dance, just { ok, code,
+  // body, error, hint }, never rejects.
+  function get(path, timeoutMs) {
+    if (!armed) {
+      return Promise.resolve({ ok: false, code: 0, body: null, gated: false,
+        error: 'disabled', hint: 'HW_PROMOS_LIVE is turned off on this page (?hwpromos=off).' });
+    }
+    var req = fetch(base + path, { method: 'GET', credentials: 'omit', cache: 'no-store' })
+      .then(function (res) {
+        return res.json().then(function (j) { return settle(res, j); },
+                               function () { return settle(res, null); });
+      });
     return withTimeout(req, timeoutMs || TIMEOUT_MS);
   }
 
@@ -183,6 +219,14 @@
     unlink: function (linkId) { return post('/api/promos/link/delete', { link_id: linkId }); },
 
     upsertInternal: function (fields) { return post('/api/promos/internal', fields || {}); },
+    // -> { ok, code, body: {promotions:[...]}, ... } — engage_promotions
+    // rows only (see file header). Called once on Suite mount so a promo
+    // saved in an earlier session/reload is still there. Cart eligibility
+    // (`/api/promos/eligible`) is deliberately NOT added here — that call
+    // belongs to the register cart (pos/screen-cart.jsx), which this seam
+    // never loads onto (Promotions Suite.html only, per the file header);
+    // that screen goes through `window.HW_LIVE.post()` directly instead.
+    listInternal: function () { return get('/api/promos/internal'); },
     deleteInternal: function (id) { return post('/api/promos/internal/delete', { id: id }); },
 
     disable: function () {

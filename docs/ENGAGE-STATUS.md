@@ -1,6 +1,76 @@
 # Engage Spine — status
 
-Updated 2026-09-10. The eleven sibling modules (schema, errors, identity, ledger, consent,
+## Phase 4 — Promotions persistence + cart eligibility (2026-09-10)
+
+Plan: `docs/ENGAGE-PLAN-2026-09-10.md` §4/§8 Phase 4. Build contract: `docs/ENGAGE-BUILD-
+CONTRACT.md` §1.1 (naming: the table is `engage_promotions`, NOT `internal_promos`, which
+stays store.py's own Weedmaps-mirror table, untouched).
+
+**What shipped.** `wmdemo/engage/promotions.py` (new): `engage_promotions`/`engage_promotion_
+usage`/`engage_product_lists` CRUD, `eligible(cart, customer_id, store_id, channel, codes,
+now)`, `consume(order_id, promotion_ids, customer_id)` (idempotent on `(promotion_id,
+order_id)`), `to_production_export(id)` via `rules.to_production` (never modified — only
+imported). Schema additive on `wmdemo/engage/schema.py`: `engage_promotion_usage` and
+`engage_product_lists` (new tables), a UNIQUE-nullable index on `engage_promotions.code`, an
+`updated_by` column (PRAGMA-guarded ALTER, same pattern as the six `hw_identities` columns).
+Routes in `engage/api.py`: `GET/POST /api/promos/internal` (dual-shape — a body carrying
+`discount` persists to `engage_promotions`; the pre-existing WM-mirror shape is byte-for-byte
+unchanged), `GET/POST /api/promos/eligible`, `POST /api/promos/consume`; wired into `server.py`
+next to the pre-existing `/api/promos/*` routes with zero changes to their own behavior (see
+that file's own comment at the dual-shape branch). `POST /api/pos/sale` gained an ADDITIVE,
+OPTIONAL promotions-consume hook (only runs when the body carries `promotion_ids`). POS side:
+`pos/screen-cart.jsx`'s `applyPromo` checks the live API through `window.HW_LIVE.post()` first
+and falls back to the three hardcoded `PROMO_CODES` (relabelled "(offline code)") only when the
+API is genuinely unreachable (network failure/timeout/gated) — never merely because the live
+side refused the code; the register screen (`pos/screen-register.jsx`) was not touched.
+`pweb/app.jsx`'s `saveBuilder` now persists through `window.HW_PROMOS_LIVE.upsertInternal`
+(that seam needed no signature change — it already forwards its `fields` object verbatim; only
+a new `listInternal()` GET method was added) and `Suite()` pulls persisted promotions back on
+mount via `pweb/merge.jsx::mergeEngageRows`, so a saved promotion survives a reload.
+
+**Verified.** `qa/engage_promotions_probe.py` 62/62, own scratch DB, no server. Both owner
+examples proven on synthetic carts: "customer in audience Lapsed VIPs → reward Welcome back
+$10, delivery only" (auto-applies in-audience/delivery, refuses on the wrong channel/audience/
+store with the exact reason) and "Raw Garden + Concentrates 30% off excluding list Clearance
+exclusions" ($12.00 with the exclusion list applied to the one qualifying line, $21.00 without
+it — the list genuinely changes the number). Stacking (`priority` ASC, a non-stackable
+candidate stopping every later one, combined discount clamped to the cart total), usage/per-
+customer limits, `consume()` idempotency (including a `kind="points"` action crediting the real
+ledger once, never twice on replay), and `to_production_export()` emitting only real production
+operators (`$nin` routed to `unsupported`, never fabricated) are all covered. Registered in
+`qa/battery.py` (SUITES + `EXPECTED_CHECKS["engage_promotions_probe"] = 62`,
+`TOTAL_CHECK_FLOOR` 3141 → 3203; `idv_rules_probe`/`idv_store_probe`/`idv_api_probe` left
+UNCHANGED at 448/95/236). `node --test test/global-collisions.test.mjs` 17/17, including
+`Promotions Suite.html` and `Hyperwolf POS.html`. Confirmed over real HTTP against a scratch
+database (subprocess `wmdemo.server`): dual-shape `/api/promos/internal` (both shapes),
+`/api/promos/eligible` (GET+POST), `/api/promos/consume` (with replay), and `/api/pos/sale`
+with and without `promotion_ids` — `internal_promos` verified untouched by the Suite-shape path.
+
+**Known, documented gaps (not blockers).** A Suite `bundle` offer (`promo/builder-native.jsx`'s
+free-text-only editor — no SKUs, no price) persists fine but `eligible()` always reports it
+`unsupported`: `_compute_discount`'s bundle branch needs `bundle_skus`/`bundle_price_cents`,
+neither of which the current editor supplies. A Suite `points` offer is a MULTIPLIER (e.g. "2×
+points earned"); `engage_promotions`'s own `points` action is a FLAT AWARD credited by
+`consume()` — turning one into the other needs the order's own earn amount, not known at save
+time, so the adapter (`engage/api.py::_suite_action_from_discount`) deliberately carries the
+Suite's multiplier through as `action["multiplier"]` (not `action["value"]`) so `_compute_
+discount` honestly reports it unsupported rather than guessing. Both are additive, single-
+function fixes once a real bundle/points editor lands — see that adapter's own docstring.
+`engine/promotion-engine` stacking in production is caller-array-order with no priority/store/
+channel/audience concept at all (`docs/ENGAGE-COMPAT.md`); this build's `priority`-ordered
+stacking with store/channel/audience scoping is richer than what `to_production_export()` can
+express back into that engine — the export carries `action`/`stackable`/`priority` alongside
+the compiled rule for the dev team's own reference, but production itself does not read any of
+those three fields today.
+
+**Before any push.** Same gate as every other phase (contract §7): `engage_promotions` is now
+wired (this phase's entire job), so that specific line of the Phase 1-3 "before any push"
+checklist no longer applies verbatim — re-read it fresh rather than assuming it still says
+"unwired" is the safe state.
+
+---
+
+Updated 2026-09-10 (Phase 1-3 integration, below). The eleven sibling modules (schema, errors, identity, ledger, consent,
 rules, traits, rewards, documents, links, policy, msg_adapter) already existed with green
 probes; this pass is the **integration**: `engage/api.py` (every route), `engage/serve.py`
 (the `/api/engage/*` + public `/l/<token>` wiring), the required `server.py` core changes, the
@@ -146,3 +216,7 @@ live database at
 `.../scratchpad/engage-demo/server.log` in that same directory. A document (id 1, "Demo
 Winback"), a landing page (id 1, slug `demo-winback`), an audience (id 1), and a message (id 1)
 were created on it during verification and are still there.
+
+## Alpine import
+
+Built, dry-run only by the owner's ruling: `POST /api/engage/import/alpine {kind: contacts|balances|history, dry_run: true, limit}` reads the live account (GET only, ≤ 2 req/s, `HW_ALPINE_OFF=1` kill switch) and returns a run report (`rows_read == inserted + unchanged + conflicts + rejected`, plus `assumed_store` for "Hyperwolf"-store contacts mapped to Lake Elsinore and `retired_store` for "Hyperwolf Hemp"). A real run refuses unless the body carries `confirm: "cutover"` and a manager actor; it writes identities only through the real identity writer, consent through `consent.record` (source `import`), the Alpine contact id as an external id, and never a plain email or name. Store map: Chkn n Wafflez → Corona, Stilo Supply → Long Beach, Hyperwolf West Hollywood → West Hollywood, Hyperwolf → Lake Elsinore. The one-time real pull happens at cutover.

@@ -2,7 +2,7 @@
 // Home board + calendar + live surfaces + studio (4-day-old app) ⊕ the 3-style
 // if/then builder + plain-English sentence (today's app), on ONE dataset.
 const useP = window.useP,useTheme = window.useTheme;
-const { useState } = React;
+const { useState, useEffect } = React;
 const M = window.MERGE;
 
 function SuiteTopBar({ onNew }) {
@@ -69,6 +69,24 @@ function Suite() {
   const [analyticsId, setAnalyticsId] = useState(null);
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
 
+  // PERSISTENCE, READ SIDE: pull whatever engage_promotions rows the server
+  // already has and merge them into the (otherwise purely client-side,
+  // PRNG-seeded) local list -- see pweb/merge.jsx::mergeEngageRows for the
+  // by-`engage_id` merge rule. window.HW_PROMOS_LIVE loads before this file
+  // on Promotions Suite.html (shared/hw-live-promos.js's own header); its
+  // absence (script blocked, ?hwpromos=off, an origin with no backend) is
+  // NOT an error here -- the screen simply keeps showing the seeded/local
+  // set, same as it always has, since a promo that never made it to the
+  // server cannot survive a reload regardless of what this effect does.
+  useEffect(() => {
+    if (!window.HW_PROMOS_LIVE) return;
+    window.HW_PROMOS_LIVE.listInternal().then((res) => {
+      if (res.ok && res.body && Array.isArray(res.body.promotions)) {
+        setPromos((prev) => M.mergeEngageRows(prev, res.body.promotions));
+      }
+    });
+  }, []);
+
   const openBuilder = (id) => {
     if (id === 'new') {setDraft(window.newDraft());} else
     {const p = promos.find((x) => x.id === id);setDraft(M.mergedToDraft(p));}
@@ -94,6 +112,31 @@ function Suite() {
     const merged = M.draftToMerged(toSave, base);
     setPromos((prev) => prev.find((p) => p.id === merged.id) ? prev.map((p) => p.id === merged.id ? merged : p) : [merged, ...prev]);
     setBuilderId(null);setView('studio');
+
+    // PERSISTENCE, WRITE SIDE. Fire-and-forget against `engage_promotions`
+    // via the SAME route the WM-mirror registry has always posted to
+    // (`/api/promos/internal`, now dual-shape server-side -- see wmdemo/
+    // server.py's own comment at that branch) -- the local state above
+    // already updated optimistically, so a slow/failed POST never blocks
+    // the screen; it only means this ONE save does not survive a reload,
+    // which the next successful save (or the mount-time listInternal()
+    // pull) corrects. `admin@hyperwolf.com` is this estate's one operator
+    // identity today (server.py's own OPERATOR_EMAIL) -- the Suite has no
+    // per-user login of its own to read a real actor from.
+    if (window.HW_PROMOS_LIVE) {
+      window.HW_PROMOS_LIVE.upsertInternal({
+        engage_id: merged.engage_id, name: merged.name, code: merged.code,
+        status: merged.status, discount: merged.discount,
+        stackable: merged.stackable, priority: merged.priority,
+        cap: merged.cap, audience: merged.audience,
+        actor: 'admin@hyperwolf.com',
+      }).then((res) => {
+        if (res.ok && res.body && res.body.id != null) {
+          setPromos((prev) => prev.map((p) => p.id === merged.id ?
+            { ...p, engage_id: res.body.id } : p));
+        }
+      });
+    }
   };
   const saveDraft = () => saveBuilder('draft');
   const dup = (id) => {const s = promos.find((p) => p.id === id);const c = { ...JSON.parse(JSON.stringify(s)), id: 'p' + Date.now(), name: s.name + ' (copy)', status: 'draft', perf: undefined };setPromos((prev) => [c, ...prev]);openBuilder(c.id);};

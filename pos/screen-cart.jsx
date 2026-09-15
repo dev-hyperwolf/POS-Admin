@@ -567,7 +567,7 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
 
           {/* Discount + promo — committed to the compact layout */}
           <DiscountCard P={P} discMode={discMode} setDiscMode={setDiscMode} subtotal={merch == null ? sub : merch}
-          discounts={discounts} onApply={onApplyDiscount} onRemove={onRemoveDiscount} />
+          discounts={discounts} onApply={onApplyDiscount} onRemove={onRemoveDiscount} lines={lines} customer={customer} />
 
           {/* The pairs-with-cart lane. It renders its own refusal; see CartPairs. */}
           <CartPairs P={P} skus={(lines || []).map((l) => l.sku)} onAdd={onAdd} />
@@ -793,12 +793,33 @@ function DiscountApprovalModal({ P, amount, mode, subtotal, onClose, onApprove }
   </div>;
 }
 
-// The promo codes this store honours. Local, like DISC_REASONS and MANAGERS —
-// a code that is not on this list is REFUSED OUT LOUD rather than swallowed.
+// The OFFLINE promo codes this store honours when the live promotions API
+// cannot be reached at all (see applyPromo below). Local, like DISC_REASONS
+// and MANAGERS used to be for every code — now a FALLBACK ONLY: a code the
+// live API can actually evaluate (POST /api/promos/eligible, wmdemo/engage/
+// promotions.py) is checked there FIRST, and these three only get a look
+// when that call itself never came back (network failure, timeout, or the
+// write-token gate) — never merely because the live side said the code
+// doesn't apply to this cart. A live refusal is shown as the live refusal,
+// not silently retried against this list.
 const PROMO_CODES = [
-{ code: 'WELCOME10', pct: 10, label: '10% off · new member welcome' },
-{ code: 'GREEN5', amt: 5, label: '$5 off · Green Wednesday' },
-{ code: 'LOCAL15', pct: 15, label: '15% off · neighbourhood rate' }];
+{ code: 'WELCOME10', pct: 10, label: '10% off · new member welcome (offline code)' },
+{ code: 'GREEN5', amt: 5, label: '$5 off · Green Wednesday (offline code)' },
+{ code: 'LOCAL15', pct: 15, label: '15% off · neighbourhood rate (offline code)' }];
+
+//: promotions.eligible()'s own refusal `reason` codes -> what the associate
+//: reads. Anything not on this list falls back to the reason string itself
+//: (still better than a bare "no" — see the `||` in applyPromo below).
+const PROMO_REJECT_REASON = {
+  out_of_window: 'This code is not active right now.',
+  store_not_eligible: 'This code does not apply at this store.',
+  channel_not_eligible: 'This code is not honoured in-store.',
+  audience: 'This customer is not eligible for this code.',
+  usage_limit_reached: 'This code has reached its usage limit.',
+  per_customer_limit_reached: 'This customer has already used this code.',
+  rule_not_met: 'This cart does not qualify for this code.',
+  not_found: 'is not a code this store honours.',
+};
 
 // Discount + promo — one compact layout. The manager-sign-off rule is taught
 // in the guided walkthrough, not printed under the field every sale.
@@ -806,11 +827,12 @@ const PROMO_CODES = [
 // ⚠️ The approved discount does NOT live here. It used to — `applied` was local
 // state, so a manager could sign off and the total would not move. Everything
 // that changes money is handed to `onApply` and read back out of `discounts`.
-function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, onRemove }) {
+function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, onRemove, lines, customer }) {
   const [promoOpen, setPromoOpen] = React.useState(false);
   const [amount, setAmount] = React.useState('');
   const [code, setCode] = React.useState('');
   const [promoErr, setPromoErr] = React.useState('');
+  const [promoBusy, setPromoBusy] = React.useState(false);
   const [approval, setApproval] = React.useState(null); // pending request
   const money = window.HW.fmt.money;
   const r2 = (n) => Math.round((+n || 0) * 100) / 100;
@@ -831,15 +853,76 @@ function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, 
   off > sub ? `That is ${money(off)} off a ${money(sub)} subtotal.` : '';
   // Applying is a REQUEST — nothing changes until a manager signs it off.
   const request = () => {if (blocked) return;setApproval({ amount, mode: discMode });};
+
+  // The register's own cart, shaped for POST /api/promos/eligible
+  // (wmdemo/engage/promotions.py::eligible — cart lines carry sku/qty/
+  // price_cents/brand/category_id; brand/category_id come off the catalogue
+  // row, same lookup CartPane already does elsewhere in this file).
+  const cartLinesForEligible = () => (lines || []).map((l) => {
+    const p = (window.HW.PRODUCTS || []).find((x) => x.sku === l.sku) || {};
+    const price = l.price != null ? l.price : (p.price || 0);
+    return { sku: l.sku, qty: l.qty, price_cents: Math.round(price * 100),
+      brand: p.brand || null, category_id: p.cat || null };
+  });
+
+  const applyPromoOffline = (c) => {
+    const hit = PROMO_CODES.filter((p) => p.code === c)[0];
+    if (!hit) {setPromoErr(`${c} ${PROMO_REJECT_REASON.not_found}`);return;}
+    const value = Math.min(sub, hit.pct ? r2(sub * hit.pct / 100) : r2(hit.amt));
+    onApply && onApply({ kind: 'promo', off: value, label: hit.label, code: c });
+    setPromoErr('');setCode('');
+  };
+
   const applyPromo = () => {
     const c = code.trim().toUpperCase();
     if (!c) {setPromoErr('Enter a promo code, then Apply.');return;}
     if (sub <= 0) {setPromoErr('Add something to the cart before applying a code.');return;}
-    const hit = PROMO_CODES.filter((p) => p.code === c)[0];
-    if (!hit) {setPromoErr(`${c} is not a code this store honours.`);return;}
-    const value = Math.min(sub, hit.pct ? r2(sub * hit.pct / 100) : r2(hit.amt));
-    onApply && onApply({ kind: 'promo', off: value, label: hit.label, code: c });
-    setPromoErr('');setCode('');
+    if (!window.HW_LIVE || typeof window.HW_LIVE.post !== 'function') {
+      // No live seam on this page at all (not merely unreachable) — go
+      // straight to the offline codes rather than a request that can never
+      // be made.
+      applyPromoOffline(c);
+      return;
+    }
+    setPromoBusy(true);
+    const storeId = (window.HW.STORE && window.HW.STORE.id) || null;
+    const customerId = customer ? (customer.identity_id || customer.id || null) : null;
+    window.HW_LIVE.post('/api/promos/eligible', {
+      cart: { lines: cartLinesForEligible() },
+      customer_id: customerId, store_id: storeId, channel: 'in_store', codes: [c],
+    }).then((res) => {
+      setPromoBusy(false);
+      // res.code === 0 is HW_LIVE.post()'s own "never actually reached the
+      // server" signal (request failed / timed out) — the ONLY case that
+      // falls back to the offline list. `res.gated` (write-token 403) is
+      // treated the same way: the code genuinely could not be checked live,
+      // not that it was checked and refused.
+      if (res.code === 0 || res.gated) {applyPromoOffline(c);return;}
+      if (!res.ok || !res.body) {
+        setPromoErr(res.error || `${c} could not be checked right now.`);
+        return;
+      }
+      const hit = (res.body.applied || []).filter(
+        (a) => a.code && a.code.toUpperCase() === c)[0];
+      if (hit) {
+        onApply && onApply({ kind: 'promo', off: r2(hit.discount_cents / 100),
+          label: `Promotion applied`, code: c, promotion_id: hit.promotion_id });
+        setPromoErr('');setCode('');
+        return;
+      }
+      const rejected = (res.body.rejected || []).filter(
+        (r) => r.code && r.code.toUpperCase() === c)[0];
+      const unsupported = (res.body.unsupported || []).filter(
+        (u) => u.code && u.code.toUpperCase() === c)[0];
+      if (rejected) {
+        setPromoErr(PROMO_REJECT_REASON[rejected.reason] ||
+          `${c} does not apply (${rejected.reason}).`);
+      } else if (unsupported) {
+        setPromoErr(`${c} could not be priced for this cart.`);
+      } else {
+        setPromoErr(`${c} is not a code this store honours.`);
+      }
+    });
   };
   const note = { fontSize: 10, color: P.inkDim, lineHeight: 1.4, marginTop: 5 };
   return (
@@ -878,7 +961,7 @@ function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, 
           <div style={{ display: 'flex', gap: 7 }}>
             <Field icon="tag" placeholder="Promo code" size="sm" value={code}
             onChange={(e) => {setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''));setPromoErr('');}} />
-            <PBtn variant="soft" size="sm" disabled={!code.trim()} title={code.trim() ? `Apply ${code.trim()}` : 'Enter a promo code first'} onClick={applyPromo}>Apply</PBtn>
+            <PBtn variant="soft" size="sm" disabled={!code.trim() || promoBusy} title={code.trim() ? `Apply ${code.trim()}` : 'Enter a promo code first'} onClick={applyPromo}>{promoBusy ? 'Checking…' : 'Apply'}</PBtn>
           </div>
           {(promoErr || !code.trim()) &&
           <div style={{ ...note, color: promoErr ? P.bad : P.inkDim, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
