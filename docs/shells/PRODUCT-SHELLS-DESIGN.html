@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Product Shells, Formats and Naming — Design Overview</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #1c2024;
+    --muted: #5a6270;
+    --border: #d7dbe0;
+    --accent: #2f5fae;
+    --bg-table-head: #eef1f5;
+    --bg-code: #f2f3f5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  .page {
+    max-width: 850px;
+    margin: 0 auto;
+    padding: 48px 56px 72px;
+  }
+  h1 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 26px;
+    margin: 0 0 6px;
+    color: var(--ink);
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  h2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 19px;
+    margin: 34px 0 12px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    margin: 22px 0 8px;
+    color: var(--ink);
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 12px; }
+  p.lead {
+    font-style: italic;
+    color: var(--muted);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13.5px;
+    margin-top: -4px;
+  }
+  ul { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--ink); }
+  code {
+    font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+    background: var(--bg-code);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 28px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 22px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12.5px;
+  }
+  caption { caption-side: top; text-align: left; }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 7px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--bg-table-head);
+    font-weight: 700;
+  }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .footer-note {
+    margin-top: 40px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--muted);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  @media print {
+    body { font-size: 12.5px; }
+    .page { padding: 0 8mm; max-width: none; }
+    h2 { page-break-after: avoid; }
+    table, tr { page-break-inside: avoid; }
+    a[href]::after { content: ""; }
+  }
+  @page {
+    size: letter;
+    margin: 18mm 16mm;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Product Shells, Formats and Naming — Design Overview</h1>
+<p class="lead"><em>Hyperwolf internal design reference, shared for external development review.</em></p>
+<h2>1. Purpose</h2>
+<p>Formats standardize how a product name is displayed to customers, on the point-of-sale screen and on the website, so that the same kind of product looks the same way everywhere it appears. Shells hold the fields that describe a family of products once — brand, format, default weight, unit and pack — instead of repeating them on every product. Variations hold only the handful of fields that differ from one product in a shell to the next, typically the strain or flavor name and, where the format calls for it, a ratio, tier, or type. Batches sit one level below shells and variations: they represent the physical lots of inventory that fulfill a given product over time. Batch detail is out of scope for this document and will follow separately.</p>
+<h2>2. Definitions</h2>
+<p><strong>Format</strong> — A named template that defines how a category of product is displayed: its naming template, default weight/unit/pack, a Weedmaps taxonomy hint, and a delivery packing default. For example, the Flower category has a "Smalls" format with the template <code>{name} {size} Smalls</code>. Applied to the strain "Cereal Milk" at an eighth (3.5g), where <code>{size}</code> is empty for that weight, the format produces "Cereal Milk Smalls"; the same format applied at a half ounce (14g) produces "Cereal Milk Half Ounce Smalls".</p>
+<p><strong>Shell</strong> — One brand's instance of a format: a specific brand, format, weight/unit/pack combination that many individual products can belong to. A shell does not appear to customers; it is the grouping that products are organized under internally. Brand is never part of a product's displayed name.</p>
+<p><strong>Variation</strong> — A single catalog product that belongs to a shell, carrying only what differs for that product: the strain/flavor/product-name text, and optionally a ratio, tier, type, infused flag, or sour flag, depending on which slots the shell's format template uses. Everything else (brand, weight, unit, pack, category) is inherited from the shell.</p>
+<p><strong>Naming template and slots</strong> — The template is a short pattern of literal words and placeholder slots, for example <code>{name} Live Resin Cartridge</code> (Vapes) or <code>{name} {ratio} Gummies</code> (Edibles). The naming engine fills each slot from the variation's data and the shell's defaults and produces the final display name — for example, the strain "Dosi Punch" in a 1g Vapes shell using the first template above produces "Dosi Punch Live Resin Cartridge"; "Midnight Blueberry" with a 5:1 ratio in the second template produces "Midnight Blueberry 5:1 Gummies."</p>
+<p><strong>Weedmaps node</strong> — A label on each format that records where that kind of product falls in the Weedmaps product taxonomy (for example "Concentrates › Live Resin" or "Flower"). It is a display hint today, held for the later work of binding it directly into an external taxonomy mapping.</p>
+<p><strong>Delivery box</strong> — A label on each format (and overridable per shell) recording which physical packing/kit grouping that product belongs to for delivery fulfillment — a back-of-house packing default, not something a customer sees.</p>
+<p><strong>Front of house / back of house placement</strong> — A shell can carry the two in-store locations where its products live: the front-of-house location (the sales floor or display) and the back-of-house location (stock room, vault or rack). Each is set per store, with a company-wide default that a store may override, and both are optional. Variations inherit the shell's placement. These are physical locations for restocking and counting, distinct from the Weedmaps node (taxonomy) and the delivery box (packing).</p>
+<h2>3. Naming rules</h2>
+<p>Both naming engines implement one shared rule set:</p>
+<ul>
+<li><strong>Doc precedence, shorter wins.</strong> Where Hyperwolf's naming convention document is silent or</li>
+</ul>
+<p>offers a choice, the shorter valid name wins.</p>
+<ul>
+<li><strong>No numeric weights in a name.</strong> Tokens such as <code>1g</code>, <code>3.5g</code>, <code>100mg</code>, <code>30ml</code>, or <code>1/2 oz</code> are</li>
+</ul>
+<p>refused wherever they appear, whether typed into a strain/flavor field or hard-coded into a template's literal text.</p>
+<ul>
+<li><strong>Spelled-out flower sizes.</strong> The <code>{size}</code> slot (Flower only) renders from the shell's weight:</li>
+</ul>
+<p>7g → "Quarter Ounce", 14g → "Half Ounce", 28g → "Full Ounce"; 3.5g (an eighth) renders nothing, so "Biscotti" stays "Biscotti" while the same strain at 7g becomes "Biscotti Quarter Ounce".</p>
+<ul>
+<li><strong>Pack counts as N-Pack.</strong> The <code>{count}</code> slot reads the shell's pack size and renders as a bare</li>
+</ul>
+<p>number that the template pairs with a literal "-Pack", e.g. "Unruly OG 5-Pack"; where a pack has no strain, <code>{name|type}</code> falls back to the strain type, e.g. "Hybrid 10-Pack".</p>
+<ul>
+<li><strong>Optional slots</strong>: <code>{ratio}</code> (normalized to <code>a:b</code> or <code>a:b:c</code> with no spaces, e.g. "Lights 2:1</li>
+</ul>
+<p>3-Pack"), <code>{tier}</code> (renders as "(Tier N)" at the end, e.g. "Lemon Cherry Runtz Live Resin Budder (Tier 4)"), <code>{type}</code> (Indica/Sativa/Hybrid), <code>{infused}</code> (literal "Infused" when set), <code>{sour}</code> (literal "Sour," leading, used on gummies, e.g. "Sour Kiwi Strawberry Gummies"). An unfilled optional slot collapses cleanly with its surrounding spacing rather than leaving a gap.</p>
+<ul>
+<li><strong>Casing and punctuation.</strong> Title Case, with brand-internal capitalization preserved (e.g. all</li>
+</ul>
+<p>caps or mixed-case product names); strain crosses use a lowercase " x "; multiple flavors use " &amp; "; "Pre-Roll," "N-Pack," "All-In-One," and "Roll-On" are always hyphenated the same way regardless of how they were typed; trademark marks (™/®) are stripped.</p>
+<ul>
+<li><strong>Refusals.</strong> A name is refused (not produced) rather than silently accepted when: no usable</li>
+</ul>
+<p>strain/flavor/type text was supplied; a pack template is used without a valid pack count; a flower size template is used with a weight the engine doesn't recognize; a cannabinoid abbreviation (THC/CBD/CBN/CBC/CBG) appears in the name text; a numeric weight token appears in the name text or in the template's own literal text; or the template references a slot outside the known set, or omits both <code>{name}</code> and <code>{name|type}</code>.</p>
+<ul>
+<li><strong>Category-specific template guards</strong>, enforced when a format is created or edited: a Pre-Rolls</li>
+</ul>
+<p>template must end in "Pre-Roll," "Infused Pre-Roll," or use the pack slot; a gummies-style Edibles template must end in "Gummies" or "Gummy Belts"; a Wellness template must end in "Tincture" or a topical noun.</p>
+<p>The complete rule set is validated by a shared 87-case test fixture built from every example in Hyperwolf's naming convention document, run against both engines: <code>shell_naming.py</code> (server-side, Python) and <code>hw-naming.js</code> (browser-side, JavaScript). Both currently pass all 87 cases and agree with each other on the same inputs. <strong><code>hw-naming.js</code> is the engine intended to be embedded in production</strong> — it needs no server round-trip and can render a name live as an operator types.</p>
+<h2>4. Data shapes</h2>
+<h3>Format</h3>
+<table>
+<thead><tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr>
+<td>id</td>
+<td>string</td>
+<td>yes</td>
+<td>Slug, e.g. <code>live-resin-sauce-all-in-one</code></td>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td>yes</td>
+<td>Display name, e.g. "Live Resin Sauce All-In-One"; unique per category</td>
+</tr>
+<tr>
+<td>category</td>
+<td>string</td>
+<td>yes</td>
+<td>Flower \</td>
+<td>Pre-Rolls \</td>
+<td>Vapes \</td>
+<td>Concentrates \</td>
+<td>Edibles \</td>
+<td>Wellness \</td>
+<td>Accessories</td>
+</tr>
+<tr>
+<td>subcategory</td>
+<td>string</td>
+<td>no</td>
+<td>Finer-grained grouping within the category</td>
+</tr>
+<tr>
+<td>template</td>
+<td>string</td>
+<td>yes</td>
+<td>Naming template (§3); validated on save</td>
+</tr>
+<tr>
+<td>default_weight</td>
+<td>number</td>
+<td>no</td>
+<td>Numeric only; never rendered in a name</td>
+</tr>
+<tr>
+<td>default_unit</td>
+<td>string</td>
+<td>no</td>
+<td>g \</td>
+<td>mg \</td>
+<td>ml \</td>
+<td>ea</td>
+</tr>
+<tr>
+<td>default_pack</td>
+<td>integer</td>
+<td>no</td>
+<td>1 for singles; 3/5/10/… for packs</td>
+</tr>
+<tr>
+<td>wm_node</td>
+<td>string</td>
+<td>no</td>
+<td>Weedmaps taxonomy hint</td>
+</tr>
+<tr>
+<td>kit_box</td>
+<td>string</td>
+<td>no</td>
+<td>Delivery packing default</td>
+</tr>
+<tr>
+<td>sort</td>
+<td>integer</td>
+<td>no</td>
+<td>Display order within the category</td>
+</tr>
+<tr>
+<td>active</td>
+<td>boolean</td>
+<td>yes</td>
+<td>Inactive formats are retained for history but cannot take new shells</td>
+</tr>
+</tbody></table>
+<h3>Shell</h3>
+<table>
+<thead><tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr>
+<td>id</td>
+<td>string</td>
+<td>yes</td>
+<td>Server-assigned, stable identifier</td>
+</tr>
+<tr>
+<td>brand_key</td>
+<td>string</td>
+<td>yes</td>
+<td>Brand identifier; brand is never shown in a product name</td>
+</tr>
+<tr>
+<td>brand_name</td>
+<td>string</td>
+<td>yes</td>
+<td>Display brand name</td>
+</tr>
+<tr>
+<td>format_id</td>
+<td>string</td>
+<td>yes</td>
+<td>References a Format</td>
+</tr>
+<tr>
+<td>weight, unit, pack</td>
+<td>number/string/integer</td>
+<td>no</td>
+<td>Defaults from the format; a brand may override</td>
+</tr>
+<tr>
+<td>kit_box, wm_node</td>
+<td>string</td>
+<td>no</td>
+<td>Defaults from the format; overridable per shell</td>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td>derived</td>
+<td>Internal label only, e.g. "Brand · Format Name"; not a customer-facing name</td>
+</tr>
+<tr>
+<td>active</td>
+<td>boolean</td>
+<td>yes</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>Uniqueness: one shell per (brand, format, weight, unit, pack) combination.</p>
+<h3>Variation / Product</h3>
+<table>
+<thead><tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr>
+<td>sku</td>
+<td>string</td>
+<td>yes</td>
+<td>Product identifier</td>
+</tr>
+<tr>
+<td>shell_id</td>
+<td>string</td>
+<td>yes</td>
+<td>References a Shell</td>
+</tr>
+<tr>
+<td>variation slots</td>
+<td>object</td>
+<td>yes</td>
+<td><code>{name, ratio?, tier?, type?, infused?, sour?, effect?}</code> — only what differs per product</td>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><strong>derived</strong></td>
+<td>Never typed directly; produced by the naming engine from the shell + slots, unless a manual override is set</td>
+</tr>
+<tr>
+<td>name_override</td>
+<td>string</td>
+<td>no</td>
+<td>Set only by a manager; when present, it — not the derived name — is what customers see</td>
+</tr>
+<tr>
+<td>price</td>
+<td>money</td>
+<td>yes</td>
+<td></td>
+</tr>
+<tr>
+<td>category, brand</td>
+<td>string</td>
+<td>derived</td>
+<td>Inherited from the shell/format</td>
+</tr>
+</tbody></table>
+<p>Fields carried by the broader product record (platform, source, sale price, on-hand quantity, external ids) follow the existing catalog product contract and are unaffected by shells.</p>
+<p><strong>Derived, never typed:</strong> a product's display name and its category/brand are always computed from the shell and its format, never entered as free text — this is what keeps every product in a shell displaying consistently.</p>
+<h2>5. Behaviour rules</h2>
+<ul>
+<li><strong>Renaming a format, or editing its template, ripples with a preview.</strong> Every product the change</li>
+</ul>
+<p>would affect is listed with its current and resulting name, all pre-selected. Any subset can be unchecked (held back) or split off to a different existing or newly created format, in the same step — never applied all-or-nothing, and never one product at a time.</p>
+<ul>
+<li><strong>Deleting a format requires reassignment.</strong> The delete action stays disabled until every shell</li>
+</ul>
+<p>and product on that format has a destination — either "move everything to…" a chosen format, or a destination chosen row by row. This action is restricted to managers.</p>
+<ul>
+<li><strong>Intake types the strain; the name is derived.</strong> Adding a new product to a shell asks only for</li>
+</ul>
+<p>the strain, flavor, or product-name text (labelled according to what the format calls for), plus a ratio, tier, or type only when the format's template uses that slot. The resulting display name renders live as the operator types and cannot be typed directly.</p>
+<ul>
+<li><strong>Operator flags persist.</strong> Manual flags set on existing products — discontinued, duplicate,</li>
+</ul>
+<p>manually unpublished — are retained across a catalog reload rather than being reset.</p>
+<ul>
+<li><strong>SKU handling.</strong> A SKU is proposed automatically when a variation is created: a short brand</li>
+</ul>
+<p>code, the shell's weight digits and the product's initials (for example <code>HW-35-BD</code> for a Hyperwolf 3.5g "Blue Dream"). It can be edited before the product is saved. After save it is the external id that Weedmaps keys the product by, so it is treated as permanent.</p>
+<h2>6. Derivation (migration)</h2>
+<p>The Phase 1 migration reads a snapshot of Hyperwolf's own website catalog taken 2026-08-27 (1,619 products as loaded in the working copy). Product names on the live site are <strong>not</strong> rewritten by this phase; the derivation only produces proposed shell placements and proposed names for review.</p>
+<p><strong>Phase 1 brand scope</strong>: Hyperwolf's own house brand plus its ten largest live-menu brands.</p>
+<p><strong>Results</strong>: 634 products fell within the Phase 1 brand scope. Of those, 611 were placed into 74 shells; 23 remained unplaced, each with a stated reason:</p>
+<ul>
+<li>13 unplaced because their site subcategory was ambiguous across more than one shell shape (one</li>
+</ul>
+<p>brand)</p>
+<ul>
+<li>9 unplaced because the SKU was absent from the live-menu data pulled for cross-reference</li>
+<li>1 unplaced because the resulting name was refused by the naming engine's validation rules</li>
+</ul>
+<p>The migration's <strong>output is data</strong> — proposed formats, shells, and product-to-shell placements — which can be reviewed and imported. The <strong>naming engine is code</strong> (rules, not data) and needs to run in production wherever a name is displayed or a new product is created, not only during this one-time migration.</p>
+<h2>7. API surface</h2>
+<table>
+<thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td>/api/shells/formats</td>
+<td>List formats with shell/product counts</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/formats</td>
+<td>Create a format</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/formats/preview</td>
+<td>Preview the effect of a rename/template edit (no write)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/formats/apply</td>
+<td>Apply a rename/template edit, with per-row apply/split</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/formats/delete</td>
+<td>Delete a format, with reassignment of every shell on it (manager only)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/shells</td>
+<td>List shells, filterable by brand/format/category</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/shells/{id}</td>
+<td>Get one shell with its format and products</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells</td>
+<td>Create a shell</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/delete</td>
+<td>Delete a shell, requiring product reassignment or an empty shell</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/{id}/variations</td>
+<td>Create a product (variation) under a shell</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/{id}/variations/{sku}</td>
+<td>Update a variation; re-derives the name (or applies a manager override)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/name/preview</td>
+<td>Preview a derived name for given slots (no write)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/derive</td>
+<td>Run the migration derivation for a given brand list</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/shells/derive/{report_id}</td>
+<td>Retrieve a stored derivation report</td>
+</tr>
+<tr>
+<td>GET / POST</td>
+<td>/api/shells/locations</td>
+<td>List or create in-store locations (front or back of house, per store)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/shells/locations/delete/preview, /delete</td>
+<td>Delete a location after every shell on it is rebound (all-or-split)</td>
+</tr>
+<tr>
+<td>GET / POST</td>
+<td>/api/shells/{id}/location</td>
+<td>Read or set a shell's placement, per store or company default</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/shells/products/{sku}/location</td>
+<td>The effective placement of one product for a store</td>
+</tr>
+</tbody></table>
+<h2>8. What we are asking of you now</h2>
+<p>Nothing needs to be built against this document yet. Please read it and send back questions — particularly anything in the data shapes, naming rules, or API surface that looks ambiguous or would need clarification before implementation.</p>
+<p><strong>What follows</strong>: a companion document covering the batch level (the physical inventory lots beneath shells and variations), and a proposal for how the implementation work will be divided.</p>
+</div>
+</body>
+</html>
