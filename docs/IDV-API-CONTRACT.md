@@ -3215,3 +3215,219 @@ addendum promises, but nobody has done that filling-in for a second state in thi
 (non-medical, document-issued-elsewhere) finding was left alone beyond its guidance sentence's wording —
 its actual decision (`cfg["out_of_state"]` policy) was never California-specific engine-side logic to
 begin with, so there was nothing to make jurisdictional there.
+
+---
+
+## Addendum — 2026-09-15 (r11): the console PIN gets a second secret, and four holes a security audit found
+
+Scope of this pass: `wmdemo/idv_api.py`, `wmdemo/idv_store.py` (read only — untouched), `wmdemo/
+idv_webhooks.py`, `qa/idv_api_probe.py`, `qa/idv_store_probe.py`, this file, and `render.yaml` (env var
+declarations only). Driven by a same-day security audit (`audit-security.md`) that found one CRITICAL
+and three HIGH/MEDIUM findings in the console's auth model. **This addendum supersedes r4's `POST
+/api/idv/auth/pin` and token-shape sections below — read this one first, then r4 for everything else
+about the gate (exemptions, `auth/status`, the client contract) that did not change.**
+
+### 1. CRITICAL, fixed — `X-HW-Actor` was a client-controlled, unverified header
+
+**What was wrong.** r4 built a real secret gate in front of the console, but `X-HW-Actor` — the header
+that decides whether a caller is `viewer`, `analyst` or `admin` — was never checked against the token at
+all. It was honest *attribution*, not authentication: `associates.role` free text containing "manager"
+or "admin" made an actor `admin`, and nothing tied the header to whoever had actually typed the PIN.
+Client-side, the header came from a hardcoded JS fixture (`pos/data.jsx`'s `window.HW.STATS.associate`)
+that a devtools one-liner could edit in place — `window.HW.STATS.associate.id = '<admin-id>'` — with no
+PIN interaction at all. Anyone holding the *shared* counter PIN could mint a live API key, delete a
+webhook destination, or force-approve a session, and the audit row would name a real manager for it.
+
+**The fix.** The token now binds an **actor** and a **level**, both covered by its signature:
+
+```
+hwc.<issued_at>.<level>.<actor, percent-encoded>.<hex hmac>
+```
+
+`level` is `console` or `admin`, decided **server-side** by which of two secrets the exchanged PIN
+matched — never by anything the client asserts. `require_console` (unchanged name, new body) now:
+
+1. verifies the HMAC and the 12-hour TTL, as before;
+2. **requires `X-HW-Actor` to equal the token's own bound actor** — `403` otherwise, not 401: this is an
+   authenticated caller lying about who it is, which is a different failure from no credential at all;
+3. **caps the effective role** at `CONSOLE_LEVEL_CAP[level]` — `console` → `analyst`, `admin` → `admin` —
+   `min(associates.role, level's cap)`, computed once, here, before any route-specific `require(act,
+   needed)` runs.
+
+A shared counter PIN can therefore never produce a token capable of `admin` work, **no matter what
+`associates.role` says about the actor who exchanged it.** Reaching an admin-only route (API-key mint/
+revoke, webhook create/delete/test, deletion execute, workflow writes, status overrides, imports) now
+needs the second secret below.
+
+### 2. The second secret — `IDV_ADMIN_PIN`
+
+A new env var, **≥ 8 characters**, `sync: false` (declared, unset, in `render.yaml` — see below). It is
+**not** the console PIN with extra rules; it is a **different value**, given only to the people who
+should be able to do admin-level work, never to the whole counter.
+
+| supplied `pin` matches | `level` minted | reaches |
+|---|---|---|
+| `IDV_ADMIN_PIN` (when set, ≥ 8 chars) | `admin` | everything `console` reaches, plus every admin-only route |
+| `IDV_CONSOLE_PIN` | `console` | every `viewer`/`analyst` route; capped at `analyst` even for an actor whose own role resolves higher |
+| neither | — | `403 {"error": "That PIN is not right."}` |
+
+**`IDV_ADMIN_PIN` unset or shorter than 8 chars → no PIN exchange can ever mint `level=admin`.** Every
+admin-only route stays `403` for everyone until a real one is set — fail closed, the same rule r4's gate
+already applied to a short/unset `IDV_CONSOLE_PIN` on a public deployment. This is deliberate: there is
+no fallback to "the console PIN plus a role check" the way the original design implicitly had.
+
+**The signing key is derived from BOTH pins together** (`SHA-256("hw-console-token-v2|" + console_pin +
+"|" + admin_pin)`), not either one alone. A caller who has only ever seen the shared console PIN cannot
+compute the server's real key even by correctly guessing that `IDV_ADMIN_PIN` is unset (the natural
+guess) — the guessed key and the real key differ the moment the real admin PIN is non-empty, so a forged
+`level=admin` token's signature does not verify. Proved in `qa/idv_api_probe.py` `AP-156e` by
+constructing exactly that forgery and confirming `check_console_token` returns `None`.
+
+### 3. `POST /api/idv/auth/pin` — new request/response shape
+
+**Body is now `{"pin": "…", "actor": "<associate id>"}`.** `actor` is required on a **matching** pin —
+`400 {"error": "actor is required"}` if the pin is right and the field is missing (a wrong pin is still a
+plain `403`, `actor` or not, so a guesser cannot use the 400/403 split to learn whether their PIN guess
+was closer). This is the ONE breaking change in this pass: **any client that still POSTs `{"pin": "…"}`
+alone will get 400 on every otherwise-correct PIN starting the moment this ships.** See "Client-side
+rollout dependency," below — it is real and it is not closed by this pass.
+
+- `201 {"token": "hwc.<issued_at>.<level>.<actor>.<hex hmac>", "expires_at": "<ISO-8601>", "level":
+  "console"|"admin"}` on a match. `level` is new in the response body; everything else keeps r4's shape.
+- `403 {"error": "That PIN is not right."}` on a mismatch against both pins, or a missing `pin` key —
+  unchanged from r4.
+- `429` — unchanged status, **rate limiting itself changed**, see #4.
+- `503` when the gate is not `on` — unchanged.
+- **Every attempt still writes an audit row**, and it is now more honest than before: `via` is
+  `"pin:console"` or `"pin:admin"` on a match (naming which secret matched, not the generic `"console"`
+  every console write used to record regardless of level) and the `actor` field the caller supplied is
+  recorded even on a failed/rate-limited attempt. **Neither PIN is ever in a row, in any form** — same
+  promise as r4, now proved against both secrets (`AP-161`'s `leaked` check).
+
+### 4. HIGH, fixed — the PIN rate limiter's bucket was spoofable via `X-Forwarded-For`
+
+**What was wrong.** r4's limiter bucketed on `X-Forwarded-For`'s **first** hop, documented at the time as
+"spoofable and accepted as such." That reasoning did not hold: Render's proxy *appends* the real
+connecting peer as its own hop and passes every earlier hop through unexamined, so a caller could send a
+fresh, unique first hop on every single request and get a brand-new 5-attempts/minute bucket every time
+— the limiter provided no real protection against online brute force of a 6-digit PIN (10⁶ guesses).
+
+**The fix.** `_client_ip` now reads the hop **`HW_TRUSTED_PROXY_HOPS` positions in from the RIGHT**
+(default `1`, matching Render's single appended hop — declared, non-secret, in `render.yaml`), falling
+back to the raw TCP peer when there is no usable header or the hop count is set to `0`. Proved in
+`AP-154b` by sending a different, attacker-chosen leading hop on every one of six requests behind a
+constant trailing hop: all six still land in one bucket and the 6th is still `429`.
+
+**A second, global backstop was added alongside it, not instead of it**: `CONSOLE_PIN_GLOBAL_ATTEMPTS_PER_MIN
+= 30`, a single bucket keyed on nothing the caller supplies at all, bumped on every attempt from every
+source. It caps total guessing against **either** PIN combined, however the per-IP bucket is being
+evaded — a defense-in-depth backstop, not a replacement for the per-IP one.
+
+### 5. MEDIUM, fixed — `GET /api/idv/media/{id}` leaked an unauthenticated existence oracle
+
+**What was wrong.** The route looked the media row up (`404` if absent) *before* checking for a PIN or a
+job token, while every other gated console route correctly answered `401`/`403` unauthenticated. A
+caller who had proven nothing could tell a real media id from a made-up one by the status code alone (a
+real id: `401`; a fake one: `404`). Media ids are 122-bit `uuid4().hex`, so not practically
+brute-forceable, but it broke the "the gate runs first, always" invariant the rest of the file otherwise
+enforces on purpose.
+
+**The fix.** The auth check now runs **before** the row lookup on both branches: with no `?token=`,
+`require_console`+`require(viewer)` run first, exactly as every other gated route; with `?token=`, the
+token's own live-record check (`media_token_record`, which needs no media row) runs first, and the
+row-scoped part of the check (does *this* live token cover *this* media id) still necessarily runs after
+— but only once the caller has already proven it holds a real, unexpired token, which is what makes that
+second-stage ordering safe rather than a second oracle. Proved in `AP-152b`: a real media id and a made-up
+one now answer the identical `401` with nothing supplied.
+
+### 6. HIGH, fixed — SSRF via webhook destinations
+
+**What was wrong.** `POST /api/idv/webhooks` (already admin-only) accepted any string as `url` — no
+scheme restriction, no block on loopback, RFC1918/CGNAT/link-local ranges (including the cloud metadata
+address `169.254.169.254`), or the engine's own internal address. `POST /api/idv/webhooks/{id}/test`
+immediately triggered a signed outbound POST to that URL and returned the response, a workable SSRF
+oracle for probing the internal network — reachable, before this pass, by anyone finding-#1 let hold an
+admin-capable header.
+
+**The fix — `idv_webhooks.validate_webhook_destination(url)`,** the one gate every destination URL passes
+through, called from two places:
+
+- **`idv_api.py`, synchronously, at create/update (only when `url` changes)/test** — `400 {"error":
+  "<plain message>"}` immediately, before the row is written or a test delivery fires.
+- **`idv_webhooks.py`, unconditionally, immediately before *every* delivery attempt** (`deliver_due`) —
+  never trusting the check that ran when the row was created. The hostname is **re-resolved on every
+  call**, which is what defeats DNS rebinding: a name that resolved to a public address when a
+  destination was created and to `169.254.169.254` an hour later at send time is caught at send time, not
+  waved through on a cached answer. A destination that fails this check is treated exactly like a
+  connection failure — same retry/`dead` bookkeeping, the injected poster function is never even called
+  — never a raise.
+
+Rules: **https required**, except locally (`config.PUBLIC` false) when every resolved address is
+loopback, so a developer can point a destination at `http://127.0.0.1:<port>` without deploying TLS for
+it — the *only* relaxation; it does not extend to any other private/reserved range. Every resolved IP is
+checked (refuse if *any* of them is disallowed, not just the first). Refused: loopback (outside the dev
+exception above), private (`10/8`, `172.16/12`, `192.168/16`), link-local (`169.254/16`, including the
+metadata address), CGNAT (`100.64/10` — checked explicitly, since it is not covered by every Python
+build's `ipaddress.is_private`), multicast, reserved/unspecified, their IPv6 equivalents, and **the
+verification engine's own configured host:port** (compared as an `(ip, port)` pair, not `ip` alone, so a
+loopback dev receiver on a different port from the engine is not also caught).
+
+`create_destination` (`idv_store.py`) itself does **no validation at all**, unchanged and deliberately —
+it is a plain insert; the guard living in the two callers above (not the store) is what "again at
+delivery time" means in practice.
+
+### Client-side rollout dependency — NOT closed by this pass
+
+**This pass owns `wmdemo/` and `qa/` only.** `POS-Admin/idv/idv-client.jsx` (the `HWIdv.auth.enter()`
+call that POSTs to `/api/idv/auth/pin`) and `PinGate` are out of scope here and were **not edited.**
+
+The moment `IDV_CONSOLE_PIN`/`IDV_ADMIN_PIN` are live on a deployment running this pass's `idv_api.py`,
+**every PIN entry from the current client fails with `400 {"error": "actor is required"}`**, because the
+current client's request body is still `{"pin": "…"}` alone — r4's shape, not r11's. The client needs,
+at minimum:
+
+1. `HWIdv.auth.enter(pin)` → `enter(pin, actor)`, sourcing `actor` from the same
+   `window.HW.STATS.associate.id` the rest of the console already sends as `X-HW-Actor` (finding #1's own
+   audit noted this value is not currently identity-verified client-side either — fixing *that*, a real
+   per-person login, is a separate, larger piece of work this pass does not attempt);
+2. surfacing the response's new `level` field somewhere an operator can see it, so "why is this button
+   403ing" has an answer other than trial and error — not required for correctness, since the server
+   enforces the cap regardless of what the client displays, but required for the console to be usable by
+   someone who does not have this addendum open;
+3. `PinGate` (or wherever the PIN is typed) needs a way to ask for **which** PIN when a screen might need
+   an admin-only action — today's single numeric PIN field has no concept of two tiers.
+
+Until that lands, the recommended rollout order is: **ship this pass's backend with `IDV_ADMIN_PIN` left
+unset** (admin-only routes stay 403 for everyone, exactly like today's console-PIN-unset/misconfigured
+behaviour, so nothing regresses) **and `IDV_CONSOLE_PIN` rotated to remind the client team the body shape
+changed** — then ship the client change, then set `IDV_ADMIN_PIN` once real admin-tier operators exist to
+give it to.
+
+### Env vars to set in Render (both `sync: false`, dashboard only)
+
+| var | rule | effect if unset/short |
+|---|---|---|
+| `IDV_CONSOLE_PIN` | ≥ 6 chars (unchanged from r4) | gate misconfigured (public) / off (not public) |
+| `IDV_ADMIN_PIN` | ≥ 8 chars, **new this pass** | no PIN exchange can ever mint `level=admin`; every admin-only route stays 403 |
+| `HW_TRUSTED_PROXY_HOPS` | integer, **new this pass**, declared non-secret with `value: "1"` | code defaults to `1` (Render's own appended hop) if left unset entirely |
+
+### Probes: before → after
+
+`idv_api_probe` 236 → 249 (+13: `AP-152b` the media-route existence-oracle parity fix; `AP-154b` the XFF
+first-hop spoof no longer resetting the rate bucket; `AP-155b` `actor` required on a matching pin;
+`AP-156b`/`c` the admin PIN reaching `level=admin` and the console PIN never reaching it even for an
+admin-titled actor — the CRITICAL fix itself; `AP-156d` the actor/token binding rejecting a header
+mismatch; `AP-156e` token forgery with the wrong pin; `AP-161b` the audit trail naming which PIN tier
+authorised a write; `AP-212`..`AP-216` the SSRF guard's own range/scheme/engine-host/DNS-rebinding
+coverage and its live-route wiring). `idv_store_probe` 95 → 96 (+1: `ST-30b`, the delivery-time SSRF
+re-check treated as an ordinary failed delivery with the injected poster never called). `idv_rules_probe`
+unchanged at 448/448 — not touched this pass, run anyway per this pass's own brief. All three run green,
+standalone: 249/249, 96/96, 448/448.
+
+**`qa/battery.py` was not touched by this pass, per this pass's own scope** (explicitly out of bounds —
+"report deltas, do not edit"), and per r10's own note its `EXPECTED_CHECKS`/`TOTAL_CHECK_FLOOR` were
+already stale before this pass started. A grep of `qa/battery.py` for the routes/functions this pass
+changed (`auth/pin`, `IDV_CONSOLE_PIN`, `IDV_ADMIN_PIN`, `X-HW-Console-Token`, `/api/idv/webhooks`,
+`validate_webhook`) found only comments referencing the gate conceptually, no direct call whose
+assumptions this pass's shape change would break — but the standing instruction from r10 still applies:
+read the CURRENT live numbers off each probe's own `main()` before writing new ones into that file.
