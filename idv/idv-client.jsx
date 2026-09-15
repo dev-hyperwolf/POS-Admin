@@ -140,10 +140,36 @@
     try { return (window.localStorage.getItem(CONSOLE_KEY) || '').trim() || null; }
     catch (e) { return null; }
   }
-  function setConsoleToken(v) {
+  // ── level — the console/admin ladder (2026-09-15 addendum) ───────────────
+  // `POST /api/idv/auth/pin` now answers `{token, expires_at, level}`, level
+  // being `console` (viewer/analyst cap) or `admin`. Stored alongside the
+  // token under its own key rather than folded into one JSON blob, so a page
+  // that only ever reads CONSOLE_KEY (there is none left, but nothing here
+  // should assume that) still gets a valid token string, not a wrapper object.
+  //
+  // DEFENSIVE DEFAULT: an old backend's `/auth/pin` response has no `level`
+  // field at all (this is a contract being built in parallel — code against
+  // it landing before the backend does is exactly why this must not assume
+  // it). A token with no stored level is read back as `'console'`, the
+  // correct answer for a backend that has never heard of an admin ladder —
+  // every token it issues is the one capability level that existed before.
+  var LEVEL_KEY = 'hw-console-level';
+  function consoleLevel() {
+    if (!consoleToken()) return null; // not signed in at all
     try {
-      if (v) window.localStorage.setItem(CONSOLE_KEY, String(v));
-      else window.localStorage.removeItem(CONSOLE_KEY);
+      var v = (window.localStorage.getItem(LEVEL_KEY) || '').trim();
+      return v === 'admin' ? 'admin' : 'console';
+    } catch (e) { return 'console'; }
+  }
+  function setConsoleAuth(token, level) {
+    try {
+      if (token) {
+        window.localStorage.setItem(CONSOLE_KEY, String(token));
+        window.localStorage.setItem(LEVEL_KEY, level === 'admin' ? 'admin' : 'console');
+      } else {
+        window.localStorage.removeItem(CONSOLE_KEY);
+        window.localStorage.removeItem(LEVEL_KEY);
+      }
     } catch (e) {}
   }
   // ── auth — { status, enter, clear } ─────────────────────────────────────
@@ -163,6 +189,30 @@
     function notify() {
       listeners.slice().forEach(function (fn) { try { fn(); } catch (e) {} });
     }
+    // ── admin-required requesters ──────────────────────────────────────────
+    // A SEPARATE channel from `listeners` above (which is "re-check the
+    // console gate"): this one is "an action just came back needing admin,
+    // put up the admin PIN prompt". At most one UI component is expected to
+    // register (window.IdvShared.AdminGate, mounted once by idv/app.jsx,
+    // same placement as ToastHost) but this stays a list, not a single slot,
+    // for the same reason `listeners` is a list — a second mount must not
+    // silently steal the first's subscription.
+    var adminHandlers = [];
+    function requireAdmin() {
+      return new Promise(function (resolve, reject) {
+        if (!adminHandlers.length) {
+          // No AdminGate mounted on this page (screen-level component built
+          // before idv/app.jsx wired one in, or a page that never loads
+          // idv/app.jsx at all — pos/checkin-verify-seam.jsx is exactly that
+          // page, and per this task's brief it must NEVER prompt for the
+          // admin PIN). Reject rather than hang forever waiting on a UI that
+          // will never appear.
+          reject({ ok: false, code: 0, error: 'no-admin-gate-mounted' });
+          return;
+        }
+        adminHandlers.slice().forEach(function (fn) { fn(resolve, reject); });
+      });
+    }
     return {
       // app.jsx subscribes so a 401 from ANY screen re-checks the gate.
       subscribe: function (fn) {
@@ -171,15 +221,30 @@
           listeners = listeners.filter(function (f) { return f !== fn; });
         };
       },
+      // window.IdvShared.AdminGate subscribes here; requireAdmin()'s
+      // resolve/reject pair is handed to every registered handler so the
+      // mounted prompt can settle the caller's promise once the operator
+      // types the admin PIN (resolve) or cancels (reject).
+      onAdminRequired: function (fn) {
+        adminHandlers.push(fn);
+        return function () {
+          adminHandlers = adminHandlers.filter(function (f) { return f !== fn; });
+        };
+      },
+      requireAdmin: requireAdmin,
       // Called by get()/usePoll on any 401. THE STORED TOKEN IS DROPPED: the
       // server has just said it does not accept it, so keeping it only means
       // every subsequent request carries a header that will be refused again,
       // and the PIN card would sit behind a token it cannot see is dead.
       onUnauthorized: function () {
-        if (consoleToken()) setConsoleToken(null);
+        if (consoleToken()) setConsoleAuth(null, null);
         notify();
       },
       token: consoleToken,
+      // The stored capability level for the current token — 'console',
+      // 'admin', or null when nothing is signed in. See setConsoleAuth's
+      // comment for the defensive default against a pre-ladder backend.
+      level: consoleLevel,
       status: function () {
         return get('/api/idv/auth/status').then(function (r) {
           if (!r.ok) {
@@ -191,26 +256,39 @@
             error: null };
         });
       },
-      // -> { ok, code, error, expiresAt, gated }. `gated` is the OTHER 403 on
-      // this route and it is not a wrong PIN: shared/hw-live.js's write-token
-      // gate sits in front of every POST on a public deployment, so a device
-      // with no `?hwtoken=` is refused before the PIN is ever compared. The
-      // two 403s need different sentences, so the flag is relayed rather than
-      // flattened into one "that failed".
+      // -> { ok, code, error, expiresAt, gated, level }. `gated` is the OTHER
+      // 403 on this route and it is not a wrong PIN: shared/hw-live.js's
+      // write-token gate sits in front of every POST on a public deployment,
+      // so a device with no `?hwtoken=` is refused before the PIN is ever
+      // compared. The two 403s need different sentences, so the flag is
+      // relayed rather than flattened into one "that failed".
+      //
+      // `actor` rides in the BODY, per the contract ("body {pin, actor}"),
+      // even though every write already carries `X-HW-Actor` as a header
+      // (actorHeaders(), below) — the auth route is the one place the
+      // contract asks for it twice, presumably because this is the route
+      // that BINDS a token to an actor rather than merely attributing an
+      // already-authenticated request, so it must not depend on a header a
+      // stricter proxy in front of the backend could plausibly strip.
       enter: function (pin) {
-        return post('/api/idv/auth/pin',
-          { pin: String(pin == null ? '' : pin) }).then(function (r) {
+        var s = session();
+        return post('/api/idv/auth/pin', {
+          pin: String(pin == null ? '' : pin),
+          actor: (s && s.id) || null,
+        }).then(function (r) {
           if (r.ok && r.body && r.body.token) {
-            setConsoleToken(r.body.token);
+            // '.level' defensive default — see setConsoleAuth's comment.
+            var level = (r.body.level === 'admin') ? 'admin' : 'console';
+            setConsoleAuth(r.body.token, level);
             notify();
             return { ok: true, code: r.code, error: null, gated: false,
-              expiresAt: r.body.expires_at || null };
+              level: level, expiresAt: r.body.expires_at || null };
           }
           return { ok: false, code: r.code, gated: !!r.gated, expiresAt: null,
-            error: r.error || 'That did not work.' };
+            level: null, error: r.error || 'That did not work.' };
         });
       },
-      clear: function () { setConsoleToken(null); notify(); },
+      clear: function () { setConsoleAuth(null, null); notify(); },
     };
   })();
 
@@ -239,6 +317,16 @@
       // needsPin — a server with no PIN configured cannot be fixed by typing
       // one, so that case must show its own sentence, not the PIN card.
       needsPin: res.status === 401,
+      // `needsLevel` — an admin-only action refused at console level
+      // (contract: 403 body `{error, needs_level:"admin"}`). Derived from
+      // STATUS plus that one specific field, never from parsing `error`'s
+      // text — same reasoning as `needsPin` above: copy gets reworded, a
+      // structured field does not. An old backend that has never heard of
+      // this field simply never sends `needs_level`, so this stays null and
+      // every existing 403 branch (wrong PIN, the write-token gate) is
+      // unaffected — this is additive, not a replacement for either.
+      needsLevel: (res.status === 403 && j && typeof j.needs_level === 'string')
+        ? j.needs_level : null,
     };
   }
   // EVERY 401, FROM EVERY VERB, IN ONE PLACE. `settle` is the single funnel
@@ -419,5 +507,35 @@
     },
     version: function () { return window.HWContracts ? window.HWContracts.VERSION : null; },
   };
-  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can, contract: contract, auth: auth, actorHeaders: actorHeaders };
+  // ── withAdminRetry(actionFn) ─────────────────────────────────────────────
+  // The generic shape of "(2) When any request returns 403 with
+  // needs_level:'admin', show a compact Admin PIN prompt instead of a
+  // generic error, then retry the action once on success" from this task's
+  // brief. `actionFn` is a zero-arg function returning one of this file's
+  // own result promises (get/post/patch/put/del, or a screen's own thin
+  // wrapper around one) — called once, and if THAT SPECIFIC call needed
+  // admin, awaited on `auth.requireAdmin()` (which puts up
+  // window.IdvShared.AdminGate, see idv-shared.jsx) and called exactly ONE
+  // more time. Never recurses past that second call: a still-403 response
+  // after the operator just typed a PIN the server accepted is a different,
+  // real failure (e.g. the action needs a role above admin, or the token
+  // that PIN produced was itself instantly stale) and must surface as
+  // itself, not retry silently forever.
+  //
+  // If no AdminGate is mounted (requireAdmin() rejects), the ORIGINAL 403
+  // result is returned rather than the rejection — a caller that never
+  // wired up withAdminRetry's UI still gets the same result shape it would
+  // have gotten before this function existed, per-field `needsLevel` intact
+  // for it to handle itself.
+  function withAdminRetry(actionFn) {
+    return actionFn().then(function (r) {
+      if (r && r.needsLevel === 'admin') {
+        return auth.requireAdmin().then(function () { return actionFn(); },
+          function () { return r; });
+      }
+      return r;
+    });
+  }
+
+  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can, contract: contract, auth: auth, actorHeaders: actorHeaders, withAdminRetry: withAdminRetry };
 })();

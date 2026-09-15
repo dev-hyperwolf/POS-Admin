@@ -138,6 +138,24 @@
   const CFrame = window.CriticalBoundary || function CFrame(p) { return p.children; };
 
   // ── chrome ────────────────────────────────────────────────────────────
+  // The console/admin ladder's level pill (2026-09-15 addendum, this task's
+  // brief item 4: "Header/user chip shows the level pill (Console / Admin)").
+  // Reads window.HWIdv.auth.level() directly rather than threading it through
+  // props — the same reasoning as EngineBadge/session() elsewhere on this
+  // topbar: it is one more thing this bar shows about the current device,
+  // not state anything else here owns. `null` (never signed in at all, e.g.
+  // an unauthenticated read on an open deployment) renders nothing — there
+  // is no level to name yet, and an empty pill would be a lie of omission
+  // dressed as data.
+  function LevelPill() {
+    const level = window.HWIdv.auth.level();
+    if (!level) return null;
+    return (
+      <Pill kind={level === 'admin' ? 'info' : 'neutral'} size="sm" icon={level === 'admin' ? 'lock' : 'shield'}>
+        {level === 'admin' ? 'Admin' : 'Console'}
+      </Pill>);
+  }
+
   function Topbar() {
     const P = useP();
     const { mode, toggle } = window.useTheme();
@@ -154,6 +172,7 @@
         <BFrame name="Engine status"><window.IdvShared.EngineBadge /></BFrame>
         <BFrame name="Terms link"><window.IdvTerms.Link /></BFrame>
         <Pill kind="neutral" size="sm">{storeName(session.storeId)}</Pill>
+        <BFrame name="Auth level"><LevelPill /></BFrame>
         <IconBtn icon={mode === 'dark' ? 'sun' : 'moon'} size={16} onClick={toggle} title="Toggle theme" style={{ width: 34, height: 34 }} />
         <Avatar name={session.name} size={30} />
       </header>);
@@ -308,6 +327,15 @@
         {/* hd-ui.jsx installs window.hdToast only once ToastHost mounts; without
             this, every screen's write outcome is a silent no-op. */}
         {window.ToastHost ? <window.ToastHost /> : null}
+        {/* Mounted ONCE, same placement as ToastHost above: the UI half of
+            window.HWIdv.withAdminRetry (idv-client.jsx) — an admin-gated
+            action anywhere in Verify puts this overlay up over whatever
+            screen was already on screen. Absent this mount, requireAdmin()
+            still resolves defensively (idv-client.jsx's own comment) by
+            rejecting immediately rather than hanging, so a screen built
+            before this landed degrades to "the 403 surfaces as itself"
+            rather than a dead promise. */}
+        {window.IdvShared && window.IdvShared.AdminGate ? <BFrame name="Admin PIN prompt"><window.IdvShared.AdminGate /></BFrame> : null}
       </div>);
   }
 

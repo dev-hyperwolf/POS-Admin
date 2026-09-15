@@ -216,28 +216,49 @@
   // number pad rather than a full keyboard, and the value is filtered to
   // digits — the PIN is digits, and silently accepting a stray letter from an
   // autocorrect produces a refusal the operator cannot see the cause of.
-  window.IdvShared.PinGate = function PinGate({ onUnlocked, compact }) {
+  // `adminOnly` (2026-09-15 addendum, plan §6's console/admin ladder): when
+  // true this renders ONLY the admin-PIN field — no console PIN, no toggle —
+  // for reuse as the compact "Admin PIN required" prompt an admin-gated
+  // action's 403 raises (window.IdvShared.AdminGate below). `onCancel`, when
+  // given, renders a secondary Cancel button — the full console gate has
+  // none (there is nothing to cancel back TO, the whole console is behind
+  // it), but the admin retry prompt is optional: the operator may not have
+  // the admin PIN on them and must be able to back out of the one action
+  // that asked for it without losing the console session underneath.
+  window.IdvShared.PinGate = function PinGate({ onUnlocked, compact, adminOnly, onCancel }) {
     const P = useP();
     const [pin, setPin] = React.useState('');
+    // `wantsAdmin` — the toggle's own state, forced true when adminOnly (no
+    // toggle is rendered in that mode, so nothing can turn it back off).
+    const [wantsAdmin, setWantsAdmin] = React.useState(!!adminOnly);
+    const [adminPin, setAdminPin] = React.useState('');
     const [busy, setBusy] = React.useState(false);
     const [err, setErr] = React.useState(null);
     const aliveRef = React.useRef(true);
     React.useEffect(() => () => { aliveRef.current = false; }, []);
 
-    const ready = pin.length >= 4 && !busy;
+    // Who is about to sign in — read-only, above the field, on BOTH modes.
+    // `session()` is the production seam (idv-client.jsx L9), so this is the
+    // same actor id the PIN POST sends and every subsequent request stamps
+    // as `X-HW-Actor` — showing it here is the honest answer to "signing in
+    // as who", not a separate identity concept of PinGate's own.
+    const actor = window.HWIdv.session();
+
+    const activeVal = wantsAdmin ? adminPin : pin;
+    const ready = activeVal.length >= 4 && !busy;
 
     function submit() {
       if (!ready) return;
       setBusy(true); setErr(null);
-      window.HWIdv.auth.enter(pin).then((r) => {
+      window.HWIdv.auth.enter(activeVal).then((r) => {
         if (!aliveRef.current) return;
         setBusy(false);
         if (r.ok) {
-          setPin('');
-          if (typeof onUnlocked === 'function') onUnlocked();
+          setPin(''); setAdminPin('');
+          if (typeof onUnlocked === 'function') onUnlocked(r.level);
           return;
         }
-        setPin('');
+        setPin(''); setAdminPin('');
         setErr(r.gated
           ? 'This device cannot sign in yet — it is missing the link the owner '
             + 'sends out to unlock writes on this deployment. Ask for that link '
@@ -247,7 +268,7 @@
     }
 
     return (
-      <div data-hw="idv-pin-gate" style={{ flex: 1, minHeight: 0, display: 'flex',
+      <div data-hw="idv-pin-gate" style={adminOnly ? { width: '100%', maxWidth: compact ? 320 : 380 } : { flex: 1, minHeight: 0, display: 'flex',
         alignItems: 'center', justifyContent: 'center', padding: P.space.x5,
         background: P.bg }}>
         <Card elevation="raised" style={{ width: '100%', maxWidth: compact ? 320 : 380,
@@ -260,8 +281,24 @@
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: P.type.title, fontWeight: 700, color: P.ink,
-                letterSpacing: '-.01em' }}>Verify</div>
-              <div style={{ fontSize: P.type.meta, color: P.inkDim }}>Enter the Verify PIN to continue.</div>
+                letterSpacing: '-.01em' }}>{adminOnly ? 'Admin PIN required' : 'Verify'}</div>
+              <div style={{ fontSize: P.type.meta, color: P.inkDim }}>
+                {adminOnly ? 'This action needs admin. Enter the admin PIN to continue.' : 'Enter the Verify PIN to continue.'}
+              </div>
+            </div>
+          </div>
+
+          {/* Who this signs in as — read-only, never an input. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: P.space.x2,
+            padding: '7px 10px', borderRadius: P.r8, background: P.canvas2,
+            border: `1px solid ${P.hairline}` }}>
+            <Avatar name={actor.name} size={22} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: P.type.meta, fontWeight: 600, color: P.ink,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                Signing in as {actor.name || actor.id}
+              </div>
+              <div style={{ fontSize: P.type.micro, color: P.inkFaint, fontFamily: P.fontMono }}>{actor.id}</div>
             </div>
           </div>
 
@@ -269,10 +306,37 @@
               Go key — not a div listening for keydown. */}
           <form onSubmit={(e) => { e.preventDefault(); submit(); }}
             style={{ display: 'flex', flexDirection: 'column', gap: P.space.x3 }}>
-            <Field size="lg" icon="lock" placeholder="PIN" value={pin} mono
-              type="password" inputMode="numeric" autoComplete="off"
-              autoFocus aria-label="Verify PIN"
-              onChange={(e) => { setErr(null); setPin(e.target.value.replace(/\D/g, '').slice(0, 24)); }} />
+            {wantsAdmin ? (
+              <Field size="lg" icon="lock" placeholder="Admin PIN" value={adminPin} mono
+                type="password" inputMode="numeric" autoComplete="off"
+                autoFocus aria-label="Admin PIN"
+                onChange={(e) => { setErr(null); setAdminPin(e.target.value.replace(/\D/g, '').slice(0, 24)); }} />
+            ) : (
+              <Field size="lg" icon="lock" placeholder="PIN" value={pin} mono
+                type="password" inputMode="numeric" autoComplete="off"
+                autoFocus aria-label="Verify PIN"
+                onChange={(e) => { setErr(null); setPin(e.target.value.replace(/\D/g, '').slice(0, 24)); }} />
+            )}
+
+            {/* The toggle — absent in adminOnly mode, there is nothing to
+                toggle back to. Its own one-line explanation of what admin
+                unlocks only shows once the field is actually admin's, same
+                reasoning as the field itself: no jargon on screen until the
+                operator has asked for the thing the jargon explains. */}
+            {!adminOnly ? (
+              <button type="button" data-hw-i onClick={() => { setErr(null); setWantsAdmin((v) => !v); }}
+                style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0,
+                  color: P.accent, fontSize: P.type.meta, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: P.fontSans }}>
+                {wantsAdmin ? '← Use the console PIN instead' : 'Admin PIN'}
+              </button>
+            ) : null}
+            {wantsAdmin ? (
+              <div style={{ fontSize: P.type.micro, color: P.inkFaint, lineHeight: 1.5 }}>
+                Admin unlocks API keys, webhooks, deletions, workflow changes, and status overrides.
+              </div>
+            ) : null}
+
             {err ? (
               <div role="alert" style={{ display: 'flex', gap: P.space.x2, alignItems: 'flex-start' }}>
                 <Icon name="alert" size={14} stroke={2} color={P.bad}
@@ -287,13 +351,55 @@
                 PIN would lock the tablet out in three tries instead of six. */}
             <PBtn variant="primary" size="lg" full busy={busy} disabled={!ready}
               type="submit">Continue</PBtn>
+            {onCancel ? (
+              <PBtn variant="ghost" size="md" full type="button"
+                onClick={() => onCancel()}>Cancel</PBtn>
+            ) : null}
           </form>
 
-          <div style={{ fontSize: P.type.micro, color: P.inkFaint, lineHeight: 1.5 }}>
-            One PIN for this store, and this device remembers it for the rest of
-            the day.
-          </div>
+          {!adminOnly ? (
+            <div style={{ fontSize: P.type.micro, color: P.inkFaint, lineHeight: 1.5 }}>
+              One PIN for this store, and this device remembers it for the rest of
+              the day.
+            </div>
+          ) : null}
         </Card>
+      </div>);
+  };
+
+  // ── AdminGate ───────────────────────────────────────────────────────────
+  // Mount ONCE (idv/app.jsx, same placement as window.ToastHost — see that
+  // file) and it is the whole UI half of "(2) When any request returns 403
+  // with needs_level:'admin', show a compact Admin PIN prompt instead of a
+  // generic error, then retry the action once on success" from this task's
+  // brief. The other half is window.HWIdv.withAdminRetry (idv-client.jsx),
+  // which is what actually calls auth.requireAdmin() and re-runs the action;
+  // this component only renders what requireAdmin()'s promise is waiting on.
+  //
+  // Renders NOTHING until a request is actually pending admin — unlike
+  // PinGate itself (which app.jsx swaps in for the whole routed frame while
+  // gated), this sits on top of whatever screen was already on screen, as an
+  // overlay, because the operator was mid-action on a real screen and losing
+  // that screen to go type a PIN would lose their place in it too.
+  window.IdvShared.AdminGate = function AdminGate() {
+    const P = useP();
+    const [pending, setPending] = React.useState(null); // { resolve, reject }
+    React.useEffect(() => window.HWIdv.auth.onAdminRequired((resolve, reject) => {
+      setPending({ resolve, reject });
+    }), []);
+    if (!pending) return null;
+    function settle(ok) {
+      const p = pending;
+      setPending(null);
+      if (ok) p.resolve(true);
+      else p.reject({ ok: false, code: 0, error: 'cancelled' });
+    }
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: P.space.x5 }}>
+        <window.IdvShared.PinGate compact adminOnly
+          onUnlocked={() => settle(true)}
+          onCancel={() => settle(false)} />
       </div>);
   };
 
