@@ -3431,3 +3431,233 @@ changed (`auth/pin`, `IDV_CONSOLE_PIN`, `IDV_ADMIN_PIN`, `X-HW-Console-Token`, `
 `validate_webhook`) found only comments referencing the gate conceptually, no direct call whose
 assumptions this pass's shape change would break — but the standing instruction from r10 still applies:
 read the CURRENT live numbers off each probe's own `main()` before writing new ones into that file.
+
+## Addendum — 2026-09-15 (r12): six parked items, all approved same day
+
+Scope of this pass: `wmdemo/idv_import_didit.py`, `wmdemo/idv_store.py`, `wmdemo/idv_api.py`,
+`wmdemo/idv_rules.py`, `qa/idv_import_probe.py`, `qa/idv_store_probe.py`, `qa/idv_api_probe.py`,
+`qa/idv_rules_probe.py`, `POS-Admin/idv/screen-workflows.jsx`, `POS-Admin/idv/screen-session.jsx`,
+this file. No git, no `.env`, no server restart, `qa/battery.py` read-only (deltas only). All six
+items were pre-approved; none required an in-thread decision.
+
+### 1. The importer no longer stamps Didit's `workflow_version` onto the Verify pin
+
+**What was wrong.** `idv_import_didit._write_session` wrote Didit's own `workflow_version` (an
+integer that means nothing on our side) straight into `idv_sessions.workflow_version` — the column
+that pins WHICH Verify workflow version a session was judged by (`idv_store.workflow_at_version`).
+That number either missed every version we ever recorded (harmless — `workflow_at_version` already
+falls back to the workflow's current config for that case) or, worse, **collided** with one of our
+own real version numbers and silently resolved to a config the session was never judged by. The
+console then showed that pinned number beside the current workflow's thresholds, which reads as
+provenance and was not.
+
+**The fix.** A new column, `idv_sessions.imported_workflow_version` (nullable `INTEGER`, added via
+`_ADDED_COLUMNS`/`_add_missing_columns`, the same ALTER-on-existing-databases mechanism every prior
+column addition in this file used). The importer now:
+
+- pins `workflow_version` to `idv_store.IMPORTED_WORKFLOW_VERSION_SENTINEL` (**`0`**) on every
+  imported session — a number `create_workflow`/`update_workflow` never hand out (real versions
+  start at 1 and only increment), so it can **never** collide with a recorded version and always
+  takes the "fall back to the workflow's current config" path in `workflow_at_version`;
+- stores Didit's own number (int-cast defensively; a garbled value becomes `None` rather than
+  failing the whole session import) on `imported_workflow_version`, for **display only** — it is
+  never read by anything that judges a session.
+
+**Why the sentinel and not literal SQL `NULL`, as first specified.** `idv_sessions.workflow_version`
+is `INTEGER NOT NULL` with no default, and has been since the table's original `CREATE TABLE` —
+relaxing that constraint on an EXISTING SQLite database requires the full 12-step table-rebuild
+procedure (rename, recreate, copy, drop, rename back), which this pass judged out of proportion to
+the actual defect: the collision, not the literal value `NULL`. The sentinel closes the exact same
+hole (an imported row can never again resolve to a real pinned version it was not judged by) with a
+single-column `ALTER TABLE ADD COLUMN` and no table rebuild. Flagged here explicitly as a deliberate
+substitution, not an oversight.
+
+**`GET /api/idv/sessions/{id}`'s `session.workflow` block** carries two new fields:
+
+```
+"workflow": {
+  "id": "...", "name": "...", "version": 0, "config": { ... the CURRENT config ... },
+  "imported_judged_by_didit": true,
+  "imported_workflow_version": 7
+}
+```
+
+`imported_judged_by_didit` is `bool(session.imported_from)` — true for EVERY imported row,
+including the ones imported before this fix (whose `workflow_version` still carries the old,
+possibly-colliding number until the migration below runs). `imported_workflow_version` is `null`
+for a native session and for an imported row the migration has not yet reached.
+
+**Migration for existing imported rows.** `idv_store.migrate_imported_workflow_versions`, wired into
+`run_data_migrations` (runs on every `ensure_schema`, same as `calibrate_workflow_thresholds` /
+`migrate_challenge_scripts` / `seed_id_only_workflow` / `migrate_workflow_jurisdiction` before it).
+For every session with `imported_from IS NOT NULL AND imported_workflow_version IS NULL`: copies the
+old `workflow_version` to `imported_workflow_version`, re-pins `workflow_version` to the sentinel,
+and writes an audit row (`session.import_version_unpinned`). Idempotent by content — no stamp
+needed: a row this has touched has `imported_workflow_version` set, which is exactly what excludes
+it from the next pass — and safe to re-run on a virgin database (nothing to migrate, `[]` returned).
+
+**Console.** `screen-session.jsx`'s workflow label reads `"<name> · imported — judged by Didit"`
+instead of `"<name> · v0"` for a session where `imported_judged_by_didit` is true, and the Decision
+card's "thresholds from vN" warning pill is replaced with an "imported — judged by Didit (their
+vN)" pill naming Didit's own version for reference — never presented as a Verify pin.
+`screen-workflows.jsx` is unaffected (this item never touched workflow authoring, only session
+display).
+
+### 2. "Ask to redo" now works on a Declined session
+
+**What was wrong.** The console's redo panel (`screen-session.jsx`, `sendRedo`) already POSTed
+`update-status` with `new_status: "Resubmitted"`, and the button was already labelled "Ask to redo"
+— but `idv_rules._TRANSITIONS` had no `("Declined", "Resubmitted")` edge, so the request always
+answered `409 "Declined -> Resubmitted is not a legal transition"`. Worse, the button was disabled
+before the request ever went out: the console's own `TERMINAL_STATUS` map listed `Declined` as
+terminal (the backend's own `_TERMINAL` tuple never did), so `canRedo` was `false` and the panel
+never opened.
+
+**The fix.** One new transition-table entry:
+
+```python
+("Declined", "Resubmitted"): ("analyst",),
+```
+
+`analyst`, not `("analyst", "admin")` and never `engine`/`system` — matching
+`("Awaiting User", "Resubmitted")` exactly. `require(act, "analyst")` already gates the whole
+`update-status` route ahead of `can_transition`, so this is unreachable below analyst rank
+regardless; the transition-table entry only says who among console actors may make it, and never
+admits `engine`/`system` — the action can never be autonomous. `TERMINAL_STATUS` in
+`screen-session.jsx` no longer lists `Declined` (nothing else read that map).
+
+**No second code path was needed.** Everything downstream — `idv_api._capture_state`'s
+`outstanding` set, `_count_attempt`'s counter logic, `_awaiting_step` — is already keyed on
+`session.status == "Resubmitted"`, not on which status the session was in a moment before. A
+Declined-origin resubmission and an Awaiting-User-origin one are, from that point on, the identical
+shape: the named step(s) (`nodes_to_resubmit` in the request body → `resubmit_nodes` on the row)
+read `"retry"` on `GET /capture/{token}/state`, the guest sees the Retake screen, and a capture
+against the named step spends an attempt through the session's own existing counters (`attempts`,
+`resubmissions`) rather than a fresh count starting at 1. The action is audited exactly like every
+other status write: `insert_review` records the actor, role and comment (the reason); `st.audit`
+records the same plus `{"from": "Declined", "to": "Resubmitted", ...}`.
+
+**A pre-existing rough edge, NOT part of this item, left alone.** `screen-session.jsx`'s own file
+header (comment 7) already documents that the redo panel's node checklist is built from decision
+node ARRAYS (`OCR`/`LIVENESS`/`FACE_MATCH`, feature-level) while `idv_api._capture_state`'s
+`outstanding` set expects CAPTURE STEP ids (`document_front`/`document_back`/`selfie`/`challenge`/
+`medical_rec`) — `nodes_to_resubmit` is stored verbatim with no translation between the two
+vocabularies. This mismatch predates this pass, affects the Awaiting-User-origin path identically,
+and is unrelated to the Declined→Resubmitted edge this item adds — the new edge reaches exact parity
+with the existing path, not a fix for it.
+
+### 3. Person ids no longer leak in prose
+
+**Two separate leaks, one root cause: an id that reaches anywhere ungated is a name one HTTP call
+away (`GET /api/idv/people/{id}` is viewer-readable).**
+
+**3a. The AMBIGUOUS warning's `short_description`.** `idv_store.resolve_person_for_session`'s
+identity-ladder AMBIGUOUS branch used to interpolate the `hw_identities` candidate ids directly into
+the warning sentence guests' and analysts' screens render as prose:
+
+> "This surname and date of birth are carried by 2 people (p_a1b2..., p_c3d4...). ..."
+
+That sentence travels everywhere `decision.warnings` travels — the session screen, the PDF, the
+outbound webhook, `/v3` — none of which is the analyst+ gate `similar_faces`/`face_searches` already
+have (`redact_face_match`, 2026-09-09). The sentence is now id-free:
+
+> "This surname and date of birth are carried by 2 people. A new record was created rather than
+> guessing; merge in the console if one of them is this guest."
+
+`idv_store._warn_row` gained an optional `detail` kwarg; the AMBIGUOUS branch now passes
+`detail={"identity_ids": [...]}`. `idv_api.decision_out`'s existing `identifying` parameter (the
+same one that already redacts `face_searches` for a viewer) now also strips `detail` off every
+warning row (`_redact_warnings`) when the caller is not analyst+ — an analyst sees the ids, but only
+in the structured field, never in the sentence, not even on their own copy.
+
+**3b. `person.resolved`'s audit `detail.candidates`.** `GET /api/idv/audit` has never `require()`d a
+role at all (a plain viewer reaches `200`, same as every other console read before the r11 actor
+gate — this route was never part of that pass's scope). `person.resolved`'s audit detail carries
+`candidates: [{person_id, similarity, taken, why?}, ...]` — every OTHER guest's id a face-search
+lane considered, whether or not it was taken. The route is not re-scoped to analyst+ (that would be
+a bigger change than the leak needs, and a viewer legitimately reads audit for other actions); the
+narrower fix strips `person_id` from every `candidates` entry in a `person.resolved` row's `detail`
+when the caller is below analyst (`idv_api._redact_audit_rows`) — similarity, `taken` and `why`
+survive, only the id is gone. Every other action's `detail` is untouched; this is not a general
+audit-detail redactor.
+
+### 4. `_read_dob`'s `barcode_fields` shape guard
+
+**What was wrong.** `idv_rules._read_dob` read `barcode = doc.get("barcode_fields") or {}` — `or {}`
+guards only `None`/absent, and passes a string, list or number straight through to the next line's
+`barcode.get("DBB")`, raising `AttributeError`. A traceback here takes the WHOLE decision down with
+it: no verdict at all for a guest standing at a counter, for what should be "date of birth not read"
+— exactly what a genuinely missing `barcode_fields` already produces without incident.
+
+**The fix.** `barcode = _as_dict(doc.get("barcode_fields"))` — the same shape guard
+`_mrz_identity`/`_as_dict` already use elsewhere in this module (`_as_dict`'s own docstring names
+this exact failure mode for `.get()` on a non-dict). A shape-bad `barcode_fields` now falls through
+to the OCR-read date of birth exactly as a missing one does, never a traceback.
+
+### 5. `face_search_min` gets a console slider
+
+The threshold itself was NOT new — `_THRESHOLD_DEFAULTS`/`CALIBRATED_THRESHOLDS` (calibration
+2026-09-08, S4.2) already default it to `80.0` and every read path (`idv_rules._duplicate_block`,
+`idv_store.resolve_person_for_session` via `idv_api._face_search_min`) already honours a per-workflow
+override. What was missing was a way to SET one: `screen-workflows.jsx`'s Thresholds card had sliders
+for `liveness_min`/`face_match_min`/`doc_quality_min` only. A fourth `ThresholdSlider` (the same
+composite the other three already use — `pos/atoms.jsx`'s `DualRange`/`Stepper` don't cover a single
+0–100 threshold) now covers `face_search_min`, default `80`, with copy that is conditional on the
+workflow's own `duplicate_person` policy rather than a single canned sentence — `'review'` (Approves
+with a `POSSIBLE_DUPLICATED_USER` warning, since "unresolvable ambiguity is a warning, not a queue" —
+`idv_rules.py`'s own header) reads differently from `'decline'` (Declined, no retry), and the slider's
+consequence text says which one this workflow is actually configured for. `defaultWorkflow()`'s
+day-one template gained `face_search_min: 80` alongside the other three, matching the calibrated
+default.
+
+### Probes: before → after
+
+`idv_rules_probe` 448 → 458 (+10: `IDV-G10`/`IDV-G11`/`IDV-G12` the `_read_dob` shape guard — five
+malformed `barcode_fields` values all fall through to OCR rather than raising, a fully-unreadable
+case answers `(None, "ocr")` not a traceback, and the happy path is unchanged; `run_transitions`'s
+own per-entry loop over `_TRANSITIONS` picks up two more automatically for the new
+`("Declined", "Resubmitted")` edge; two explicit `illegal` cases replacing the now-stale one asserting
+the edge could never exist, proving `engine`/`system` are refused it — never autonomous). `idv_store_probe`
+96 → 98 (+2: `ST-69b` the AMBIGUOUS outcome end to end — two people sharing a name+DOB with neither
+carrying a document, a THIRD new person created, the warning id-free in prose, both ids in
+`detail.identity_ids`; `ST-73b` `migrate_imported_workflow_versions` against a Verify version that
+GENUINELY collides with Didit's stamped number, proving the fallback lands on the current config
+(v3) rather than the colliding real version (v2), Didit's number preserved, second pass a no-op).
+`idv_api_probe` 249 → 258 (+9: `AP-191b1`..`4` Declined→Resubmitted end to end over HTTP — 403 for a
+viewer, 200 with the audited review row for an analyst, the Retake screen naming the redone step,
+and the attempt counter continuing from 1→2 rather than resetting; `AP-92b1`..`3` the
+`imported_judged_by_didit`/`imported_workflow_version` marker, both the pre-fix minimal case and the
+fixed-importer shape, and its absence on a native session; `AP-173b` the AMBIGUOUS warning id-free
+in prose for analyst AND viewer, ids present only in the analyst's `detail`; `AP-173c`
+`GET /audit?action=person.resolved` stripping `candidates[].person_id` for a viewer while an admin
+still sees it). `idv_import_probe` 78 → 79 (+1: `IM-22b` every one of the six imported sessions
+carries the sentinel on `workflow_version` and Didit's real number, `1` in this fixture, on
+`imported_workflow_version`). All four run green, standalone: 458/458, 98/98, 258/258, 79/79.
+`node --test test/global-collisions.test.mjs`: 18/18, green (the two JSX edits — a fourth slider on
+`screen-workflows.jsx`, the imported-marker label/pill and `TERMINAL_STATUS` change on
+`screen-session.jsx` — declare no new globals).
+
+**A test-ordering trap found and fixed IN PASSING, not a seventh item.** `AP-92b`'s imported-session
+marker checks were first written immediately after `AP-92`, creating a brand-new session mid-file.
+`AP-164b`, later in the same run, scans the FIRST PAGE of `GET /sessions` (default limit, no
+`limit=` param) for one specific fixture by id — every session created between a fixture's own
+creation and that scan is a session that can push it off page one. `AP-92b`'s new session did
+exactly that (`StopIteration` on `AP-164b`'s `next(...)`) the first time this was run. Moved to the
+very end of `main()`, after every position-sensitive list scan in the file, with a comment
+explaining why it lives there rather than beside `AP-92`. Not a defect this pass introduced into
+production code — a fragility already latent in the test harness (any future fixture inserted
+before `AP-164b` risks the identical failure) that this pass's own new fixture happened to trip.
+Noted here rather than silently worked around, per R3's "re-derive, don't repeat" rule; not fixed at
+the root (making `AP-164b` robust to insertion order is a change to a pre-existing, unrelated check,
+out of this pass's six-item scope).
+
+**`qa/battery.py` read-only per this pass's own scope (report deltas, do not edit).** Its
+`EXPECTED_CHECKS` was already stale entering this pass (r11 left it at `idv_store_probe: 95` /
+`idv_api_probe: 236` against true baselines of 96/249) and is now further behind:
+`idv_rules_probe` 448 (stale by 10), `idv_store_probe` 95 (stale by 3), `idv_api_probe` 236 (stale
+by 22), `idv_import_probe` 78 (stale by 1). `TOTAL_CHECK_FLOOR` (3692) is stale by at least the sum
+of these four deltas (+22). A grep of `qa/battery.py` for the six items' own surface
+(`imported_workflow_version`, `face_search_min`, `Declined.*Resubmitted`, `_read_dob`,
+`resolve_person_for_session`, `person.resolved`) found no direct call whose assumptions this pass's
+changes would break — but per the standing instruction, read the CURRENT live numbers off each
+probe's own `main()` before ever writing new ones into that file.

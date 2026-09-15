@@ -116,7 +116,7 @@
       unsupported_features: ['NFC', 'AML', 'DATABASE_VALIDATION', 'PROOF_OF_ADDRESS'],
       config: {
         face_liveness_method: 'PASSIVE',
-        thresholds: { liveness_min: 70, face_match_min: 75, doc_quality_min: 60 },
+        thresholds: { liveness_min: 70, face_match_min: 75, doc_quality_min: 60, face_search_min: 80 },
         age_rule: 'REC_21',
         jurisdiction: 'CA',
         allowed_document_types: ['DL', 'ID', 'PASSPORT'],
@@ -508,6 +508,9 @@
                 <ThresholdSlider label="doc_quality_min" value={th.doc_quality_min ?? 0} disabled={locked}
                   onChange={(v) => patchThreshold('doc_quality_min', v)}
                   consequence={`Below → ask for that image again, up to ${cfg.resubmission_max ?? 3} tries, then Declined with an in-store path. Only the numeric per-side quality score can raise this — the engine's own brightness/blur/glare warnings are recorded but change nothing.`} />
+                <ThresholdSlider label="face_search_min" value={th.face_search_min ?? 0} disabled={locked}
+                  onChange={(v) => patchThreshold('face_search_min', v)}
+                  consequence={`The 1:N similar-faces floor — a DIFFERENT threshold from face_match_min on purpose (selfie-vs-selfie imposters score ~3 points hotter than selfie-vs-portrait, and false positives scale with the number of people on file). At or above → this face resembles someone already on file. ${cfg.duplicate_person === 'decline' ? 'Duplicate policy is "decline": the session is Declined (DUPLICATE_PERSON), no retry — there is nothing for the guest to re-capture.' : 'Duplicate policy is "review": the session still Approves, with a POSSIBLE_DUPLICATED_USER warning for an analyst to merge in the console — Verify never holds a session on ambiguity alone.'} Below → no match is recorded at all.`} />
               </div>
             </Card>
 

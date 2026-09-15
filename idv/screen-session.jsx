@@ -112,7 +112,12 @@
   };
   const MED_REC_STATUS_TONE = { Approved: 'good', Declined: 'bad', 'Not Finished': 'warn' };
   const REVIEW_ACTION_LABEL = { approve: 'Approved', decline: 'Declined', request_resubmission: 'Requested resubmission', note: 'Added a note', assign: 'Assigned', escalate: 'Escalated', override_feature: 'Overrode a feature', edit_data: 'Edited data', merge_person: 'Merged people', add_to_list: 'Added to a list' };
-  const TERMINAL_STATUS = { Approved: 1, Declined: 1, Abandoned: 1, Expired: 1, 'Kyc Expired': 1 };
+  // `Declined` deliberately NOT in here (parked item 2, 2026-09-15): the API
+  // now allows the audited `Declined -> Resubmitted` "ask to redo" edge
+  // (idv_rules._TRANSITIONS), matching the backend's own `_TERMINAL` tuple,
+  // which never listed Declined either -- only `canRedo`/`redoTooltip` below
+  // read this map, so widening it here does not loosen Approve/Decline.
+  const TERMINAL_STATUS = { Approved: 1, Abandoned: 1, Expired: 1, 'Kyc Expired': 1 };
 
   function toneColor(P, tone) {
     return { good: P.good, bad: P.bad, warn: P.warn, info: P.info, neutral: P.inkFaint }[tone] || P.inkFaint;
@@ -639,7 +644,17 @@
     // ── derived display values ──────────────────────────────────────────────
     const displayName = (sess.person && sess.person.display_name) || (idn0 && idn0.full_name) || 'Guest';
     const since = sess.completed_at || sess.created_at;
-    const workflowLabel = sess.workflow ? `${sess.workflow.name} · v${sess.workflow.version}` : '—';
+    // Parked item 1 / item 6, 2026-09-15: an imported session pins nothing
+    // real (`sess.workflow.version` is the server's sentinel, 0) — the label
+    // says so instead of printing "v0", which would read as a genuine pin.
+    // Didit's own version travels separately and is for reference only: it is
+    // NOT a Verify workflow version and was never used to judge this session.
+    const importedJudgedByDidit = !!(sess.workflow && sess.workflow.imported_judged_by_didit);
+    const workflowLabel = sess.workflow
+      ? (importedJudgedByDidit
+          ? `${sess.workflow.name} · imported — judged by Didit`
+          : `${sess.workflow.name} · v${sess.workflow.version}`)
+      : '—';
     const channelLabel = [sess.channel, sess.origin].filter(Boolean).join(' · ') || '—';
     const isImported = sess.imported_from === 'didit';
     const importedAt = (decision && decision.engine && decision.engine.imported_at) || sess.created_at;
@@ -909,7 +924,12 @@
             <Card padding={0}>
               <CardHead icon="shield" title="Decision" right={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {thresholdsFrom != null && (
+                  {importedJudgedByDidit ? (
+                    <Pill kind="info" size="sm" dot>
+                      imported — judged by Didit{sess.workflow && sess.workflow.imported_workflow_version != null
+                        ? ` (their v${sess.workflow.imported_workflow_version})` : ''}; thresholds shown are the workflow's current config
+                    </Pill>
+                  ) : thresholdsFrom != null && (
                     <Pill kind="warn" size="sm" dot>thresholds from v{thresholdsFrom} — this session's v{wfVersion} was not found</Pill>)}
                   {decision && decision.engine ? <span style={{ fontSize: P.type.micro, color: P.inkMute, fontFamily: P.fontMono }}>{decision.engine.name}{decision.engine.version ? ` ${decision.engine.version}` : ''}</span> : null}
                 </div>} />
