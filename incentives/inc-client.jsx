@@ -16,6 +16,34 @@
 ;(function () {
   function live() { return window.HW_LIVE || null; }
 
+  // ── demo sign-in override ("Testing as", incentives/app.jsx's Topbar) ──────
+  // DEMO ONLY — removed at cutover, same as the fallback branch below it. A
+  // real POS associate (window.HW.STATS.associate) always wins over this, so
+  // the override can never shadow production identity once pos/data.jsx is
+  // actually on the page; today it never is (see the fallback's own note),
+  // which is exactly why the picker is useful here. One key, one shape
+  // ({id, name, role, storeId}), read/written ONLY through these two
+  // functions so session() stays the one seam every screen already trusts.
+  var TEST_AS_KEY = 'hw-bounty-test-as';
+  function readTestAs() {
+    try {
+      var raw = window.localStorage.getItem(TEST_AS_KEY);
+      if (!raw) return null;
+      var v = JSON.parse(raw);
+      if (!v || !v.id) return null;
+      return { id: v.id, name: v.name || v.id, role: v.role || 'Budtender', storeId: v.storeId || null };
+    } catch (e) { return null; }
+  }
+  function writeTestAs(person) {
+    try {
+      if (!person || !person.id) { window.localStorage.removeItem(TEST_AS_KEY); return; }
+      window.localStorage.setItem(TEST_AS_KEY, JSON.stringify({
+        id: person.id, name: person.name || person.id, role: person.role || 'Budtender',
+        storeId: person.storeId || null,
+      }));
+    } catch (e) { /* not remembering the pick is survivable; the app must still render */ }
+  }
+
   function session() {
     var assoc = window.HW && window.HW.STATS && window.HW.STATS.associate;
     if (assoc && assoc.id) {
@@ -24,6 +52,11 @@
         storeId: assoc.storeId || assoc.store_id || null,
       };
     }
+    // Testing-as override — only reached when no real POS associate is
+    // present, exactly like production's real login will take priority once
+    // it exists. See incentives/app.jsx's Topbar "Testing as" control.
+    var testAs = readTestAs();
+    if (testAs) return testAs;
     // Fallback mirrors pos/app.jsx's USER exactly (name, role, id, storeId) —
     // the same demo person this estate already keeps in sync in three places
     // (pos/app.jsx's USER, pos/data.jsx's window.HW.STATS.associate,
@@ -153,5 +186,14 @@
     version: function () { return window.HWContracts ? window.HWContracts.VERSION : null; },
   };
 
-  window.HWInc = { session: session, role: role, get: get, post: post, usePoll: usePoll, fmt: fmt, contract: contract };
+  // testAs()/setTestAs()/clearTestAs() — the Topbar picker's whole interface
+  // onto the override above. Never touch TEST_AS_KEY or localStorage from
+  // incentives/app.jsx directly; these three functions are the seam, same
+  // reasoning as session() itself.
+  function testAs() { return readTestAs(); }
+  function setTestAs(person) { writeTestAs(person); }
+  function clearTestAs() { writeTestAs(null); }
+
+  window.HWInc = { session: session, role: role, get: get, post: post, usePoll: usePoll, fmt: fmt, contract: contract,
+    testAs: testAs, setTestAs: setTestAs, clearTestAs: clearTestAs };
 })();

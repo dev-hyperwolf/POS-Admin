@@ -17,16 +17,22 @@ the estate does today. Manager-only writes verify `associates.role ∈ {Floor Ma
 ## Common fragments
 
 ```jsonc
-Source            { "source": "blaze-api|meadow-api|blaze-csv|meadow-csv|hwpos",
+Source            { "source": "blaze-api|meadow-api|blaze-csv|meadow-csv|hwpos|no-pos",
                     "store_id": "corona", "store_name": "Corona",
-                    "configured": true,               // keys present (api) / n.a. (csv)
+                    "configured": true,               // keys present (api) / n.a. (csv, no-pos)
                     "last_ok_at": "2026-09-08T21:02:11Z" | null,
                     "last_error": "401 Unauthorized (client key)" | null,
                     "last_error_at": "..." | null,
                     "today": { "txns": 143, "lines": 412 },
                     "stale": false,                   // no ok in > 30 min for api sources
                     "error_superseded": false,        // last_error is OLDER than last_ok_at
-                    "state": "healthy" }              // failing|stale|healthy|not_configured|never_synced
+                    "state": "healthy",                // failing|stale|healthy|not_configured|never_synced|no_pos
+                    "note": null }                    // ADDITIVE. Set only on "no-pos" (2026-09-15):
+                                                        // a store registered `pos: none` lists ONLY
+                                                        // `hwpos` + this one line, never a vendor row --
+                                                        // "no POS configured for this store — register
+                                                        // sales only". A plain fact, never routed through
+                                                        // `last_error`'s red/failing styling.
 Store             { "id": "corona", "name": "Corona", "tz": "America/Los_Angeles",
                     "pos": "blaze|meadow|treez|none",
                     "name_source": "seed|vendor|manual|slug",  // 'slug' = named after its own id, rename me
@@ -153,7 +159,10 @@ Run               { "id", "kind": "csv|api", "source", "store_id", "filename", "
 `POST /api/incentives/identities/resolve` `{identity_key, associate_id, actor, reason?}` → `{ "identity": {...}, "reattributed": {"txns": n, "lines": m} }`
 `POST /api/incentives/identities/create` `{identity_key, actor}` → same, with the new Person
 `POST /api/incentives/identities/unbind` `{identity_key, actor, reason}` → same
-`GET /api/incentives/roster?store_id` → `{ "roster": [ { ...Person, "email", "active", "identities": [ {"source","external_id","raw_name","match_kind"} ] } ] }`
+`GET /api/incentives/roster?store_id` → `{ "roster": [ { ...Person, "email", "active", "identities": [ {"source","external_id","raw_name","match_kind"} ] } ] }`.
+With no `store_id` (2026-09-15, walkthrough bug 1 — every other panel on the Data screen already
+served all-stores data, this was the one 400) → `{ "by_store": { store_id: [same Person shape] } }`
+instead — never a flat re-sort of every store's people with the store implied by position.
 
 ## Goals (absorbed AOV)
 

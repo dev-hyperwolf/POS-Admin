@@ -20,17 +20,37 @@
 
   // ── data hooks — GET-on-mount/refresh, the same shape as pos/screen-aov.jsx's useAovStats ──
   function useGet(path, enabled) {
-    const [state, setState] = React.useState({ loading: true, error: null, data: null });
+    const [state, setState] = React.useState({ loading: true, error: null, code: null, data: null });
     const load = React.useCallback(() => {
-      if (!enabled && enabled !== undefined) { setState({ loading: false, error: null, data: null }); return; }
+      if (!enabled && enabled !== undefined) { setState({ loading: false, error: null, code: null, data: null }); return; }
       setState((s) => ({ ...s, loading: true }));
       HWInc.get(path).then((r) => {
-        if (r.ok && r.body) setState({ loading: false, error: null, data: r.body });
-        else setState({ loading: false, error: r.error || 'unreachable', data: null });
+        // `code` rides along with `error` from here on so a panel can tell a
+        // REFUSED request (the server answered, with a 4xx and a reason)
+        // from an UNREACHABLE one (code 0 / 5xx — the seam itself is down).
+        // Dropping it here is exactly what made the roster panel's 400 read
+        // as "backend not reachable" (2026-09-15 walkthrough, bug 1) even
+        // though the Connections table two rows up, same screen, same poll,
+        // was answering fine.
+        if (r.ok && r.body) setState({ loading: false, error: null, code: r.code, data: r.body });
+        else setState({ loading: false, error: r.error || 'unreachable', code: r.code, data: null });
       });
     }, [path, enabled]);
     React.useEffect(() => { load(); }, [load]);
     return { ...state, refresh: load };
+  }
+
+  // The shared ErrorState-picking rule every GET-backed panel on this screen
+  // uses: a 4xx is the server REFUSING the request (it is reachable, it said
+  // no, and it said why) — never "not reachable". Only code 0 (the fetch
+  // itself failed) or a 5xx (the server is up but broken) earns that copy.
+  function fetchErrorState(state, subject, onRetry) {
+    const refused = state.code >= 400 && state.code < 500;
+    return (
+      <ErrorState compact
+        title={refused ? `${subject} refused the request` : `${subject} isn’t connected`}
+        body={refused ? (state.error || `HTTP ${state.code}`) : 'Needs the wmdemo backend — not reachable right now.'}
+        onRetry={onRetry} />);
   }
 
   function bytesToBase64(bytes) {
@@ -104,6 +124,10 @@
     healthy: { kind: 'good', label: 'Healthy' },
     not_configured: { kind: 'neutral', label: 'Not configured' },
     never_synced: { kind: 'neutral', label: 'Never synced' },
+    // sync.NO_POS_SOURCE — a store registered `pos: none`. Deliberately its
+    // own kind rather than 'not_configured': nothing here is unconfigured,
+    // there is simply no vendor to configure.
+    no_pos: { kind: 'neutral', label: 'No POS' },
   };
   function errorSuperseded(s) {
     if (typeof s.error_superseded === 'boolean') return s.error_superseded;
@@ -126,6 +150,21 @@
     return 'not configured';
   }
   const RUN_STATUS = { running: { kind: 'info', label: 'Running' }, ok: { kind: 'good', label: 'OK' }, partial: { kind: 'warn', label: 'Partial' }, failed: { kind: 'bad', label: 'Failed' } };
+
+  // GET /api/incentives/roster — one store returns `{roster:[...]}`; no
+  // `store_id` (the "All stores" scope every other panel on this screen
+  // already serves) returns `{by_store: {store_id: [...]}}` (2026-09-15,
+  // bug 1). This is the one place that tells the two shapes apart, so the
+  // rest of the screen never has to. `by_store`'s key order is the
+  // registry's own store order (server-side, stable) — flattening it keeps
+  // every store's people contiguous, which is what "grouped by store" means
+  // for a single table that already has a Store column.
+  function rosterRowsOf(data) {
+    if (!data) return null;
+    if (data.roster) return data.roster;
+    if (data.by_store) return Object.keys(data.by_store).reduce((acc, sid) => acc.concat(data.by_store[sid] || []), []);
+    return null;
+  }
 
   // ── Connections ─────────────────────────────────────────────────────────
   function ConnectionsCard({ status, stores, actorId, onSynced, onJumpToUpload }) {
@@ -208,7 +247,7 @@
         <DataTable
           columns={[
             { key: 'store', label: 'Store', render: (r) => <b style={{ color: P.ink }}>{r.store.name}</b> },
-            { key: 'source', label: 'Source', render: (r) => r.kind === 'source' ? <Pill kind="neutral" size="sm">{r.s.source}</Pill> : <Pill kind="neutral" size="sm">none</Pill> },
+            { key: 'source', label: 'Source', render: (r) => r.kind === 'source' ? <Pill kind="neutral" size="sm">{r.s.source === 'no-pos' ? 'no POS' : r.s.source}</Pill> : <Pill kind="neutral" size="sm">none</Pill> },
             { key: 'state', label: 'State', render: (r) => { const st = r.kind === 'source' ? connState(r.s) : { kind: 'neutral', label: 'No source' }; return <Pill kind={st.kind} size="sm" dot>{st.label}</Pill>; } },
             { key: 'last_ok', label: 'Last ok', render: (r) => r.kind === 'source' ? <span style={{ fontFamily: P.fontMono, fontSize: 11.5 }}>{r.s.last_ok_at ? `${r.s.last_ok_at} · ${HWInc.fmt.relative(r.s.last_ok_at)}` : 'never'}</span> : <span style={{ color: P.inkMute, fontFamily: P.fontMono, fontSize: 11.5 }}>never</span> },
             // A SUPERSEDED ERROR IS DIMMED, NEVER HIDDEN. "It failed at 19:14
@@ -217,6 +256,10 @@
             // healthy row and an unexplained hole in the numbers.
             { key: 'last_error', label: 'Last error', render: (r) => {
               if (r.kind === 'none') return <span style={{ fontSize: 11.5, color: P.inkDim }}>{noSourceReason(r.store)}</span>;
+              // sync.NO_POS_SOURCE's `note` — a plain fact, not a failure, so
+              // it renders in the same dim tone as `noSourceReason` above and
+              // never touches the red "last error" styling below it.
+              if (r.s.source === 'no-pos') return <span style={{ fontSize: 11.5, color: P.inkDim }}>{r.s.note || 'no POS configured for this store — register sales only'}</span>;
               if (!r.s.last_error) return <span style={{ color: P.inkFaint }}>—</span>;
               const old = errorSuperseded(r.s);
               return (
@@ -229,6 +272,7 @@
             {
               key: 'action', label: '', align: 'right', render: (r) => {
                 if (r.kind === 'none') return null;
+                if (r.s.source === 'no-pos') return null;
                 if (r.s.source.endsWith('-api')) {
                   const key = r.store.id + ':' + r.s.source;
                   return <PBtn size="xs" variant="secondary" icon="refresh" busy={syncing === key} onClick={() => syncNow(r.store, r.s)}>Sync now</PBtn>;
@@ -401,7 +445,7 @@
       <Card padding={0}>
         <SubHead icon="clock" title="Runs" count={runList ? runList.length : null} />
         {runs.loading && <div style={{ padding: 16 }}><SkeletonRows rows={3} avatar={false} /></div>}
-        {!runs.loading && runs.error && <div style={{ padding: 16 }}><ErrorState compact title="Runs aren’t connected" body="Needs the wmdemo backend — not reachable right now." onRetry={runs.refresh} /></div>}
+        {!runs.loading && runs.error && <div style={{ padding: 16 }}>{fetchErrorState(runs, 'Runs', runs.refresh)}</div>}
         {!runs.loading && runList && (
           <DataTable
             rowKey={(r) => r.id}
@@ -546,11 +590,11 @@
         <SubHead icon="users" title="Unresolved identities" count={list ? list.length : null} tone={list && list.length ? 'info' : undefined} />
         <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {identities.loading && <SkeletonRows rows={2} />}
-          {!identities.loading && identities.error && <ErrorState compact title="Identities aren’t connected" body="Needs the wmdemo backend — not reachable right now." onRetry={identities.refresh} />}
+          {!identities.loading && identities.error && fetchErrorState(identities, 'Identities', identities.refresh)}
           {!identities.loading && list && list.length === 0 &&
             <EmptyState compact icon="check-circle" title="Nothing unresolved" body="Every POS name at this store is bound to a person." />}
           {!identities.loading && list && list.map((idn) => (
-            <IdentityCard key={idn.identity_key} identity={idn} roster={roster.data ? roster.data.roster || [] : []} classes={classes} actorId={actorId} onDone={onChanged} />
+            <IdentityCard key={idn.identity_key} identity={idn} roster={rosterRowsOf(roster.data) || []} classes={classes} actorId={actorId} onDone={onChanged} />
           ))}
         </div>
       </Card>);
@@ -606,12 +650,14 @@
       });
     };
 
+    const rows = rosterRowsOf(roster.data);
+
     return (
       <Card padding={0}>
-        <SubHead icon="user-check" title="Roster" count={roster.data && roster.data.roster ? roster.data.roster.length : null} />
+        <SubHead icon="user-check" title="Roster" count={rows ? rows.length : null} />
         {roster.loading && <div style={{ padding: 16 }}><SkeletonRows rows={2} /></div>}
-        {!roster.loading && roster.error && <div style={{ padding: 16 }}><ErrorState compact title="Roster isn’t connected" body="Needs the wmdemo backend — not reachable right now." onRetry={roster.refresh} /></div>}
-        {!roster.loading && roster.data && (
+        {!roster.loading && roster.error && <div style={{ padding: 16 }}>{fetchErrorState(roster, 'Roster', roster.refresh)}</div>}
+        {!roster.loading && rows && (
           <DataTable
             columns={[
               { key: 'name', label: 'Person', render: (r) => <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar name={r.name} size={24} /><b>{r.name}</b></div> },
@@ -635,7 +681,7 @@
                   </div>) : <span style={{ color: P.inkFaint, fontSize: 11.5 }}>none</span>,
               },
             ]}
-            rows={roster.data.roster || []} rowKey={(r) => r.associate_id} />)}
+            rows={rows || []} rowKey={(r) => r.associate_id} />)}
       </Card>);
   }
 

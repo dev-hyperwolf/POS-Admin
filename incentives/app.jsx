@@ -19,10 +19,17 @@
 // the correct state for a shell with no feature screens (see the task that
 // produced this file: screens are explicitly out of scope).
 //
-// PREVIEW, NOT A SECOND SESSION. "Preview as budtender" is local React state,
-// never persisted and never a role change — HWInc.session() still reports the
-// manager underneath. The seat renders for real (real layout, real copy) with
-// its whole body under pointer-events:none, because a preview a manager can
+// PREVIEW SHOWS A REAL BUDTENDER, NOT THE MANAGER'S OWN RECORD (2026-09-15
+// fix — the walkthrough's bug 3). "Preview as budtender" is the one-click
+// shortcut onto exactly what the Testing-as picker does for a budtender at
+// the store being viewed (window.HWInc.setTestAs) — top-ranked on today's
+// board if the store has one, else the first budtender on the roster, else
+// an honest "no budtenders here" instead of quietly showing the manager's
+// own /me data. `previewing` itself is still local React state, never
+// persisted — it is testAs's one slot that gets overwritten (and restored on
+// "Back to <manager>") whenever preview turns on and off. The seat renders
+// for real (real layout, real copy, that budtender's real numbers) with its
+// whole body under pointer-events:none, because a preview a manager can
 // accidentally click through is a manager who thinks they took a budtender
 // action they did not, on a screen that will eventually carry real writes.
 ;(function () {
@@ -100,6 +107,131 @@
       </label>);
   }
 
+  // ── "Testing as" — demo sign-in picker (Topbar) ─────────────────────────
+  // DEMO ONLY, removed at cutover (see the window.DevNote inside the picker
+  // itself, and inc-client.jsx's session() note). Lets a tester become any
+  // roster person so a screen's role/store gating can be exercised without a
+  // real POS login, which this estate does not have yet. Every write goes
+  // through window.HWInc.setTestAs/clearTestAs — never localStorage directly
+  // — so session() stays the one seam every screen already trusts.
+  //
+  // GET /api/incentives/roster takes a required store_id (400 without one),
+  // so "every roster person" means one roster call per known store, fetched
+  // only once the picker is actually opened — the store list itself comes
+  // from the same GET /api/incentives/stores useStores() above already uses.
+  function useTestRoster(open) {
+    const [state, setState] = React.useState({ loading: false, error: null, groups: [] });
+    React.useEffect(() => {
+      if (!open) return undefined;
+      let alive = true;
+      setState((s) => ({ ...s, loading: true, error: null }));
+      window.HWInc.get('/api/incentives/stores').then((r) => {
+        if (!alive) return;
+        if (!r.ok || !r.body || !Array.isArray(r.body.stores)) {
+          setState({ loading: false, error: r.error || ('HTTP ' + r.code), groups: [] });
+          return;
+        }
+        const stores = r.body.stores;
+        Promise.all(stores.map((s) =>
+          window.HWInc.get('/api/incentives/roster?store_id=' + encodeURIComponent(s.id)).then((rr) => ({
+            store: s,
+            people: (rr.ok && rr.body && Array.isArray(rr.body.roster)) ? rr.body.roster : [],
+          }))
+        )).then((groups) => { if (alive) setState({ loading: false, error: null, groups }); });
+      });
+      return () => { alive = false; };
+    }, [open]);
+    return state;
+  }
+
+  // ── "Preview as budtender"'s own pick ───────────────────────────────────
+  // The one-click shortcut onto the SAME mechanism the Testing-as picker
+  // above uses (window.HWInc.setTestAs) — never a second identity path. Picks
+  // the top-ranked budtender on the store's own today/net_cents board
+  // (screen-standings.jsx's standingsPath, same params) if the board has
+  // anyone on it; otherwise the first budtender on the roster (the same
+  // GET /api/incentives/roster call useTestRoster above already makes).
+  // Resolves to null when the store has nobody classified as a budtender —
+  // the caller's job to say so honestly rather than fall back to showing the
+  // manager's own record (see App()'s enterPreview).
+  function pickPreviewBudtender(storeId) {
+    const standingsQS = new URLSearchParams({ scope: 'store', store_id: storeId, period: 'today', metric: 'net_cents', class: 'budtender' });
+    return window.HWInc.get('/api/incentives/standings?' + standingsQS.toString()).then((r) => {
+      const ranked = (r.ok && r.body && Array.isArray(r.body.ranked)) ? r.body.ranked : [];
+      if (ranked.length) {
+        const top = ranked[0];
+        return { id: top.associate_id, name: top.name, role: 'Budtender', storeId };
+      }
+      return window.HWInc.get('/api/incentives/roster?store_id=' + encodeURIComponent(storeId)).then((rr) => {
+        const roster = (rr.ok && rr.body && Array.isArray(rr.body.roster)) ? rr.body.roster : [];
+        // Unclassified reads as budtender — the same default screen-data.jsx's
+        // ClassSelect applies (`r.classification || 'budtender'`).
+        const bt = roster.find((p) => (p.classification || 'budtender') === 'budtender');
+        return bt ? { id: bt.associate_id, name: bt.name, role: 'Budtender', storeId } : null;
+      });
+    });
+  }
+
+  function TestAsPicker({ onClose, onPick, onReset, currentId }) {
+    const P = useP();
+    const roster = useTestRoster(true);
+    return (
+      <div style={window.overlayScrim(P, { padding: '60px 20px' })} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div style={{ ...window.overlayCard, background: P.surface, borderRadius: P.r16, width: 'min(460px,96vw)',
+          border: `1px solid ${P.hairline2}`, overflow: 'hidden', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '16px 20px', borderBottom: `1px solid ${P.hairline2}`, flex: '0 0 auto',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: 14.5, color: P.ink }}>Testing as</h3>
+            <button onClick={onClose} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 14, color: P.inkMute }}>✕</button>
+          </div>
+          <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '10px 12px' }}>
+            {roster.error && <div style={{ padding: 10 }}><window.IncShared.NotConnected compact /></div>}
+            {!roster.error && roster.loading && <SkeletonRows rows={4} avatar />}
+            {!roster.error && !roster.loading && roster.groups.length === 0 &&
+              <EmptyState compact icon="users" title="No stores" body="GET /api/incentives/stores returned nothing to pick from." />}
+            {!roster.error && !roster.loading && roster.groups.map(({ store, people }) => (
+              <div key={store.id} style={{ marginBottom: 8 }}>
+                <div style={{ padding: '8px 8px 4px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.04em',
+                  textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{store.name || store.id}</div>
+                {people.length === 0 && <div style={{ padding: '4px 8px 8px', fontSize: 12, color: P.inkMute }}>No roster people</div>}
+                {people.map((person) => {
+                  const active = person.associate_id === currentId;
+                  return (
+                    <div key={person.associate_id} data-hw-i role="button" tabIndex={0}
+                      onClick={() => onPick(person)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onPick(person); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px', borderRadius: P.r10,
+                        cursor: 'pointer', background: active ? P.surface3 : 'transparent' }}>
+                      <Avatar name={person.name} size={26} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {person.name}{person.active === false ? ' (inactive)' : ''}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>{person.role || 'No role'}</div>
+                      </div>
+                      <window.IncShared.ClassPill cls={person.classification} />
+                      {active && <Icon name="check" size={14} stroke={2.2} color={P.accentText} />}
+                    </div>);
+                })}
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: '10px 16px 4px', flex: '0 0 auto' }}>
+            <PBtn variant="secondary" size="sm" full onClick={onReset}>Reset to default</PBtn>
+          </div>
+          {window.DevNote && (
+            <div style={{ padding: '4px 12px 12px', flex: '0 0 auto' }}>
+              <window.DevNote id="bounty-test-as-picker" tone="info" title="Demo only">
+                <window.DevNoteP>
+                  Demo only — production signs the session from the POS login; this picker is removed at cutover.
+                </window.DevNoteP>
+              </window.DevNote>
+            </div>
+          )}
+        </div>
+      </div>);
+  }
+
   // ── routes ──────────────────────────────────────────────────────────────
   // Exactly the ten routes specified for this shell. Resolved at RENDER time
   // (a function, not a constant) so a screen file loaded after this one still
@@ -167,10 +299,25 @@
   const BFrame = window.ScreenBoundary || function BFrame(p) { return p.children; };
 
   // ── chrome shared by both seats ─────────────────────────────────────────
-  function Topbar({ stores, storeId, onStoreChange, canSwitch }) {
+  function Topbar({ stores, storeId, onStoreChange, canSwitch, onTestAsChange, pinnedStoreName }) {
     const P = useP();
     const { mode, toggle } = window.useTheme();
     const session = window.HWInc.session();
+    const [pickerOpen, setPickerOpen] = React.useState(false);
+    // The picker only makes sense while session() is actually reading the
+    // override branch — a real POS associate (once pos/data.jsx is on this
+    // page) always wins over it, same as inc-client.jsx's session() itself.
+    const hasRealAssoc = !!(window.HW && window.HW.STATS && window.HW.STATS.associate && window.HW.STATS.associate.id);
+    const pick = React.useCallback((person) => {
+      window.HWInc.setTestAs({ id: person.associate_id, name: person.name, role: person.role, storeId: person.store_id });
+      setPickerOpen(false);
+      onTestAsChange && onTestAsChange();
+    }, [onTestAsChange]);
+    const reset = React.useCallback(() => {
+      window.HWInc.clearTestAs();
+      setPickerOpen(false);
+      onTestAsChange && onTestAsChange();
+    }, [onTestAsChange]);
     return (
       <header style={{ height: 56, flex: '0 0 56px', borderBottom: `1px solid ${P.hairline2}`, background: P.bg,
         display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
@@ -180,12 +327,20 @@
         </div>
         <span style={{ fontSize: 16, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>Bounty</span>
         <div style={{ flex: 1 }} />
+        {!hasRealAssoc && (
+          <React.Fragment>
+            <PBtn variant="secondary" size="sm" icon="user" onClick={() => setPickerOpen(true)}>
+              Testing as · {session.name}
+            </PBtn>
+            {pickerOpen && <TestAsPicker onClose={() => setPickerOpen(false)} onPick={pick} onReset={reset} currentId={session.id} />}
+          </React.Fragment>
+        )}
         {/* A budtender gets the pill they always had — one store, stated, not
             offered. A manager gets the switcher, because "which store am I
             looking at" is a question only they can have. */}
         {canSwitch
           ? <StoreSwitcher stores={stores} value={storeId} onChange={onStoreChange} includeAll />
-          : <Pill kind="neutral" size="sm">{storeName(session.storeId)}</Pill>}
+          : <Pill kind="neutral" size="sm">{pinnedStoreName || storeName(session.storeId)}</Pill>}
         <IconBtn icon={mode === 'dark' ? 'sun' : 'moon'} size={16} onClick={toggle} title="Toggle theme" style={{ width: 34, height: 34 }} />
         <Avatar name={session.name} size={30} />
       </header>);
@@ -197,7 +352,7 @@
   // is true only when a manager is previewing: the whole body goes
   // pointer-events:none so every action in it is structurally disabled, not
   // just visually dimmed.
-  function SeatFrame({ screenSlot, previewLocked, previewBand, meError, meLoading, meRefresh }) {
+  function SeatFrame({ screenSlot, previewLocked, previewBand, previewEmpty, previewEmptyStoreName, meError, meLoading, meRefresh }) {
     const P = useP();
     const session = window.HWInc.session();
     return (
@@ -206,15 +361,24 @@
           {previewBand}
           <div style={{ pointerEvents: previewLocked ? 'none' : 'auto', opacity: previewLocked ? .82 : 1,
             display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: P.r12,
-              background: P.rail, color: P.railBright }}>
-              <Avatar name={session.name} size={30} />
-              <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700 }}>Bounty · My day</div>
-              <div style={{ fontSize: 10, fontFamily: P.fontMono, color: P.railInk }}>{storeName(session.storeId)}</div>
-            </div>
-            {meError && <window.IncShared.NotConnected compact onRetry={meRefresh} />}
-            {!meError && meLoading && <SkeletonRows rows={2} avatar={false} />}
-            {screenSlot}
+            {previewEmpty ? (
+              // No budtender to preview — say so honestly rather than fall
+              // through to the manager's own /me data (see App()'s enterPreview).
+              <EmptyState icon="users" title="No budtenders here"
+                body={`${previewEmptyStoreName || 'This store'} has nobody classified as a budtender to preview. Classify someone in Data → Roster, or pick a different store.`} />
+            ) : (
+              <React.Fragment>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: P.r12,
+                  background: P.rail, color: P.railBright }}>
+                  <Avatar name={session.name} size={30} />
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700 }}>Bounty · My day</div>
+                  <div style={{ fontSize: 10, fontFamily: P.fontMono, color: P.railInk }}>{storeName(session.storeId)}</div>
+                </div>
+                {meError && <window.IncShared.NotConnected compact onRetry={meRefresh} />}
+                {!meError && meLoading && <SkeletonRows rows={2} avatar={false} />}
+                {screenSlot}
+              </React.Fragment>
+            )}
           </div>
         </div>
       </div>);
@@ -235,7 +399,7 @@
     { value: '/goals', label: 'Goals' },
     { value: '/settings', label: 'Settings' },
   ];
-  function ConsoleFrame({ navigate, path, screenSlot, isManager, previewing, onTogglePreview, meError, meLoading, meRefresh }) {
+  function ConsoleFrame({ navigate, path, screenSlot, isManager, previewing, previewBusy, onEnterPreview, onExitPreview, meError, meLoading, meRefresh }) {
     const P = useP();
     const session = window.HWInc.session();
     const activeTab = TABS.find((t) => path === t.value || (t.value !== '/' && path.startsWith(t.value + '/')));
@@ -250,8 +414,10 @@
           </div>
           <div style={{ flex: 1 }} />
           {isManager && (
-            <Seg value={previewing ? 'preview' : 'manager'} onChange={(v) => onTogglePreview(v === 'preview')}
-              options={[{ value: 'manager', label: 'Manager', icon: 'shield' }, { value: 'preview', label: 'Preview as budtender', icon: 'eye' }]} />
+            <Seg value={previewing ? 'preview' : 'manager'}
+              onChange={(v) => (v === 'preview' ? onEnterPreview() : onExitPreview())}
+              options={[{ value: 'manager', label: 'Manager', icon: 'shield' },
+                { value: 'preview', label: previewBusy ? 'Finding a budtender…' : 'Preview as budtender', icon: 'eye' }]} />
           )}
         </div>
         <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '300px minmax(0,1fr)' }}>
@@ -289,6 +455,26 @@
     const P = useP();
     const [route, setRoute] = React.useState(() => location.hash || '#/');
     const [previewing, setPreviewing] = React.useState(false); // preview toggle: React state only, never persisted
+    // Bumped by Topbar whenever the "Testing as" picker writes or clears the
+    // override (window.HWInc.setTestAs/clearTestAs). The write itself lands
+    // in localStorage, which triggers no React re-render on its own — this is
+    // what makes App() recompute session()/role()/isManager and re-point the
+    // /me poll's URL at the newly-chosen person right after a pick.
+    const [, bumpTestAs] = React.useState(0);
+    // "Preview as budtender" state. previewManager is the manager's own
+    // identity, captured the moment they click preview, so "Back to <name>"
+    // can restore it even though entering preview overwrites the same
+    // testAs slot with the picked budtender (see enterPreview below).
+    // previewStoreId is the store the preview was FOR, captured up front so
+    // the topbar pill and the "no budtenders" copy both name the store the
+    // manager was actually looking at, regardless of whether a pick
+    // succeeded. previewNone is true when that store has nobody classified
+    // as a budtender — the honest-empty case, never a fallback to the
+    // manager's own record.
+    const [previewBusy, setPreviewBusy] = React.useState(false);
+    const [previewManager, setPreviewManager] = React.useState(null);
+    const [previewStoreId, setPreviewStoreId] = React.useState(null);
+    const [previewNone, setPreviewNone] = React.useState(false);
 
     React.useEffect(() => {
       const h = () => setRoute(location.hash || '#/');
@@ -338,8 +524,11 @@
     // THE STORE BEING VIEWED. Managers only: `canSwitch` gates the control AND
     // the resolution below, so a budtender's `props.store` is their home store
     // no matter what a stale localStorage key from a previous manager session
-    // on the same browser says.
-    const canSwitch = isManager;
+    // on the same browser says. `&& !previewing` is what actually fixes the
+    // switcher staying live-but-inert during preview (bug 4 in the walkthrough):
+    // a manager PREVIEWING is in the budtender seat and gets the budtender's
+    // rule — no switcher, a pinned store pill — same as a real budtender.
+    const canSwitch = isManager && !previewing;
     const storesQ = useStores(canSwitch);
     const [picked, setPicked] = React.useState(readStored);
     const chooseStore = React.useCallback((id) => { setPicked(id); writeStored(id); }, []);
@@ -363,6 +552,54 @@
       : { id: storeId, name: (storeRow && storeRow.name) || storeName(storeId), all: false,
           tz: storeRow && storeRow.tz, pos: storeRow && storeRow.pos };
 
+    // ── enter/exit preview ──────────────────────────────────────────────
+    // "Preview as budtender" (ConsoleFrame's Seg) is the one-click shortcut
+    // onto exactly what picking a budtender in the Testing-as picker does:
+    // window.HWInc.setTestAs, for the store the manager is CURRENTLY VIEWING
+    // (`storeId` above — the switcher's own value, not the manager's home
+    // store). The manager's own identity is captured first so "Back to
+    // <name>" can restore it — entering preview overwrites the same testAs
+    // slot the manager's own pick (if any) was sitting in.
+    const enterPreview = React.useCallback(() => {
+      if (previewBusy) return;
+      const target = storeId === ALL_STORES.id ? home : storeId;
+      const mgr = window.HWInc.session();
+      setPreviewStoreId(target);
+      if (!target) {
+        setPreviewManager(mgr);
+        setPreviewNone(true);
+        setPreviewing(true);
+        return;
+      }
+      setPreviewBusy(true);
+      pickPreviewBudtender(target).then((person) => {
+        setPreviewBusy(false);
+        setPreviewManager(mgr);
+        if (person) {
+          window.HWInc.setTestAs(person);
+          setPreviewNone(false);
+          bumpTestAs((t) => t + 1);
+        } else {
+          // Honest-empty: this store has nobody classified as a budtender.
+          // Do NOT fall through to rendering the manager's own /me record.
+          setPreviewNone(true);
+        }
+        setPreviewing(true);
+      });
+    }, [previewBusy, storeId, home]);
+
+    const exitPreview = React.useCallback(() => {
+      // Restores whatever testAs held before enterPreview overwrote it —
+      // the manager's own pick if they had one, or the same values the
+      // no-op default fallback already returns, so this is safe even when
+      // nothing was ever actually switched (the previewNone case).
+      if (previewManager) { window.HWInc.setTestAs(previewManager); bumpTestAs((t) => t + 1); }
+      setPreviewing(false);
+      setPreviewNone(false);
+      setPreviewManager(null);
+      setPreviewStoreId(null);
+    }, [previewManager]);
+
     const ctx = { navigate, query, route, path, session, isManager, previewing, seat: isManager && !previewing ? 'console' : 'seat', me,
       store, stores: storesQ.stores, refreshStores: storesQ.refresh, homeStoreId: home };
 
@@ -380,12 +617,37 @@
 
     const showConsole = isManager && !previewing;
 
-    const previewBand = (isManager && previewing) ? (
+    const previewStoreLabel = previewStoreId ? storeName(previewStoreId) : 'This store';
+    const backLabel = previewManager && previewManager.name ? `Back to ${previewManager.name}` : 'Back to manager';
+    // pinnedStoreName overrides Topbar's fallback (session.storeId) with the
+    // store the preview was actually FOR — correct whether the pick
+    // succeeded (session.storeId already agrees, by then) or found nobody
+    // (session never changed, so it would otherwise still say the manager's
+    // own home store instead of the store they clicked preview from).
+    // NOT gated on `isManager` here — entering preview overwrites testAs with
+    // the budtender's OWN role, so `isManager` (derived from the CURRENT
+    // session, recomputed above) has already flipped false by the time this
+    // renders. `previewing` alone is the right gate: it can only ever be set
+    // by a manager (enterPreview is only reachable from ConsoleFrame's Seg,
+    // which only a manager sees), so by construction previewing === true
+    // already means "a manager is in here."
+    const pinnedStoreName = previewing ? previewStoreLabel : undefined;
+
+    const previewBand = previewing ? (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', background: P.infoSoft,
         border: `1px solid ${P.info}`, borderRadius: P.r10, fontSize: P.type.body, color: P.ink2 }}>
         <Icon name="eye" size={15} stroke={1.9} color={P.info} />
-        <span style={{ flex: 1 }}>You&#8217;re previewing what budtenders see. Nothing here is clickable.</span>
-        <PBtn size="xs" variant="secondary" onClick={() => setPreviewing(false)}>Back to manager</PBtn>
+        <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {previewNone ? (
+            <span>{previewStoreLabel} has no budtenders to preview.</span>
+          ) : (
+            <React.Fragment>
+              <span style={{ fontWeight: 700 }}>Previewing as &middot; {session.name} &middot; Budtender</span>
+              <span style={{ fontSize: 11, color: P.inkDim }}>Nothing here is clickable.</span>
+            </React.Fragment>
+          )}
+        </span>
+        <PBtn size="xs" variant="secondary" onClick={exitPreview}>{backLabel}</PBtn>
       </div>
     ) : null;
 
@@ -394,7 +656,8 @@
         <BFrame name="The navigation rail"><window.HWRail active="bounty" /></BFrame>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <BFrame name="The top bar">
-            <Topbar stores={storesQ.stores} storeId={storeId} onStoreChange={chooseStore} canSwitch={canSwitch} />
+            <Topbar stores={storesQ.stores} storeId={storeId} onStoreChange={chooseStore} canSwitch={canSwitch}
+              onTestAsChange={() => bumpTestAs((t) => t + 1)} pinnedStoreName={pinnedStoreName} />
           </BFrame>
           <main style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             {/* Keyed by path: without the key, React keeps the same boundary
@@ -403,10 +666,11 @@
             <BFrame key={path + '|' + storeId} name={label} onReset={() => navigate('#/')} resetLabel="Back to Standings">
               {showConsole ? (
                 <ConsoleFrame navigate={navigate} path={path} screenSlot={screenSlot} isManager={isManager}
-                  previewing={previewing} onTogglePreview={setPreviewing}
+                  previewing={previewing} previewBusy={previewBusy} onEnterPreview={enterPreview} onExitPreview={exitPreview}
                   meError={me.error} meLoading={me.loading} meRefresh={me.refresh} />
               ) : (
-                <SeatFrame screenSlot={screenSlot} previewLocked={isManager && previewing} previewBand={previewBand}
+                <SeatFrame screenSlot={screenSlot} previewLocked={previewing} previewBand={previewBand}
+                  previewEmpty={previewing && previewNone} previewEmptyStoreName={previewStoreLabel}
                   meError={me.error} meLoading={me.loading} meRefresh={me.refresh} />
               )}
             </BFrame>

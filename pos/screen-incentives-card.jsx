@@ -32,6 +32,22 @@
   // AOV_STORE_NAMES. Display-only.
   const storeName = (id) => window.HW_STORES ? window.HW_STORES.name(id) : id;
 
+  // ── is any sales source actually healthy? ───────────────────────────────
+  // A real zero and an UNMEASURED zero look identical in `today.aov_cents` —
+  // that is the walkthrough's headline bug (a first-time viewer reads "$0.00"
+  // here and reasonably concludes Bounty itself is broken). `d.sources` is
+  // the same Source[] every other screen reads (BOUNTY-API-CONTRACT.md's
+  // `state: healthy|stale|failing|not_configured|never_synced`, or the older
+  // display shape's `status: 'ok'|…`) — one source in either shape reporting
+  // healthy is enough to trust a zero as a real zero.
+  function _sourceHealthy(s) {
+    if (!s) return false;
+    if (s.state) return s.state === 'healthy';
+    if (s.status) return s.status === 'ok';
+    return false;
+  }
+  function _hasHealthySource(sources) { return Array.isArray(sources) && sources.some(_sourceHealthy); }
+
   function useIncentivesMe(storeId, associateId) {
     const [state, setState] = React.useState({ loading: true, error: null, data: null });
     const load = React.useCallback(() => {
@@ -128,6 +144,13 @@
     const goalPct = g && g.goal_cents ? Math.min(1, (t.aov_cents || 0) / g.goal_cents) : 0;
     const goalMet = !!(g && g.met);
     const activeBounties = (d.bounties || []).filter((b) => b.status === 'active').slice(0, 3);
+    // HONEST ZERO vs UNMEASURED ZERO. Every number on this card comes from
+    // `today`, which is genuinely $0.00 both when nobody has sold anything
+    // yet AND when no source has ever synced for this store — those read
+    // identically unless something here checks `d.sources`. See
+    // _hasHealthySource above.
+    const hasHealthySource = _hasHealthySource(d.sources);
+    const noSalesToday = (t.txns || 0) === 0;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -143,6 +166,14 @@
             </button>
           </div>
 
+          {/* Names the window this card's numbers are FOR — so "Today · Corona" reads
+              on its own next to the unrelated legacy "Today: My Sales / Store Sales"
+              card the walkthrough flagged this sitting beside, not as the same data. */}
+          <div style={{ padding: '10px 16px 0', fontSize: 10, fontWeight: 700, letterSpacing: '.07em',
+            textTransform: 'uppercase', color: P.inkMute }}>
+            Today &middot; {storeName(storeId)}
+          </div>
+
           {window.DevNote && (
             <div style={{ padding: '0 16px' }}>
               <window.DevNote id="pos-card-live-seam" title="This card reads /api/incentives/me">
@@ -156,18 +187,32 @@
             </div>
           )}
 
-          {/* hero — the AOV goal meter, absorbed, in the exact wording AovDashboardCard uses */}
+          {/* hero — the AOV goal meter, absorbed, in the exact wording AovDashboardCard uses.
+              HONEST-EMPTY (2026-09-15 fix): $0.00 because no source has ever synced for this
+              store is not the same fact as $0.00 because sales genuinely have not happened
+              yet — hasHealthySource/noSalesToday (above) tell the two apart; a real number,
+              including a real zero, still renders as a number either way. */}
           <div style={{ padding: '14px 16px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: g && !hasHealthySource ? 8 : 10 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, color: P.ink, flex: 1 }}>
-                {goalMet && <Icon name="check-circle" size={16} color={P.good} />}
-                {g ? (goalMet ? 'AOV goal met' : `Add ${_money0(g.gap_cents)} to hit today's goal`) : 'No AOV goal set'}
+                {goalMet && hasHealthySource && <Icon name="check-circle" size={16} color={P.good} />}
+                {!g ? 'No AOV goal set'
+                  : !hasHealthySource ? 'No sales sources yet'
+                  : noSalesToday ? 'No sales yet today'
+                  : goalMet ? 'AOV goal met' : `Add ${_money0(g.gap_cents)} to hit today's goal`}
               </span>
-              {g && <span style={{ fontSize: 13, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>
+              {g && hasHealthySource && <span style={{ fontSize: 13, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>
                 {_money0(t.aov_cents)} <span style={{ color: P.inkMute, fontWeight: 500 }}>/</span> {_money0(g.goal_cents)}
               </span>}
             </div>
-            <BarMeter value={goalPct} max={1} color={goalMet ? P.good : P.info} height={8} />
+            {g && hasHealthySource && <BarMeter value={goalPct} max={1} color={goalMet ? P.good : P.info} height={8} />}
+            {g && !hasHealthySource && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: P.warnSoft,
+                border: `1px solid ${P.warn}`, borderRadius: P.r8, fontSize: 12, color: P.warnText }}>
+                <Icon name="alert" size={14} stroke={1.9} color={P.warnText} />
+                No sales sources yet &middot; add a Blaze/Meadow key or upload a report
+              </div>
+            )}
           </div>
 
           {/* rank chips */}

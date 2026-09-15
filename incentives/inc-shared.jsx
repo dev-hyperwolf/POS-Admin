@@ -21,6 +21,10 @@
   function freshnessLine(HD, s) {
     const rel = (iso) => (HD ? HD.relativeTime(iso) : iso);
     const label = [s.source, s.store].filter(Boolean).join(' · ');
+    // A plain FACT, not a failure — `note` is how a source that isn't a
+    // vendor at all (sync.NO_POS_SOURCE: a store registered `pos: none`)
+    // says so, without going through `last_error`'s red/failing styling.
+    if (s.note) return `${label} · ${s.note}`;
     if (s.last_error) return `${label} · last error ${s.last_error}`;
     if (s.last_upload) {
       const detail = s.format ? ` (${s.format}${s.lines != null ? `, ${HD ? HD.formatNumber(s.lines) : s.lines} lines` : ''})` : '';
@@ -38,7 +42,7 @@
   // are mapped here, once, so no screen carries its own adapter. The older
   // display shape ({status, synced_at, count_today, last_upload}) still works.
   const SOURCE_LABEL = { 'blaze-api': 'Blaze API', 'meadow-api': 'Meadow API', 'blaze-csv': 'Blaze CSV',
-    'meadow-csv': 'Meadow CSV', 'hwpos': 'Register' };
+    'meadow-csv': 'Meadow CSV', 'hwpos': 'Register', 'no-pos': 'No POS' };
   function fromContract(s) {
     if (!s || !('configured' in s || 'last_ok_at' in s)) return s;
     const isCsv = /-csv$/.test(s.source || '');
@@ -52,6 +56,9 @@
       synced_at: s.last_ok_at || null,
       count_today: s.today ? (isCsv ? s.today.lines : s.today.txns) : null,
       last_error: s.last_error ? errAt + s.last_error : (s.configured === false && !isCsv ? 'not configured — no key' : null),
+      // Carried through verbatim (sync.NO_POS_SOURCE) — see freshnessLine's
+      // own note-first check. Never set alongside last_error.
+      note: s.note || null,
     };
   }
 
