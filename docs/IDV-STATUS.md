@@ -240,3 +240,14 @@ drops a guest mid-session. Deploys now happen only when someone runs them by han
 - **Rollback**: redeploy a previous commit from the Render dashboard (service → Deploys → pick the
   commit → Redeploy). Nothing in `tools/render_deploy.sh` targets a specific commit — it deploys
   whatever the connected repo/branch currently has at HEAD.
+
+## Solo hour — 2026-09-15 afternoon
+Adversarial reviews of the day's security and backlog changes found and fixed: public `/v3`/`/v2` decisions
+carried identifying warning detail to any read key; `/v3 update-status` trusted `X-HW-Actor` (now acts as the
+key; Approved/Declined need `sessions:override`); webhook delivery followed redirects and re-resolved DNS (now
+no redirects, vetted-IP connect); global PIN bucket was a lock-out vector (now a throttle); Ask to redo must cover
+the declined step; audit person ids hidden for non-analysts; PDF names imported sessions; POS override sent no
+console token. Also: passport captions for 17 issuing states (MRZ-selected), engine build fix for the age model
+(torchvision from the CPU index), tester guide `docs/IDV-TESTER-GUIDE.md`, `sessions:override` on Integrate.
+Counts: rules 464, api 278, store 98, import 79, webhooks 13, replay 4/4, engine 641. Engine on Render still
+7/8 until the owner triggers `tools/render_deploy.sh --engine` (first attempt failed before the fix).

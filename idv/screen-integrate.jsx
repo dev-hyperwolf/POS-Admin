@@ -18,7 +18,7 @@
 
   // ── constants — every literal here matches docs/IDV-API-CONTRACT.md, never
   // an invented friendlier vocabulary ──────────────────────────────────────
-  const SCOPE_OPTIONS = ['sessions:write', 'sessions:read', 'lists:read'];
+  const SCOPE_OPTIONS = ['sessions:write', 'sessions:read', 'sessions:override', 'lists:read'];
   const EVENT_OPTIONS = ['status.updated', 'data.updated'];
   const DELIVERY_TONE = { queued: 'neutral', delivered: 'good', failed: 'warn', dead: 'bad' };
 
