@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LP Triage — Concept C — By Day</title>
+<style>
+/* ============================================================================
+   LP Triage — Concept C — By Day (migration phase M2)
+   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); shell
+   conventions from shared/hd-ui.jsx (Sheet, pill, table). No build step, no
+   external requests, opens from disk. ALL data below is INVENTED EXAMPLE DATA
+   with fake driver names and fake store days — nothing here is a real
+   Hyperwolf record. Every read is labelled with its proposed route; every
+   write control is rendered disabled and tagged "M2 write" — this program
+   ships read screens first (§0 of the migration plan: no client-side role
+   trust, no showWhen-hidden PII — every gate here is a stand-in for a
+   server-side filter, not a real one).
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --f-micro:10.5px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px; --f-title:16px; --f-h2:21px; --f-h1:26px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.22);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);font-size:var(--f-body);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:60px;flex:0 0 60px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;}
+.rail-logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;color:var(--accentInk);font-weight:800;font-size:13px;flex:0 0 auto;}
+.rail-item{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item .lbl{font-size:9px;font-weight:600;white-space:nowrap;}
+.rail-spacer{flex:1;}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:14px;padding:12px 20px;flex-wrap:wrap;}
+.titleblock{margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
+.h1{font-size:var(--f-h1);font-weight:700;margin:2px 0 0;letter-spacing:-.01em;line-height:1.1;}
+
+.daypicker{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r10);padding:5px 6px;}
+.daypicker button{width:28px;height:28px;border-radius:7px;border:none;background:transparent;color:var(--inkDim);font-size:15px;cursor:pointer;}
+.daypicker button:hover{background:var(--surface3);color:var(--ink);}
+.daypicker input{border:none;background:transparent;font-family:var(--fontMono);font-size:13px;font-weight:700;color:var(--ink);padding:0 6px;width:128px;}
+
+.rolegroup{display:flex;align-items:center;gap:6px;}
+.rolegroup .rg-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);font-weight:700;margin-right:2px;}
+.roleseg{display:flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:99px;padding:2px;}
+.roleseg button{border:none;background:transparent;padding:5px 11px;border-radius:99px;font-size:11px;font-weight:700;color:var(--inkDim);cursor:pointer;white-space:nowrap;}
+.roleseg button.on{background:var(--ink);color:var(--surface);}
+html[data-theme="dark"] .roleseg button.on, .dark-mq .roleseg button.on{background:var(--accent);color:var(--accentInk);}
+
+.routecap{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);background:var(--surface2);border:1px dashed var(--hairline3);border-radius:7px;padding:3px 8px;white-space:nowrap;}
+.routecap b{color:var(--info);font-weight:700;}
+
+.examplebanner{display:flex;align-items:center;gap:8px;background:var(--accentSoft);border-bottom:1px solid var(--accentBorder);color:var(--accentText);padding:6px 20px;font-size:11px;font-weight:700;}
+
+.body-scroll{flex:1;overflow-y:auto;padding:16px 20px 60px;}
+
+.kpirow{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:11px 12px;box-shadow:var(--shadowSm);}
+.kpi .kl{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);font-weight:700;}
+.kpi .kv{font-family:var(--fontMono);font-size:21px;font-weight:700;margin-top:4px;}
+.kpi .kv.bad{color:var(--bad);} .kpi .kv.warn{color:var(--warnText);} .kpi .kv.good{color:var(--good);}
+.kpi .ks{font-size:10.5px;color:var(--inkMute);margin-top:2px;}
+
+.section-note{display:flex;gap:8px;align-items:flex-start;background:var(--infoSoft);border:1px solid var(--info);border-radius:var(--r10);padding:9px 12px;font-size:11.5px;color:var(--ink);margin-bottom:14px;}
+.section-note b{color:var(--info);}
+
+.storegroup{margin-bottom:18px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);overflow:hidden;box-shadow:var(--shadowSm);}
+.storegroup-head{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--surface2);border-bottom:1px solid var(--hairline2);flex-wrap:wrap;}
+.storegroup-head .sg-name{font-weight:700;font-size:13.5px;}
+.storegroup-head .sg-meta{font-size:11px;color:var(--inkMute);}
+.storegroup-head .sg-total{margin-left:auto;text-align:right;}
+.storegroup-head .sg-total .k{font-size:9.5px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
+.storegroup-head .sg-total .v{font-family:var(--fontMono);font-weight:700;font-size:15px;}
+
+table.board{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
+table.board th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:7px 12px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+table.board th.num{text-align:right;}
+table.board td{padding:8px 12px;border-bottom:1px solid var(--hairline);vertical-align:middle;}
+table.board tr:last-child td{border-bottom:none;}
+table.board tr{cursor:pointer;}
+table.board tr:hover td{background:var(--surface2);}
+.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.driver-cell{display:flex;align-items:center;gap:8px;}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10.5px;color:var(--ink2);flex:0 0 auto;}
+.drivername{font-weight:600;}
+.drivermeta{font-size:10.5px;color:var(--inkMute);}
+.modechip{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:99px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;background:var(--neutralSoft);color:var(--neutral);}
+.varcell{font-weight:700;}
+.varcell.ok{color:var(--good);} .varcell.small{color:var(--warnText);} .varcell.big{color:var(--bad);}
+.masked{font-style:italic;color:var(--inkMute);font-weight:500;}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:700;border:1px solid transparent;white-space:nowrap;}
+.pill-new{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+.pill-driver{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.pill-manager{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+.pill-decided{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.pill-corrected{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+.viewbtn{background:none;border:1px solid var(--hairline3);color:var(--ink);border-radius:7px;font-size:10.5px;font-weight:700;padding:4px 9px;cursor:pointer;white-space:nowrap;}
+.viewbtn:hover{background:var(--surface3);}
+
+/* ── Drawer ───────────────────────────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.44);z-index:90;display:none;}
+.overlay.open{display:block;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:520px;max-width:94vw;background:var(--surface);border-left:1px solid var(--hairline2);box-shadow:var(--shadowLg);z-index:91;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .18s ease;}
+.drawer.open{transform:translateX(0);}
+.drawer-head{display:flex;align-items:flex-start;gap:10px;padding:16px 18px;border-bottom:1px solid var(--hairline2);}
+.drawer-head .dh-main{flex:1;min-width:0;}
+.drawer-head .dh-name{font-weight:700;font-size:16px;}
+.drawer-head .dh-sub{font-size:11.5px;color:var(--inkMute);margin-top:2px;}
+.drawer-close{width:30px;height:30px;border-radius:8px;border:1px solid var(--hairline2);background:var(--surface2);cursor:pointer;font-size:15px;color:var(--inkDim);flex:0 0 auto;}
+.drawer-body{flex:1;overflow-y:auto;padding:14px 18px 40px;}
+.dcard{border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px 14px;margin-bottom:14px;background:var(--surface);}
+.dcard h3{margin:0 0 10px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);display:flex;align-items:center;gap:8px;}
+.dcard h3 .cap{margin-left:auto;font-family:var(--fontMono);font-size:9.5px;text-transform:none;letter-spacing:0;color:var(--inkFaint);font-weight:500;}
+.fieldgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;}
+.fieldgrid .fg-item{display:flex;flex-direction:column;gap:1px;}
+.fieldgrid .fg-k{font-family:var(--fontMono);font-size:9.5px;color:var(--inkFaint);}
+.fieldgrid .fg-v{font-family:var(--fontMono);font-size:13px;font-weight:700;}
+.fieldgrid .fg-v.bad{color:var(--bad);} .fieldgrid .fg-v.good{color:var(--good);}
+.lockrow{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px dashed var(--hairline3);border-radius:var(--r10);font-size:11.5px;color:var(--inkMute);}
+.lockrow b{color:var(--ink);}
+.histrow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dotted var(--hairline2);font-size:11.5px;}
+.histrow:last-child{border-bottom:none;}
+.histrow .hr-tag{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--neutral);background:var(--neutralSoft);border-radius:6px;padding:1px 6px;margin-left:6px;}
+.chipwrap{display:flex;flex-wrap:wrap;gap:6px;}
+.flagchip{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:700;background:var(--badSoft);color:var(--bad);}
+.threadbubble{background:var(--surface2);border-radius:var(--r10);padding:9px 11px;font-size:12px;color:var(--ink);margin-top:8px;}
+.threadmeta{font-size:10.5px;color:var(--inkMute);margin-top:4px;}
+.deadlinebar{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--warnText);background:var(--warnSoft);border-radius:8px;padding:6px 10px;margin-bottom:8px;}
+
+.mwrite-tag{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:6px;background:var(--badSoft);color:var(--bad);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;}
+.decisionrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.decisionrow button, .decisionrow select{opacity:.5;cursor:not-allowed;}
+.dbtn{height:34px;padding:0 13px;border-radius:9px;border:1px solid var(--hairline3);background:var(--surface2);color:var(--ink);font-size:11.5px;font-weight:700;}
+.dbtn.charge{border-color:var(--bad);color:var(--bad);}
+.dbtn.waive{border-color:var(--good);color:var(--good);}
+.dbtn.escalate{border-color:var(--warn);color:var(--warnText);}
+.dsel{height:34px;border-radius:9px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:11.5px;padding:0 8px;}
+.deadnote{font-size:11px;color:var(--inkMute);margin-top:8px;font-style:italic;}
+
+@media (max-width: 1180px){ .kpirow{grid-template-columns:repeat(4,1fr);} }
+@media (max-width: 760px){
+  .rail .lbl{display:none;}
+  .kpirow{grid-template-columns:repeat(2,1fr);}
+  table.board{font-size:11px;}
+  .drawer{width:100vw;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <nav class="rail">
+    <div class="rail-logo">HW</div>
+    <button class="rail-item"><span>🏠</span><span class="lbl">Home</span></button>
+    <button class="rail-item active"><span>🛡️</span><span class="lbl">LP</span></button>
+    <button class="rail-item"><span>👥</span><span class="lbl">HR</span></button>
+    <div class="rail-spacer"></div>
+    <button class="rail-item"><span>⚙️</span><span class="lbl">Admin</span></button>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="titleblock">
+        <div class="crumb">LP Triage · Tab 2</div>
+        <div class="h1">By Day</div>
+      </div>
+      <div class="daypicker">
+        <button aria-label="Previous day">‹</button>
+        <input type="date" value="2026-09-15" readonly/>
+        <button aria-label="Next day">›</button>
+      </div>
+      <div class="routecap">GET <b>/api/lp/closer-reports?since=2026-09-15</b> — proposed</div>
+      <div class="rolegroup">
+        <span class="rg-label">Viewing as</span>
+        <div class="roleseg" id="roleseg">
+          <button data-role="lp" class="on">lp</button>
+          <button data-role="manager">manager</button>
+          <button data-role="hr">hr</button>
+          <button data-role="admin">admin</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="examplebanner">⚠ EXAMPLE DATA — every driver, store total and dollar figure below is invented for this mockup, not a real Hyperwolf record.</div>
+
+    <div class="body-scroll">
+
+      <div class="kpirow">
+        <div class="kpi"><div class="kl">Reports today</div><div class="kv">31</div><div class="ks">6 stores</div></div>
+        <div class="kpi"><div class="kl">New</div><div class="kv info">7</div></div>
+        <div class="kpi"><div class="kl">Awaiting driver</div><div class="kv warn">5</div></div>
+        <div class="kpi"><div class="kl">Awaiting manager</div><div class="kv warn">3</div></div>
+        <div class="kpi"><div class="kl">Decided</div><div class="kv good">12</div></div>
+        <div class="kpi"><div class="kl">Corrected</div><div class="kv">4</div><div class="ks">not a loss</div></div>
+        <div class="kpi"><div class="kl">Total variance</div><div class="kv bad" id="kpiTotalVar">$418.50</div><div class="ks" id="kpiTotalVarNote">exact — lp/admin</div></div>
+      </div>
+
+      <div class="section-note">
+        <span>ⓘ</span>
+        <div><b>Live query, not a mirror.</b> This board reads <code>LossLedgerEntry</code>/<code>CloserReport</code> directly. The old <code>mirrorLossToDirectory</code> trigger (every 30&nbsp;min, `LossLedger.gs:343`) is retired in M2 — no stale-driver bug, no 30-minute lag; every cell here is as fresh as the last write.</div>
+      </div>
+
+      <!-- Store group: Corona -->
+      <div class="storegroup">
+        <div class="storegroup-head">
+          <div class="sg-name">Corona</div>
+          <div class="sg-meta">6 closer reports · 2 flagged</div>
+          <div class="sg-total"><div class="k">Store variance</div><div class="v bad" data-money data-exact="-186.40">$186.40</div></div>
+        </div>
+        <table class="board">
+          <thead><tr><th>Driver / Register</th><th>Mode</th><th class="num">Expected</th><th class="num">Counted</th><th class="num">Variance</th><th>Discrepancy</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr data-case="c1" onclick="openCase('c1')">
+              <td><div class="driver-cell"><div class="avatar">MW</div><div><div class="drivername">Marcus Webb</div><div class="drivermeta">driver_person_id: per_9f21a</div></div></div></td>
+              <td><span class="modechip">Delivery</span></td>
+              <td class="num" data-money data-exact="212.00">$212.00</td>
+              <td class="num" data-money data-exact="168.50">$168.50</td>
+              <td class="num varcell big" data-money data-exact="-43.50">−$43.50</td>
+              <td>Cash short</td>
+              <td><span class="pill pill-new">New</span></td>
+              <td><button class="viewbtn" onclick="event.stopPropagation();openCase('c1')">View case</button></td>
+            </tr>
+            <tr data-case="c2" onclick="openCase('c2')">
+              <td><div class="driver-cell"><div class="avatar">PA</div><div><div class="drivername">Priya Anand</div><div class="drivermeta">driver_person_id: per_44b10</div></div></div></td>
+              <td><span class="modechip">Retail · Reg 2</span></td>
+              <td class="num" data-money data-exact="640.00">$640.00</td>
+              <td class="num" data-money data-exact="497.60">$497.60</td>
+              <td class="num varcell big" data-money data-exact="-142.40">−$142.40</td>
+              <td>Payment discrepancy</td>
+              <td><span class="pill pill-driver">Awaiting driver</span></td>
+              <td><button class="viewbtn" onclick="event.stopPropagation();openCase('c2')">View case</button></td>
+            </tr>
+            <tr data-case="c3" onclick="openCase('c3')">
+              <td><div class="driver-cell"><div class="avatar">JV</div><div><div class="drivername">Jordan Vance</div><div class="drivermeta">driver_person_id: per_7710c</div></div></div></td>
+              <td><span class="modechip">Delivery</span></td>
+              <td class="num" data-money data-exact="188.00">$188.00</td>
+              <td class="num" data-money data-exact="188.00">$188.00</td>
+              <td class="num varcell ok" data-money data-exact="0.00">$0.00</td>
+              <td>—</td>
+              <td><span class="pill pill-decided">Decided</span></td>
+              <td><button class="viewbtn" onclick="event.stopPropagation();openCase('c3')">View case</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Store group: Long Beach -->
+      <div class="storegroup">
+        <div class="storegroup-head">
+          <div class="sg-name">Long Beach</div>
+          <div class="sg-meta">5 closer reports · 1 flagged</div>
+          <div class="sg-total"><div class="k">Store variance</div><div class="v warn" data-money data-exact="-38.00">$38.00</div></div>
+        </div>
+        <table class="board">
+          <thead><tr><th>Driver / Register</th><th>Mode</th><th class="num">Expected</th><th class="num">Counted</th><th class="num">Variance</th><th>Discrepancy</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr data-case="c4" onclick="openCase('c4')">
+              <td><div class="driver-cell"><div class="avatar">EC</div><div><div class="drivername">Elena Cruz</div><div class="drivermeta">driver_person_id: per_2c9e1</div></div></div></td>
+              <td><span class="modechip">Delivery</span></td>
+              <td class="num" data-money data-exact="150.00">$150.00</td>
+              <td class="num" data-money data-exact="112.00">$112.00</td>
+              <td class="num varcell small" data-money data-exact="-38.00">−$38.00</td>
+              <td>Cash short</td>
+              <td><span class="pill pill-manager">Awaiting manager</span></td>
+              <td><button class="viewbtn" onclick="event.stopPropagation();openCase('c4')">View case</button></td>
+            </tr>
+            <tr data-case="c5" onclick="openCase('c5')">
+              <td><div class="driver-cell"><div class="avatar">SW</div><div><div class="drivername">Sam Whitfield</div><div class="drivermeta">driver_person_id: per_88f02</div></div></div></td>
+              <td><span class="modechip">Delivery</span></td>
+              <td class="num" data-money data-exact="204.00">$204.00</td>
+              <td class="num" data-money data-exact="204.00">$204.00</td>
+              <td class="num varcell ok" data-money data-exact="0.00">$0.00</td>
+              <td>—</td>
+              <td><span class="pill pill-corrected">Corrected</span></td>
+              <td><button class="viewbtn" onclick="event.stopPropagation();openCase('c5')">View case</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Store group: West Hollywood -->
+      <div class="storegroup">
+        <div class="storegroup-head">
+          <div class="sg-name">West Hollywood</div>
+          <div class="sg-meta">7 closer reports · 3 flagged</div>
+          <div class="sg-total"><div class="k">Store variance</div><div class="v bad" data-money data-exact="-194.10">$194.10</div></div>
+        </div>
+        <table class="board">
+          <thead><tr><th>Driver / Register</th><th>Mode</th><th class="num">Expected</th><th class="num">Counted</th><th class="num">Variance</th><th>Discrepancy</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr data-case="c6" onclick="openCase('c6')">
+              <td><div class="driver-cell"><div class="avatar">TP</div><div><div class="drivername">Theo Park</div><div class="drivermeta">driver_person_id: per_5511f</div></div></div></td>
+              <td><span class="modechip">Retail · Reg 1</span></td>
+              <td class="num" data-money data-exact="512.00">$512.00</td>
+              <td class="num" data-money data-exact="392.40">$392.40</td>
+              <td class="num varcell big" data-money data-exact="-119.60">−$119.60</td>
+              <td>Suspicious bills</td>
+              <td><span class="pill pill-new">New</span></td>
+              <td><button class="viewbtn" onclick="event.stopPropagation();openCase('c6')">View case</button></td>
+            </tr>
+            <tr data-case="c7" onclick="openCase('c7')">
+              <td><div class="driver-cell"><div class="avatar">NA</div><div><div class="drivername">Nina Alvarez</div><div class="drivermeta">driver_person_id: per_60a7d</div></div></div></td>
+              <td><span class="modechip">Delivery</span></td>
+              <td class="num" data-money data-exact="176.00">$176.00</td>
+              <td class="num" data-money data-exact="101.50">$101.50</td>
+              <td class="num varcell big" data-money data-exact="-74.50">−$74.50</td>
+              <td>Card discrepancy</td>
+              <td><span class="pill pill-driver">Awaiting driver</span></td>
+              <td><button class="viewbtn" onclick="event.stopPropagation();openCase('c7')">View case</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Store group: Lake Elsinore -->
+      <div class="storegroup">
+        <div class="storegroup-head">
+          <div class="sg-name">Lake Elsinore</div>
+          <div class="sg-meta">4 closer reports · 0 flagged</div>
+          <div class="sg-total"><div class="k">Store variance</div><div class="v good" data-money data-exact="0.00">$0.00</div></div>
+        </div>
+        <table class="board">
+          <thead><tr><th>Driver / Register</th><th>Mode</th><th class="num">Expected</th><th class="num">Counted</th><th class="num">Variance</th><th>Discrepancy</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr data-case="c8" onclick="openCase('c8')">
+              <td><div class="driver-cell"><div class="avatar">DR</div><div><div class="drivername">Dante Ruiz</div><div class="drivermeta">driver_person_id: per_31c48</div></div></div></td>
+              <td><span class="modechip">Delivery</span></td>
+              <td class="num" data-money data-exact="140.00">$140.00</td>
+              <td class="num" data-money data-exact="140.00">$140.00</td>
+              <td class="num varcell ok" data-money data-exact="0.00">$0.00</td>
+              <td>—</td>
+              <td><span class="pill pill-decided">Decided</span></td>
+              <td><button class="viewbtn" onclick="event.stopPropagation();openCase('c8')">View case</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeCase()"></div>
+<div class="drawer" id="drawer" role="dialog" aria-label="Case detail">
+  <div class="drawer-head">
+    <div class="dh-main">
+      <div class="dh-name">Marcus Webb <span class="pill pill-new" style="margin-left:6px;">New</span></div>
+      <div class="dh-sub">Corona · Delivery · shift_date 2026-09-15 · closer_report_id CR-88213 (example)</div>
+    </div>
+    <button class="drawer-close" onclick="closeCase()">✕</button>
+  </div>
+  <div class="drawer-body">
+
+    <div class="dcard">
+      <h3>Case identity <span class="cap">GET /api/lp/cases/{id} — proposed</span></h3>
+      <div class="fieldgrid">
+        <div class="fg-item"><div class="fg-k">source_ref</div><div class="fg-v">rec4xK…88213</div></div>
+        <div class="fg-item"><div class="fg-k">entity_id</div><div class="fg-v">highest-craft</div></div>
+        <div class="fg-item"><div class="fg-k">mode</div><div class="fg-v">delivery</div></div>
+        <div class="fg-item"><div class="fg-k">store_id</div><div class="fg-v">store_corona</div></div>
+        <div class="fg-item"><div class="fg-k">driver_person_id</div><div class="fg-v">per_9f21a</div></div>
+        <div class="fg-item"><div class="fg-k">auditor_person_id</div><div class="fg-v">per_lp_0042</div></div>
+        <div class="fg-item"><div class="fg-k">status</div><div class="fg-v">open</div></div>
+        <div class="fg-item"><div class="fg-k">severity</div><div class="fg-v">Medium</div></div>
+      </div>
+    </div>
+
+    <div class="dcard">
+      <h3>Cash card <span class="cap">cash.* — CloserReport</span></h3>
+      <div class="fieldgrid" id="cashfields">
+        <div class="fg-item"><div class="fg-k">cash.expected.amount</div><div class="fg-v" data-money data-exact="212.00">$212.00</div></div>
+        <div class="fg-item"><div class="fg-k">cash.expected.source</div><div class="fg-v" style="font-size:11px;font-weight:600;">blaze_pos_settle</div></div>
+        <div class="fg-item"><div class="fg-k">cash.counted_total</div><div class="fg-v" data-money data-exact="168.50">$168.50</div></div>
+        <div class="fg-item"><div class="fg-k">cash.cash_total_calc</div><div class="fg-v" data-money data-exact="168.50">$168.50</div></div>
+        <div class="fg-item"><div class="fg-k">cash.over_under</div><div class="fg-v bad">under</div></div>
+        <div class="fg-item"><div class="fg-k">cash.deposit_variance</div><div class="fg-v bad" data-money data-exact="-43.50">−$43.50</div></div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="font-size:10.5px;color:var(--inkMute);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Cash-discrepancy history (this driver)</div>
+        <div id="cashHistoryLocked" class="lockrow" style="display:none;">
+          🔒 Discrepancy history and any <b>"corrected — not a loss"</b> rows are visible to <b>lp</b> and <b>admin</b> only — hidden for the role you're viewing as now.
+        </div>
+        <div id="cashHistoryOpen">
+          <div class="histrow"><span>2026-08-22 · $12.00 short → Explained (register miscounted a $10+$2 roll)</span><span class="hr-tag">corrected — not a loss</span></div>
+          <div class="histrow"><span>2026-07-30 · $6.50 short → Explained (customer tip mis-keyed)</span><span class="hr-tag">corrected — not a loss</span></div>
+          <div class="histrow"><span style="color:var(--inkMute);">lifetime net_loss (LossLedgerEntry.window.lifetime)</span><b style="font-family:var(--fontMono);" data-money data-exact="0.00">$0.00</b></div>
+        </div>
+        <div class="section-note" style="margin-top:10px;margin-bottom:0;">
+          <span>ⓘ</span><div>This list is a live <code>LossLedgerEntry</code> query. The retired <code>mirrorLossToDirectory</code> path (30&nbsp;min cadence, `LossLedger.gs:343`) never cleared a driver who dropped out of the rollup — the stale-driver bug this migration fixes.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dcard">
+      <h3>LP vs Blaze cards <span class="cap">cards.* — CloserReport</span></h3>
+      <div class="fieldgrid">
+        <div class="fg-item"><div class="fg-k">cards.blaze_count / blaze_total</div><div class="fg-v" data-money data-exact="184.00">14 · $184.00</div></div>
+        <div class="fg-item"><div class="fg-k">cards.lp_count / lp_total</div><div class="fg-v" data-money data-exact="184.00">14 · $184.00</div></div>
+        <div class="fg-item"><div class="fg-k">cards.lp_status</div><div class="fg-v good">matched</div></div>
+        <div class="fg-item"><div class="fg-k">cards.lp_audited</div><div class="fg-v good">true</div></div>
+      </div>
+    </div>
+
+    <div class="dcard">
+      <h3>Discrepancy flags <span class="cap">discrepancy.* — CloserReport</span></h3>
+      <div class="chipwrap">
+        <span class="flagchip">has_discrepancy</span>
+        <span class="flagchip">type: cash_short</span>
+        <span class="flagchip">pattern_flag: false</span>
+      </div>
+    </div>
+
+    <div class="dcard">
+      <h3>Driver response thread <span class="cap">driver_response* — token-gated, no role</span></h3>
+      <div class="deadlinebar"><span>response_deadline</span><b>2026-09-16 20:00 UTC (18h remaining)</b></div>
+      <div class="threadbubble">
+        No response yet. Driver notified via HMAC magic link (`ResponsePortal.gs` pattern, kept in M2 — single-use, expiring, no role/session).
+        <div class="threadmeta">driver_response_at: — · field: driver_response</div>
+      </div>
+    </div>
+
+    <div class="dcard">
+      <h3>LP Disposition <span class="mwrite-tag">M2 write</span></h3>
+      <div style="font-size:11.5px;color:var(--inkDim);margin-bottom:6px;">POST <span style="font-family:var(--fontMono);">/api/lp/incidents/{id}/decision</span> — proposed, requires idempotency key + row lock (fixes `Dashboard.gs:829-831` re-fire bug)</div>
+      <div class="decisionrow">
+        <select class="dsel" disabled>
+          <option>lp_disposition: Explained</option>
+          <option>lp_disposition: Process Fix</option>
+          <option>lp_disposition: True Loss</option>
+        </select>
+        <input class="dsel" disabled placeholder="amount_recovered" style="width:130px;"/>
+        <input class="dsel" disabled placeholder="final_loss" style="width:110px;"/>
+      </div>
+      <div class="deadnote">This write requires a PIN step-up when the row is above HIGH_RISK_LOSS_THRESHOLD (auth model §2). Rendered disabled — no write path exists yet.</div>
+    </div>
+
+    <div class="dcard">
+      <h3>Manager Decision <span class="mwrite-tag">M2 write</span></h3>
+      <div style="font-size:11.5px;color:var(--inkDim);margin-bottom:6px;">Same route, decision kind discriminates LP vs manager. Scope: <b>manager</b>, <b>admin</b> (own reports, via reports-to graph).</div>
+      <div class="decisionrow">
+        <button class="dbtn charge" disabled>Approve Write-Up</button>
+        <button class="dbtn waive" disabled>Dismiss — Coaching</button>
+        <button class="dbtn escalate" disabled>Escalate</button>
+      </div>
+      <div class="deadnote">Approve emits a <code>ContractEvent</code> instead of flipping an Airtable checkbox directly. The legacy email-button decision path (<code>ManagerDecision.gs</code> <code>?action=decide</code>) is <b>dropped</b> in M2 — decisions happen only in this authenticated screen.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  var roles = { lp:true, admin:true, manager:false, hr:false }; // which roles unlock cash-figure detail + history
+  var currentRole = 'lp';
+
+  function applyRole(){
+    var unlocked = !!roles[currentRole];
+    document.getElementById('cashHistoryLocked').style.display = unlocked ? 'none' : 'flex';
+    document.getElementById('cashHistoryOpen').style.display = unlocked ? 'block' : 'none';
+    var money = document.querySelectorAll('[data-money]');
+    money.forEach(function(el){
+      var exact = el.getAttribute('data-exact');
+      if (exact === null) return;
+      var n = parseFloat(exact);
+      if (unlocked){
+        el.classList.remove('masked');
+        el.textContent = (n < 0 ? '−$' : '$') + Math.abs(n).toFixed(2);
+      } else {
+        el.classList.add('masked');
+        var rounded = Math.round(Math.abs(n) / 5) * 5;
+        el.textContent = '~' + (n < 0 ? '−$' : '$') + rounded + (rounded ? '' : '.00');
+      }
+    });
+    var kpiNote = document.getElementById('kpiTotalVarNote');
+    if (kpiNote) kpiNote.textContent = unlocked ? 'exact — lp/admin' : 'rounded — role-gated';
+  }
+
+  document.getElementById('roleseg').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-role]');
+    if (!btn) return;
+    currentRole = btn.getAttribute('data-role');
+    Array.from(this.querySelectorAll('button')).forEach(function(b){ b.classList.toggle('on', b===btn); });
+    applyRole();
+  });
+
+  window.openCase = function(id){
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('drawer').classList.add('open');
+  };
+  window.closeCase = function(){
+    document.getElementById('overlay').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+  };
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeCase(); });
+
+  applyRole();
+})();
+</script>
+</body>
+</html>

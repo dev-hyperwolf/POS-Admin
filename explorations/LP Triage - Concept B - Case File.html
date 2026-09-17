@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LP Triage — Concept B — Case File</title>
+<style>
+/* ============================================================================
+   LP Triage — Concept B — Case File (migration M2, proposed screens)
+   Static mockup, no build, no external requests. Tokens copied inline from
+   pos/tokens.jsx (LIGHT/DARK); rail shell + control conventions from
+   explorations/Verify - Concept B - Return-Verify at the LP Bench.html and
+   explorations/LP Triage - Concept A - Queue.html (same dataset, same role
+   model — companion file, Concept A is the queue-first read of this screen).
+   Source: docs/migration/MIGRATION-PLAN-2026-09-16.md §1 (M2 Triage + Manager
+   Decision), docs/migration/LP-DASHBOARD-INVENTORY.md, contracts/schema/
+   CloserReport.json + LossLedgerEntry.json (field names reused as shown).
+   All driver names below are INVENTED — never real Hyperwolf employees.
+   Every read panel is labelled with the GAS-plan read route it would bind to;
+   every route is PROPOSED, not built. Decision controls are disabled and
+   tagged "M2 write".
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --f-micro:10.5px; --f-meta:12.5px; --f-body:13.5px; --f-strong:15px; --f-title:18px; --f-h2:21px; --f-h1:26px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.22);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:72px;flex:0 0 72px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;color:var(--accentInk);flex:0 0 auto;}
+.rail-item{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:9.5px;font-weight:600;white-space:nowrap;}
+.rail-spacer{flex:1;}
+.rail-bottom{width:100%;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap;}
+.topbar .titleblock{margin-right:auto;min-width:160px;}
+.h1{font-size:var(--f-h1);font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.1;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+
+.rolechip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 11px 0 4px;border-radius:99px;background:var(--infoSoft);border:1px solid var(--info);color:var(--info);font-size:12px;font-weight:700;cursor:pointer;position:relative;}
+.rolechip .av{width:22px;height:22px;border-radius:50%;background:var(--info);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;}
+.rolepop{position:absolute;top:38px;right:0;width:320px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowLg);padding:14px;z-index:60;text-align:left;font-weight:500;color:var(--ink);display:none;}
+.rolepop.open{display:block;}
+.rolepop h4{margin:0 0 8px;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);}
+.rolepop .rline{display:flex;gap:8px;padding:6px 0;border-bottom:1px dotted var(--hairline2);font-size:12px;}
+.rolepop .rline:last-child{border-bottom:none;}
+.rolepop .rline b{flex:0 0 auto;}
+.viewassel{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--inkMute);}
+.viewassel select{height:30px;border-radius:8px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:12px;padding:0 6px;}
+
+.routetag{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);background:var(--surface3);border:1px solid var(--hairline2);border-radius:6px;padding:2px 6px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;}
+.routetag b{color:var(--info);font-weight:700;}
+
+.bannerwrap{padding:0 18px;display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.banner{display:flex;align-items:flex-start;gap:9px;border-radius:var(--r10);padding:9px 13px;font-size:12px;line-height:1.4;}
+.banner.info{background:var(--infoSoft);border:1px solid var(--info);color:var(--ink);}
+.banner.example{background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);font-weight:600;}
+
+.layout{flex:1;display:flex;gap:0;min-height:0;}
+
+/* Thin left rail queue — the defining difference from Concept A: the queue is
+   a strip, not the screen. */
+.queuerail{width:236px;flex:0 0 236px;border-right:1px solid var(--hairline2);background:var(--surface2);overflow-y:auto;padding:10px;}
+.queuerail .qhead{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 8px;}
+.queuerail .qhead h2{margin:0;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);}
+.qchip{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 10px;margin-bottom:6px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);cursor:pointer;}
+.qchip:hover{border-color:var(--hairline3);}
+.qchip.sel{border-color:var(--accentBorder);box-shadow:0 0 0 2px var(--accentSoft) inset;}
+.qchip .qc-av{width:28px;height:28px;border-radius:8px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:var(--ink2);flex:0 0 auto;}
+.qchip .qc-mid{flex:1;min-width:0;}
+.qchip .qc-name{font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qchip .qc-sub{font-size:10.5px;color:var(--inkMute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qchip .qc-amt{font-family:var(--fontMono);font-size:11.5px;font-weight:800;flex:0 0 auto;}
+.qc-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+.dot-new{background:var(--bad);} .dot-awaiting_driver{background:var(--warn);} .dot-awaiting_manager{background:var(--info);}
+.dot-decided{background:var(--good);} .dot-corrected{background:var(--neutral);}
+
+.dossier{flex:1;min-width:0;overflow-y:auto;background:var(--bg);}
+.dhead{display:flex;align-items:flex-start;gap:14px;padding:16px 22px;border-bottom:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;}
+.dhead .av{width:44px;height:44px;border-radius:12px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--ink2);font-size:15px;flex:0 0 auto;}
+.dhead .name{font-size:var(--f-title);font-weight:800;}
+.dhead .sub{font-size:var(--f-meta);color:var(--inkMute);margin-top:1px;}
+.dhead .navwrap{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.navbtn{height:34px;padding:0 12px;border-radius:var(--r10);border:1px solid var(--hairline3);background:var(--surface);color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.navbtn:hover{background:var(--surface3);}
+.navbtn:disabled{opacity:.4;cursor:not-allowed;}
+.navcount{font-size:11px;color:var(--inkMute);font-family:var(--fontMono);}
+
+.statuspill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:99px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+.st-new{background:var(--badSoft);color:var(--bad);}
+.st-awaiting_driver{background:var(--warnSoft);color:var(--warnText);}
+.st-awaiting_manager{background:var(--infoSoft);color:var(--info);}
+.st-decided{background:var(--goodSoft);color:var(--good);}
+.st-corrected{background:var(--neutralSoft);color:var(--neutral);}
+
+.section{padding:16px 22px;border-bottom:1px solid var(--hairline2);}
+.section h3{margin:0 0 12px;font-size:var(--f-strong);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.section h3 .routetag{font-weight:400;}
+
+.linegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px;}
+.lg-k{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);font-weight:700;}
+.lg-v{font-family:var(--fontMono);font-size:14px;font-weight:700;margin-top:1px;}
+.lg-v.bad{color:var(--bad);}
+.lg-v.good{color:var(--good);}
+.lg-v.warn{color:var(--warnText);}
+.flagrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.flagchip{display:inline-flex;align-items:center;gap:4px;height:21px;padding:0 8px;border-radius:99px;background:var(--badSoft);color:var(--bad);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+.flagchip.none{background:var(--goodSoft);color:var(--good);}
+
+.gapnote{margin-top:10px;font-size:11.5px;color:var(--inkMute);border:1px dashed var(--hairline3);border-radius:var(--r8);padding:8px 10px;background:var(--surface2);}
+.gapnote b{color:var(--ink);}
+
+.gated{border:1px dashed var(--hairline3);border-radius:var(--r10);padding:10px 12px;font-size:12px;color:var(--inkMute);background:var(--surface2);text-align:center;}
+.gated b{color:var(--ink);}
+.lponly{display:inline-flex;align-items:center;height:16px;padding:0 5px;border-radius:5px;background:var(--info);color:#fff;font-size:8.5px;font-weight:800;letter-spacing:.03em;margin-left:5px;vertical-align:middle;}
+.correctedrow{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dotted var(--hairline2);font-size:12px;}
+.correctedrow:last-child{border-bottom:none;}
+
+.histtable{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
+.histtable th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:6px 8px;border-bottom:1px solid var(--hairline2);}
+.histtable td{padding:7px 8px;border-bottom:1px dotted var(--hairline);}
+.histtable tr.thisrow{background:var(--accentSoft);}
+.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+
+.threadwrap{display:flex;flex-direction:column;gap:8px;}
+.msg{border-radius:var(--r10);padding:9px 11px;font-size:12.5px;background:var(--surface2);border:1px solid var(--hairline2);}
+.msg .mmeta{font-size:10.5px;color:var(--inkMute);margin-bottom:3px;font-family:var(--fontMono);}
+.msg.driver{background:var(--infoSoft);border-color:var(--info);}
+.waitpill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--warnText);font-weight:700;}
+.tokennote{margin-top:8px;font-size:11px;color:var(--inkMute);}
+
+.decisionrow{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;}
+.dbtn{flex:1 1 0;min-width:120px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline3);background:var(--surface3);color:var(--inkFaint);font-size:12.5px;font-weight:800;cursor:not-allowed;position:relative;display:flex;align-items:center;justify-content:center;gap:6px;}
+.dbtn .m2{position:absolute;top:-8px;right:-4px;background:var(--warn);color:#1A1400;font-size:8px;font-weight:800;padding:1px 5px;border-radius:99px;letter-spacing:.02em;}
+.dbtn.charge{border-color:var(--bad);}
+.dbtn.waive{border-color:var(--good);}
+.dbtn.escalate{border-color:var(--warn);}
+
+.footer{padding:10px 22px;font-size:var(--f-meta);color:var(--inkMute);border-top:1px solid var(--hairline2);}
+.kbdhint{font-size:11px;color:var(--inkMute);padding:0 22px 10px;}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;border-radius:5px;background:var(--surface);border:1px solid var(--hairline3);font-family:var(--fontMono);font-size:10.5px;font-weight:700;color:var(--ink);box-shadow:0 1px 0 var(--hairline3);}
+.toast{position:fixed;right:18px;bottom:20px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--warn);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;}
+
+@media (max-width: 940px){
+  .layout{flex-direction:column;}
+  .queuerail{width:100%;flex-basis:auto;border-right:none;border-bottom:1px solid var(--hairline2);max-height:180px;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;}
+  .queuerail .qhead{display:none;}
+  .qchip{flex:0 0 200px;margin-bottom:0;}
+  .linegrid{grid-template-columns:repeat(2,1fr);}
+  .rail{width:56px;flex-basis:56px;}
+  .rail-item .lbl{display:none;}
+  .h1{font-size:20px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <button class="rail-item active" title="Triage"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M7 12h10M7 17h6"/></svg><span class="lbl">Triage</span></button>
+    <button class="rail-item" title="By Day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span class="lbl">By Day</span></button>
+    <button class="rail-item" title="Store Close-Outs"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><rect x="4" y="9" width="16" height="11" rx="1"/></svg><span class="lbl">Stores</span></button>
+    <button class="rail-item" title="Driver Response"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg><span class="lbl">Response</span></button>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom"><button class="rail-item" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82"/></svg><span class="lbl">Settings</span></button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb">Loss Prevention · Triage · M2 proposed</div>
+        <h1 class="h1">Triage — Case File</h1>
+      </div>
+      <div class="viewassel">Preview as
+        <select id="viewAsSel">
+          <option value="lp">lp</option>
+          <option value="admin">admin</option>
+          <option value="manager">manager</option>
+          <option value="hr">hr</option>
+        </select>
+      </div>
+      <div class="rolechip" id="roleChip"><span class="av">LP</span>lp
+        <div class="rolepop" id="rolePop">
+          <h4>Role &amp; visibility — signed in as lp</h4>
+          <div class="rline"><b>Sees:</b><span>The full case dossier, exact cash cents, disposition &amp; decision controls (M2 write, disabled here), the driver-response thread, this driver's history.</span></div>
+          <div class="rline"><b>lp + admin only:</b><span>The "Driver history" section below — hidden entirely from <code>hr</code> and <code>manager</code>.</span></div>
+          <div class="rline"><b>lp only:</b><span>"Corrected — not a loss" rows inside that history — hidden even from <code>admin</code>, per the decided M2 default. Use "Preview as" to see a row disappear.</span></div>
+          <div class="rline"><b>Never client-side:</b><span>every hide above is a server-side filter on the route response (MIGRATION-PLAN §0/§2), not a client condition.</span></div>
+        </div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="bannerwrap">
+      <div class="banner example">Design mockup — every driver name, store, dollar figure and timestamp on this screen is invented example data, not a real employee or transaction.</div>
+      <div class="banner info"><span>ⓘ</span><span><b>LossLedger mirror retired.</b> The GAS <code>mirrorLossToDirectory</code> trigger (every 30 min, wrote the HR base) is retired in M2 — the "Driver history" section is drawn from a live query, via <span class="routetag">GET <b>/api/lp/closer-reports</b>?since=&amp;person_id= (proposed)</span>, removing the old bug where a driver who dropped off the rollup kept a stale non-zero total forever.</span></div>
+    </div>
+    <div class="kbdhint"><span class="kbd">←</span><span class="kbd">→</span> or <span class="kbd">J</span><span class="kbd">K</span> — prev / next case · queue rail at left is thin by design, the dossier at right is the screen.</div>
+
+    <div class="layout">
+      <aside class="queuerail" id="queueRail">
+        <div class="qhead"><h2>Queue</h2><span class="routetag">GET <b>/api/lp/cases</b></span></div>
+        <div id="qchips"></div>
+      </aside>
+
+      <section class="dossier" id="dossier"></section>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- theme ----
+(function(){
+  var KEY='hw-lp-triage-theme';
+  var saved = null; try{ saved = localStorage.getItem(KEY); }catch(e){}
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme') ||
+      (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem(KEY, next); }catch(e){}
+  });
+})();
+
+// ---- role popover ----
+(function(){
+  var chip = document.getElementById('roleChip'), pop = document.getElementById('rolePop');
+  chip.addEventListener('click', function(e){ e.stopPropagation(); pop.classList.toggle('open'); });
+  document.addEventListener('click', function(e){ if(!chip.contains(e.target)) pop.classList.remove('open'); });
+})();
+
+// ---- example data (INVENTED — no real drivers, stores, or amounts) ----
+// Same dataset as "LP Triage - Concept A - Queue.html" so the two concepts
+// are directly comparable on the same cases.
+var CASES = [
+  { id:'C-2058', driver:'Andre Kessler', store:'Alternate Health — Long Beach', mode:'delivery', shift_date:'2026-09-01', ageDays:15,
+    expected:500.00, counted:410.00, over_under:'short', severity:'high', pattern_flag:true, discType:'cash_short',
+    status:'new', flags:['suspicious_bills'], lpOwner:null, response_deadline:'2026-09-02T20:00:00Z', driverResponse:null, driverResponseAt:null,
+    managerDecision:null, lpDisposition:null, finalLoss:null, amountRecovered:null,
+    cardsLpTotal:0, cardsBlazeTotal:0, cardsStatus:'n/a — cash-only delivery route' },
+  { id:'C-2079', driver:'Jamie Fallon', store:'Pleasure Med — Lake Elsinore', mode:'retail', shift_date:'2026-09-10', ageDays:6,
+    expected:640.00, counted:555.00, over_under:'short', severity:'high', pattern_flag:true, discType:'cash_short',
+    status:'decided', flags:['payment_discrepancy'], lpOwner:'R. Castillo', response_deadline:'2026-09-11T20:00:00Z',
+    driverResponse:'Register was double-booked during the promo rush; I flagged it to the shift lead at close.', driverResponseAt:'2026-09-10T22:40:00Z',
+    managerDecision:'escalate_to_writeup', lpDisposition:'true_loss', finalLoss:85.00, amountRecovered:0.00,
+    cardsLpTotal:1180.00, cardsBlazeTotal:1180.00, cardsStatus:'matched' },
+  { id:'C-2085', driver:'Sam Ostrowski', store:'Alternate Health — Long Beach', mode:'delivery', shift_date:'2026-09-12', ageDays:4,
+    expected:96.00, counted:82.00, over_under:'short', severity:'medium', pattern_flag:false, discType:'cash_short',
+    status:'awaiting_manager', flags:[], lpOwner:'R. Castillo', response_deadline:'2026-09-13T20:00:00Z',
+    driverResponse:'Found $14 in tips under the seat, was in the wrong pouch. Returning it at check-in tomorrow.', driverResponseAt:'2026-09-13T08:12:00Z',
+    managerDecision:null, lpDisposition:'process_fix', finalLoss:null, amountRecovered:null,
+    cardsLpTotal:0, cardsBlazeTotal:0, cardsStatus:'n/a — cash-only delivery route' },
+  { id:'C-2088', driver:'Priya Nanda', store:'Circle City — Corona', mode:'retail', shift_date:'2026-09-13', ageDays:3,
+    expected:180.00, counted:165.00, over_under:'short', severity:'medium', pattern_flag:false, discType:'cash_short',
+    status:'awaiting_driver', flags:[], lpOwner:'D. Okafor', response_deadline:'2026-09-16T20:00:00Z',
+    driverResponse:null, driverResponseAt:null, managerDecision:null, lpDisposition:null, finalLoss:null, amountRecovered:null,
+    cardsLpTotal:410.00, cardsBlazeTotal:410.00, cardsStatus:'matched' },
+  { id:'C-2065', driver:'Lena Vukovic', store:'Circle City — Corona', mode:'retail', shift_date:'2026-09-05', ageDays:11,
+    expected:300.00, counted:300.00, over_under:'matched', severity:'low', pattern_flag:false, discType:'card_mismatch',
+    status:'decided', flags:['payment_discrepancy'], lpOwner:'D. Okafor', response_deadline:'2026-09-06T20:00:00Z',
+    driverResponse:'Terminal batch settled a day late — Blaze and LP totals reconciled once it posted.', driverResponseAt:'2026-09-06T09:05:00Z',
+    managerDecision:'waive', lpDisposition:'explained', finalLoss:0.00, amountRecovered:0.00,
+    cardsLpTotal:512.00, cardsBlazeTotal:498.00, cardsStatus:'mismatch — resolved on late settle' },
+  { id:'C-2071', driver:'Theo Brandt', store:'Highest Craft — West Hollywood', mode:'delivery', shift_date:'2026-09-08', ageDays:8,
+    expected:210.00, counted:210.00, over_under:'matched', severity:'low', pattern_flag:false, discType:'suspicious_bills',
+    status:'corrected', flags:['suspicious_bills'], lpOwner:'R. Castillo', response_deadline:'2026-09-09T20:00:00Z',
+    driverResponse:'The marked bill was a promotional novelty note, not counterfeit — verified against the Blaze register log.', driverResponseAt:'2026-09-08T21:15:00Z',
+    managerDecision:null, lpDisposition:'corrected_not_loss', finalLoss:0.00, amountRecovered:0.00,
+    cardsLpTotal:0, cardsBlazeTotal:0, cardsStatus:'n/a — cash-only delivery route' }
+];
+
+var HISTORY = {
+  'Andre Kessler': [
+    { shift_date:'2026-09-01', final_loss:null, amount_recovered:null, net_loss:null, reason_code:'cash_short', disposition:null, high_risk:true, thisCase:true },
+    { shift_date:'2026-06-14', final_loss:60.00, amount_recovered:0.00, net_loss:60.00, reason_code:'cash_short', disposition:'true_loss', high_risk:true },
+    { shift_date:'2026-03-02', final_loss:0.00, amount_recovered:0.00, net_loss:0.00, reason_code:'cash_short', disposition:'corrected_not_loss', high_risk:false }
+  ],
+  'Theo Brandt': [
+    { shift_date:'2026-09-08', final_loss:0.00, amount_recovered:0.00, net_loss:0.00, reason_code:'suspicious_bills', disposition:'corrected_not_loss', high_risk:false, thisCase:true },
+    { shift_date:'2026-07-22', final_loss:35.00, amount_recovered:35.00, net_loss:0.00, reason_code:'cash_short', disposition:'process_fix', high_risk:false },
+    { shift_date:'2026-05-10', final_loss:85.00, amount_recovered:0.00, net_loss:85.00, reason_code:'cash_short', disposition:'true_loss', high_risk:true }
+  ],
+  'Jamie Fallon': [
+    { shift_date:'2026-09-10', final_loss:85.00, amount_recovered:0.00, net_loss:85.00, reason_code:'cash_short', disposition:'true_loss', high_risk:true, thisCase:true },
+    { shift_date:'2026-08-02', final_loss:0.00, amount_recovered:0.00, net_loss:0.00, reason_code:'cash_short', disposition:'corrected_not_loss', high_risk:false }
+  ],
+  'Sam Ostrowski': [ { shift_date:'2026-09-12', final_loss:null, amount_recovered:null, net_loss:null, reason_code:'cash_short', disposition:'process_fix', high_risk:false, thisCase:true } ],
+  'Priya Nanda': [ { shift_date:'2026-09-13', final_loss:null, amount_recovered:null, net_loss:null, reason_code:'cash_short', disposition:null, high_risk:false, thisCase:true } ],
+  'Lena Vukovic': [ { shift_date:'2026-09-05', final_loss:0.00, amount_recovered:0.00, net_loss:0.00, reason_code:'card_mismatch', disposition:'explained', high_risk:false, thisCase:true } ]
+};
+
+var STATUS_LABEL = { new:'New', awaiting_driver:'Awaiting driver', awaiting_manager:'Awaiting manager', decided:'Decided', corrected:'Corrected' };
+
+function money(n){ if(n===null||n===undefined) return '—'; var neg=n<0; return (neg?'-':'')+'$'+Math.abs(n).toFixed(2); }
+function delta(c){ return c.counted - c.expected; }
+function initials(name){ return name.split(' ').map(function(s){return s[0];}).join('').toUpperCase(); }
+
+var state = { idx: 0, viewAs: 'lp' };
+
+function renderQueueRail(){
+  var wrap = document.getElementById('qchips'); wrap.innerHTML = '';
+  CASES.forEach(function(c, i){
+    var d = delta(c);
+    var chip = document.createElement('button');
+    chip.className = 'qchip' + (i === state.idx ? ' sel' : '');
+    chip.innerHTML =
+      '<span class="qc-dot dot-'+c.status+'"></span>'+
+      '<span class="qc-av">'+initials(c.driver)+'</span>'+
+      '<span class="qc-mid"><div class="qc-name">'+c.driver+'</div><div class="qc-sub">'+c.store.split(' — ')[1]+' · '+c.shift_date+'</div></span>'+
+      '<span class="qc-amt">'+money(d)+'</span>';
+    chip.addEventListener('click', function(){ selectCase(i); });
+    wrap.appendChild(chip);
+  });
+}
+
+function selectCase(i){
+  state.idx = Math.max(0, Math.min(i, CASES.length-1));
+  renderQueueRail();
+  renderDossier();
+  document.getElementById('dossier').scrollTop = 0;
+}
+
+function gatedHtml(role, allow, contentHtml, whoLine){
+  if (allow.indexOf(role) === -1){
+    return '<div class="gated">Hidden for <b>'+role+'</b> — '+whoLine+'</div>';
+  }
+  return contentHtml;
+}
+
+function renderDossier(){
+  var c = CASES[state.idx];
+  var d = delta(c);
+  var hist = HISTORY[c.driver] || [];
+  var role = state.viewAs;
+
+  var flagsHtml = c.flags.length
+    ? '<div class="flagrow">' + c.flags.map(function(f){ return '<span class="flagchip">'+f.replace(/_/g,' ')+'</span>'; }).join('') + '</div>'
+    : '<div class="flagrow"><span class="flagchip none">no discrepancy flags</span></div>';
+
+  var reportHtml =
+    '<div class="section"><h3>Closer Report<span class="routetag">GET <b>/api/lp/cases/{id}</b> (proposed)</span></h3>'+
+      '<div class="linegrid">'+
+        '<div><div class="lg-k">Expected (Blaze)</div><div class="lg-v">'+money(c.expected)+'</div></div>'+
+        '<div><div class="lg-k">Counted</div><div class="lg-v">'+money(c.counted)+'</div></div>'+
+        '<div><div class="lg-k">Over / Under</div><div class="lg-v '+(d<0?'bad':(d>0?'warn':'good'))+'">'+money(d)+' · '+c.over_under+'</div></div>'+
+        '<div><div class="lg-k">Severity</div><div class="lg-v">'+c.severity+(c.pattern_flag?' · pattern':'')+'</div></div>'+
+        '<div><div class="lg-k">Mode</div><div class="lg-v" style="font-family:inherit;">'+c.mode+'</div></div>'+
+        '<div><div class="lg-k">Register / region</div><div class="lg-v" style="font-family:inherit;">'+c.store+'</div></div>'+
+        '<div><div class="lg-k">Card total (LP)</div><div class="lg-v">'+money(c.cardsLpTotal)+'</div></div>'+
+        '<div><div class="lg-k">Card status</div><div class="lg-v" style="font-family:inherit;font-size:12px;">'+c.cardsStatus+'</div></div>'+
+      '</div>'+flagsHtml+
+    '</div>';
+
+  var evidenceHtml =
+    '<div class="section"><h3>Evidence &amp; flags</h3>'+
+      '<div style="font-size:12.5px;color:var(--inkDim);">This case is flagged for: <b>'+(c.flags.length?c.flags.join(', ').replace(/_/g,' '):'discrepancy amount only, no boolean flag set')+'</b>.</div>'+
+      '<div class="gapnote"><b>Data the contract lacks:</b> <code>CloserReport.json</code> carries boolean flags (<code>suspicious_bills</code>, <code>damaged_inventory</code>, etc.) but no photo/attachment reference — the case-file view this concept implies ("evidence") has no field to bind a receipt or damage photo to. The live GAS form does not appear to persist attachments for this table either; confirm with LP-DASHBOARD-INVENTORY before this section ships with a real gallery, or drop the "Evidence" heading in favor of "Flags."</div>'+
+    '</div>';
+
+  var threadHtml = c.driverResponse
+    ? '<div class="msg driver"><div class="mmeta">'+c.driver+' · '+c.driverResponseAt+' · token-gated response portal</div>'+c.driverResponse+'</div>'
+    : '<div class="waitpill">⏳ awaiting driver response · deadline '+c.response_deadline+'</div>';
+  var threadSection =
+    '<div class="section"><h3>Driver response thread<span class="routetag">GET <b>/api/lp/cases/{id}</b> (proposed)</span></h3>'+
+      '<div class="threadwrap">'+threadHtml+'</div>'+
+      '<div class="tokennote">Response portal auth is a single-use, expiring HMAC token — not a role in this table (ResponsePortal.gs pattern, carried forward).</div>'+
+    '</div>';
+
+  var correctedRows = hist.filter(function(h){ return h.disposition === 'corrected_not_loss'; });
+  var rowsHtml = hist.map(function(h){
+    if (h.disposition === 'corrected_not_loss') return '';
+    return '<tr class="'+(h.thisCase?'thisrow':'')+'"><td class="num">'+h.shift_date+(h.thisCase?' (this case)':'')+'</td><td>'+(h.disposition?h.disposition.replace(/_/g,' '):'undecided')+'</td><td class="num">'+(h.net_loss===null?'pending':money(h.net_loss))+'</td></tr>';
+  }).join('');
+  var correctedHtml = '';
+  if (correctedRows.length){
+    if (role === 'lp'){
+      correctedHtml = '<div style="margin-top:10px;"><div class="lg-k" style="margin-bottom:4px;">Corrected — not a loss<span class="lponly">LP ONLY</span></div>'+
+        correctedRows.map(function(h){ return '<div class="correctedrow"><span>'+h.shift_date+' · '+h.reason_code.replace(/_/g,' ')+'</span><span class="num">net '+money(h.net_loss)+'</span></div>'; }).join('')+'</div>';
+    } else {
+      correctedHtml = '<div class="gated" style="margin-top:10px;">'+correctedRows.length+' "corrected — not a loss" row(s) exist for this driver but are hidden for <b>'+role+'</b> — LP-only, per the M2 decided default.</div>';
+    }
+  }
+  var historyInner = '<table class="histtable"><thead><tr><th>Shift date</th><th>Disposition</th><th style="text-align:right;">Net loss</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'+correctedHtml;
+  var historyBody = gatedHtml(role, ['lp','admin'], historyInner,
+    'driver history is lp + admin only (MIGRATION-PLAN §1).');
+  var historySection =
+    '<div class="section"><h3>Driver history — '+c.driver+'<span class="routetag">GET <b>/api/lp/closer-reports</b>?since=&amp;person_id= (proposed)</span></h3>'+historyBody+'</div>';
+
+  var decisionSection =
+    '<div class="section"><h3>Decision<span class="routetag">POST <b>/lp/incidents/{id}/decision</b> (proposed)</span></h3>'+
+      '<div style="font-size:11.5px;color:var(--inkMute);margin-bottom:4px;">Example outcomes only — inventory names differ (LP Disposition / Manager Decision are two separate fields). All three below are disabled.</div>'+
+      '<div class="decisionrow">'+
+        '<button class="dbtn charge" disabled>Charge<span class="m2">M2 write</span></button>'+
+        '<button class="dbtn waive" disabled>Waive<span class="m2">M2 write</span></button>'+
+        '<button class="dbtn escalate" disabled>Escalate to write-up<span class="m2">M2 write</span></button>'+
+      '</div>'+
+    '</div>';
+
+  document.getElementById('dossier').innerHTML =
+    '<div class="dhead">'+
+      '<div class="av">'+initials(c.driver)+'</div>'+
+      '<div><div class="name">'+c.driver+'</div><div class="sub">'+c.store+' · '+c.mode+' · '+c.shift_date+' · '+c.id+'</div>'+
+      '<span class="statuspill st-'+c.status+'" style="margin-top:6px;display:inline-flex;">'+STATUS_LABEL[c.status]+'</span></div>'+
+      '<div class="navwrap">'+
+        '<button class="navbtn" id="prevBtn" '+(state.idx===0?'disabled':'')+'>← Prev</button>'+
+        '<span class="navcount">'+(state.idx+1)+' of '+CASES.length+'</span>'+
+        '<button class="navbtn" id="nextBtn" '+(state.idx===CASES.length-1?'disabled':'')+'>Next →</button>'+
+      '</div>'+
+    '</div>'+
+    reportHtml + evidenceHtml + threadSection + historySection + decisionSection +
+    '<div class="footer">LP Triage — Concept B of 2 — Case File · reads shown are proposed routes, not yet built · queue rail is thin by design, prev/next moves the dossier</div>';
+
+  document.getElementById('prevBtn').addEventListener('click', function(){ selectCase(state.idx-1); });
+  document.getElementById('nextBtn').addEventListener('click', function(){ selectCase(state.idx+1); });
+}
+
+// keyboard prev/next
+document.addEventListener('keydown', function(e){
+  var tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (e.key === 'ArrowRight' || e.key === 'k' || e.key === 'K'){ e.preventDefault(); selectCase(state.idx+1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'j' || e.key === 'J'){ e.preventDefault(); selectCase(state.idx-1); }
+});
+
+document.getElementById('viewAsSel').addEventListener('change', function(e){
+  state.viewAs = e.target.value;
+  renderDossier();
+});
+
+renderQueueRail();
+renderDossier();
+</script>
+</body>
+</html>

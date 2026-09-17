@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LP Triage — Concept D — Store Manager Phone</title>
+<style>
+/* ============================================================================
+   LP Triage — Concept D — Store Manager Phone (migration phase M2)
+   Static mockup, 480px canvas framed at tablet width. Tokens copied inline
+   from pos/tokens.jsx; hd-ui.jsx sheet/pill conventions reused as plain CSS.
+   No build step, no external requests, opens from disk. ALL data is INVENTED
+   EXAMPLE DATA (fake driver + manager names) — not a real Hyperwolf record.
+   Every read is labelled with its proposed route; every write control is
+   rendered disabled and tagged "M2 write".
+
+   Scope discipline for this concept: a store manager sees ONLY their own
+   store, never cross-store cash history, and never exact cash figures or the
+   "corrected — not a loss" ledger rows — those two are gated to `lp`/`admin`
+   per the migration plan's auth table (§2: "lp: disposition write, cash-
+   figure detail view"; manager is not in that unlock list). The role toggle
+   at the top is the SAME role-chip mechanism as Concept C, reused here so the
+   PII gate is visibly the same rule in both surfaces — not a client trust
+   decision (M2 §0/§2: no client-side role state, every filter is server-side;
+   this toggle only simulates what two different server responses would look
+   like side by side).
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.22);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;min-height:100%;}
+body{background:var(--bg2);color:var(--ink);font-family:var(--fontSans);font-size:13px;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:28px 12px 60px;}
+button,select,input,textarea{font-family:inherit;}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible,textarea:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.canvaswrap{width:480px;max-width:100%;}
+.canvashint{font-size:11px;color:var(--inkMute);text-align:center;margin-bottom:10px;font-family:var(--fontMono);}
+.phone{width:480px;max-width:100%;background:var(--surface);border-radius:26px;border:1px solid var(--hairline2);box-shadow:var(--shadowLg);overflow:hidden;}
+.statusbar{display:flex;justify-content:space-between;padding:8px 20px 2px;font-size:11px;font-weight:700;color:var(--ink);font-family:var(--fontMono);}
+
+.appbar{padding:6px 16px 12px;border-bottom:1px solid var(--hairline2);}
+.appbar-top{display:flex;align-items:center;gap:10px;}
+.storeavatar{width:38px;height:38px;border-radius:10px;background:var(--accent);color:var(--accentInk);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:0 0 auto;}
+.appbar-name{font-weight:700;font-size:15px;}
+.appbar-role{font-size:11px;color:var(--inkMute);}
+.appbar-bell{margin-left:auto;position:relative;width:36px;height:36px;border-radius:10px;border:1px solid var(--hairline2);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;}
+.appbar-bell .dot{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--bad);border:1.5px solid var(--surface);}
+
+.roleseg-wrap{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.roleseg-wrap .rl{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);font-weight:700;}
+.roleseg{display:flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:99px;padding:2px;flex:1;}
+.roleseg button{flex:1;border:none;background:transparent;padding:6px 8px;border-radius:99px;font-size:10.5px;font-weight:700;color:var(--inkDim);cursor:pointer;}
+.roleseg button.on{background:var(--ink);color:var(--surface);}
+html[data-theme="dark"] .roleseg button.on{background:var(--accent);color:var(--accentInk);}
+
+.scopecap{margin-top:8px;font-size:10px;font-family:var(--fontMono);color:var(--inkFaint);background:var(--surface2);border:1px dashed var(--hairline3);border-radius:7px;padding:4px 8px;}
+
+.tabs{display:flex;border-bottom:1px solid var(--hairline2);}
+.tab{flex:1;text-align:center;padding:10px 0;font-size:12px;font-weight:700;color:var(--inkMute);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;}
+.tab.on{color:var(--ink);border-bottom-color:var(--accent);}
+
+.screen{padding:14px 16px 22px;min-height:420px;}
+.examplebanner{display:flex;gap:6px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:9px;padding:7px 10px;font-size:10.5px;font-weight:700;margin-bottom:12px;}
+
+.notifcard{display:flex;gap:10px;padding:12px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);margin-bottom:10px;cursor:pointer;}
+.notifcard:hover{background:var(--surface2);}
+.notifcard.unread{border-left:3px solid var(--bad);}
+.notif-ic{width:34px;height:34px;border-radius:9px;background:var(--badSoft);color:var(--bad);display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto;}
+.notif-ic.info{background:var(--infoSoft);color:var(--info);}
+.notif-main{flex:1;min-width:0;}
+.notif-title{font-weight:700;font-size:12.5px;}
+.notif-sub{font-size:11.5px;color:var(--inkDim);margin-top:2px;}
+.notif-time{font-size:10px;color:var(--inkFaint);margin-top:4px;font-family:var(--fontMono);}
+
+.routecap{font-size:9.5px;font-family:var(--fontMono);color:var(--inkFaint);text-align:center;margin:6px 0 14px;}
+.routecap b{color:var(--info);}
+
+/* Case sheet (bottom sheet) */
+.sheetoverlay{position:fixed;inset:0;background:rgba(10,10,8,.44);z-index:90;display:none;}
+.sheetoverlay.open{display:block;}
+.sheet{position:fixed;left:50%;transform:translateX(-50%) translateY(100%);bottom:0;width:480px;max-width:100vw;max-height:88vh;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);z-index:91;display:flex;flex-direction:column;transition:transform .18s ease;}
+.sheet.open{transform:translateX(-50%) translateY(0);}
+.sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 4px;}
+.sheet-head{display:flex;align-items:flex-start;gap:10px;padding:6px 16px 10px;border-bottom:1px solid var(--hairline2);}
+.sheet-head .sh-main{flex:1;min-width:0;}
+.sheet-head .sh-name{font-weight:700;font-size:14.5px;}
+.sheet-head .sh-sub{font-size:11px;color:var(--inkMute);margin-top:2px;}
+.sheet-close{width:28px;height:28px;border-radius:8px;border:1px solid var(--hairline2);background:var(--surface2);cursor:pointer;font-size:14px;color:var(--inkDim);}
+.sheet-body{flex:1;overflow-y:auto;padding:12px 16px 30px;}
+
+.scard{border:1px solid var(--hairline2);border-radius:var(--r12);padding:11px 12px;margin-bottom:12px;background:var(--surface);}
+.scard h4{margin:0 0 8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);display:flex;gap:6px;align-items:center;}
+.scard h4 .cap{margin-left:auto;font-family:var(--fontMono);font-size:9px;text-transform:none;letter-spacing:0;color:var(--inkFaint);font-weight:500;}
+.bigmoney{font-family:var(--fontMono);font-size:22px;font-weight:800;}
+.bigmoney.masked{font-style:italic;font-size:16px;color:var(--inkMute);}
+.pill{display:inline-flex;align-items:center;height:19px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:700;border:1px solid transparent;}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.pill-new{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+.lockrow{display:flex;gap:8px;padding:9px 10px;background:var(--surface2);border:1px dashed var(--hairline3);border-radius:var(--r10);font-size:11px;color:var(--inkMute);}
+.lockrow b{color:var(--ink);}
+.histrow{display:flex;justify-content:space-between;font-size:11px;padding:6px 0;border-bottom:1px dotted var(--hairline2);}
+.histrow:last-child{border-bottom:none;}
+.hr-tag{font-size:9px;font-weight:700;text-transform:uppercase;background:var(--neutralSoft);color:var(--neutral);border-radius:6px;padding:1px 5px;margin-left:6px;}
+.threadbubble{background:var(--surface2);border-radius:var(--r10);padding:9px 10px;font-size:11.5px;margin-top:4px;}
+.threadmeta{font-size:10px;color:var(--inkMute);margin-top:4px;}
+
+.mwrite-tag{display:inline-flex;align-items:center;height:17px;padding:0 6px;border-radius:6px;background:var(--badSoft);color:var(--bad);font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;}
+.actrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.actrow button{opacity:.55;cursor:not-allowed;}
+.abtn{flex:1;min-width:120px;height:38px;border-radius:10px;border:1px solid var(--hairline3);background:var(--surface2);color:var(--ink);font-size:11.5px;font-weight:700;}
+.abtn.primary{border-color:var(--info);color:var(--info);background:var(--infoSoft);}
+.abtn.good{border-color:var(--good);color:var(--good);}
+.abtn.charge{border-color:var(--bad);color:var(--bad);}
+.abtn.waive{border-color:var(--good);color:var(--good);}
+.abtn.escalate{border-color:var(--warn);color:var(--warnText);}
+textarea.respondbox{width:100%;min-height:56px;border-radius:9px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:11.5px;padding:8px;resize:none;opacity:.6;margin-top:8px;}
+.deadnote{font-size:10.5px;color:var(--inkMute);margin-top:8px;font-style:italic;}
+.section-note{display:flex;gap:6px;background:var(--infoSoft);border:1px solid var(--info);border-radius:9px;padding:8px 9px;font-size:10.5px;color:var(--ink);margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="canvaswrap">
+  <div class="canvashint">480px canvas · framed at tablet width · Store Manager view</div>
+  <div class="phone">
+    <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="storeavatar">CR</div>
+        <div>
+          <div class="appbar-name">Corona</div>
+          <div class="appbar-role" id="appbarRoleTxt">Role: Store Manager</div>
+        </div>
+        <button class="appbar-bell">🔔<span class="dot"></span></button>
+      </div>
+      <div class="roleseg-wrap">
+        <span class="rl">Viewing as</span>
+        <div class="roleseg" id="roleseg">
+          <button data-role="manager" class="on">manager</button>
+          <button data-role="lp">lp (preview)</button>
+        </div>
+      </div>
+      <div class="scopecap" id="scopecap">entity_id: highest-craft · store_id: store_corona — this device sees ONLY this store, no cross-store cash history</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-tab="notifs">Notifications</button>
+      <button class="tab" data-tab="mystore">My Store</button>
+    </div>
+
+    <div class="screen" id="tab-notifs">
+      <div class="examplebanner">⚠ EXAMPLE DATA — fake driver/manager names, invented for this mockup.</div>
+
+      <div class="notifcard unread" onclick="openCase()">
+        <div class="notif-ic">⚠</div>
+        <div class="notif-main">
+          <div class="notif-title">LP flagged a cash discrepancy</div>
+          <div class="notif-sub">Marcus Webb · close-out 2026-09-15 · response needed within 24h</div>
+          <div class="notif-time">2h ago</div>
+        </div>
+      </div>
+
+      <div class="notifcard unread" onclick="openCase()">
+        <div class="notif-ic">🧾</div>
+        <div class="notif-main">
+          <div class="notif-title">Escalation decision needed</div>
+          <div class="notif-sub">Priya Anand · repeat pattern flag on this report</div>
+          <div class="notif-time">6h ago</div>
+        </div>
+      </div>
+
+      <div class="notifcard" onclick="openCase()">
+        <div class="notif-ic info">✓</div>
+        <div class="notif-main">
+          <div class="notif-title">Close-out corrected — not a loss</div>
+          <div class="notif-sub">Jordan Vance · discrepancy explained, no action needed</div>
+          <div class="notif-time">yesterday</div>
+        </div>
+      </div>
+
+      <div class="routecap">GET <b>/api/lp/cases?store=store_corona</b> — proposed</div>
+    </div>
+
+    <div class="screen" id="tab-mystore" style="display:none;">
+      <div class="examplebanner">⚠ EXAMPLE DATA — for this mockup only.</div>
+      <div class="scard">
+        <h4>Today's close-outs <span class="cap">GET /api/lp/cases?store=… — proposed</span></h4>
+        <div class="histrow"><span>Marcus Webb · Delivery</span><span class="pill pill-warn">Flagged</span></div>
+        <div class="histrow"><span>Sam Whitfield · Delivery</span><span class="pill pill-new" style="background:var(--goodSoft);color:var(--good);border-color:var(--good);">Clean</span></div>
+      </div>
+      <div class="section-note"><span>ⓘ</span><div>This device never shows another store's totals or cash history — that scope limit is a server-side filter on <code>entity_id</code>/<code>store_id</code>, not a client toggle (same rule as the role gate above).</div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="sheetoverlay" id="sheetoverlay" onclick="closeCase()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Case detail">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div class="sh-main">
+      <div class="sh-name">Marcus Webb <span class="pill pill-new" style="margin-left:6px;">New</span></div>
+      <div class="sh-sub">Corona · Delivery · 2026-09-15</div>
+    </div>
+    <button class="sheet-close" onclick="closeCase()">✕</button>
+  </div>
+  <div class="sheet-body">
+
+    <div class="scard">
+      <h4>Cash discrepancy <span class="cap">cash.* — masked for this role</span></h4>
+      <div class="bigmoney masked" id="caseAmount">~$45 short</div>
+      <div class="deadnote" id="caseAmountNote">Rounded to the nearest $5 — exact cents are visible to LP/Admin only (cash-figure detail view is an lp/admin unlock per the M2 auth table, not a manager one).</div>
+    </div>
+
+    <div class="scard">
+      <h4>Discrepancy history <span class="cap">LossLedgerEntry</span></h4>
+      <div id="histLocked" class="lockrow">
+        🔒 History and any <b>"corrected — not a loss"</b> rows are visible to <b>lp</b>/<b>admin</b> only.
+      </div>
+      <div id="histOpen" style="display:none;">
+        <div class="histrow"><span>2026-08-22 · $12.00 short → Explained</span><span class="hr-tag">corrected — not a loss</span></div>
+        <div class="histrow"><span>lifetime net_loss</span><b style="font-family:var(--fontMono);">$0.00</b></div>
+        <div class="section-note" style="margin-top:6px;"><span>ⓘ</span><div>Live query — the retired 30-min <code>mirrorLossToDirectory</code> Airtable mirror is gone in M2.</div></div>
+      </div>
+    </div>
+
+    <div class="scard">
+      <h4>Driver response thread <span class="cap">driver_response* — HMAC link</span></h4>
+      <div class="threadbubble">
+        No response yet · response_deadline 2026-09-16 20:00 UTC (18h remaining)
+        <div class="threadmeta">driver_response_at: —</div>
+      </div>
+    </div>
+
+    <div class="scard">
+      <h4>Respond to LP <span class="mwrite-tag">M2 write</span></h4>
+      <textarea class="respondbox" disabled placeholder="Add context for LP before they decide…"></textarea>
+      <div class="actrow">
+        <button class="abtn primary" disabled>Respond to LP</button>
+        <button class="abtn good" disabled>Acknowledge</button>
+      </div>
+      <div class="deadnote">POST <span style="font-family:var(--fontMono);">/api/lp/incidents/{id}/decision</span> — proposed. Rendered disabled, no write path exists yet.</div>
+    </div>
+
+    <div class="scard">
+      <h4>Manager Decision <span class="mwrite-tag">M2 write</span></h4>
+      <div style="font-size:10.5px;color:var(--inkDim);margin-bottom:4px;">Own reports only, via reports-to graph.</div>
+      <div class="actrow">
+        <button class="abtn charge" disabled>Approve Write-Up</button>
+        <button class="abtn waive" disabled>Dismiss — Coaching</button>
+        <button class="abtn escalate" disabled>Escalate</button>
+      </div>
+      <div class="deadnote">Legacy email-button decision path is dropped in M2 — decisions happen only in this authenticated screen.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  var unlocked = { manager:false, lp:true };
+  var current = 'manager';
+
+  function applyRole(){
+    var on = !!unlocked[current];
+    document.getElementById('appbarRoleTxt').textContent = on ? 'Role: LP (preview) — store still scoped' : 'Role: Store Manager';
+    document.getElementById('histLocked').style.display = on ? 'none' : 'flex';
+    document.getElementById('histOpen').style.display = on ? 'block' : 'none';
+    var amt = document.getElementById('caseAmount');
+    var note = document.getElementById('caseAmountNote');
+    if (on){
+      amt.textContent = '−$43.50';
+      amt.classList.remove('masked');
+      note.textContent = 'cash.deposit_variance — exact cents shown (lp/admin unlock).';
+    } else {
+      amt.textContent = '~$45 short';
+      amt.classList.add('masked');
+      note.textContent = 'Rounded to the nearest $5 — exact cents are visible to LP/Admin only.';
+    }
+  }
+
+  document.getElementById('roleseg').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-role]');
+    if (!btn) return;
+    current = btn.getAttribute('data-role');
+    Array.from(this.querySelectorAll('button')).forEach(function(b){ b.classList.toggle('on', b===btn); });
+    applyRole();
+  });
+
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.toggle('on', x===t); });
+      document.getElementById('tab-notifs').style.display = (t.dataset.tab==='notifs') ? 'block' : 'none';
+      document.getElementById('tab-mystore').style.display = (t.dataset.tab==='mystore') ? 'block' : 'none';
+    });
+  });
+
+  window.openCase = function(){
+    document.getElementById('sheetoverlay').classList.add('open');
+    document.getElementById('sheet').classList.add('open');
+  };
+  window.closeCase = function(){
+    document.getElementById('sheetoverlay').classList.remove('open');
+    document.getElementById('sheet').classList.remove('open');
+  };
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeCase(); });
+
+  applyRole();
+})();
+</script>
+</body>
+</html>
