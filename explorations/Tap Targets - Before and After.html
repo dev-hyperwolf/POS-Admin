@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tap Targets — Before &amp; After</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F2EC;--bg2:#EEEBE2;--surface:#FFFFFF;--surface2:#FAF9F5;--surface3:#F1EFE9;
+  --ink:#0F0F0C;--ink2:#2A2A26;--inkDim:rgba(15,15,12,.60);--inkMute:rgba(15,15,12,.42);--inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08);--hairline2:rgba(15,15,12,.14);--hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100;--accentInk:#1A1400;--accentSoft:#FFF4B8;--accentBorder:#F2C200;--accentText:#7A5A00;
+  --good:#1F8A4F;--goodSoft:#E2F2E8;--warn:#C07A12;--warnSoft:#FBEFD6;--bad:#C0392B;--badSoft:#F8E2DF;
+  --info:#2C5BB8;--infoSoft:#E3ECFA;--neutral:#6E6E66;--neutralSoft:#ECEAE2;
+  --field:#FFFFFF;--fieldBorder:rgba(15,15,12,.18);--rail:#13130F;
+  --r8:8px;--r10:10px;--r12:12px;--r14:14px;--r999:999px;
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --frame-w:390px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D0D0A;--bg2:#0A0A07;--surface:#1A1A14;--surface2:#211F18;--surface3:#28261D;
+    --ink:#F5F3EA;--ink2:#D9D6CA;--inkDim:rgba(245,243,234,.60);--inkMute:rgba(245,243,234,.40);--inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09);--hairline2:rgba(245,243,234,.15);--hairline3:rgba(245,243,234,.26);
+    --accent:#FFD100;--accentInk:#1A1400;--accentSoft:rgba(255,209,0,.15);--accentBorder:rgba(255,209,0,.40);--accentText:#FFD100;
+    --good:#46C07E;--goodSoft:rgba(70,192,126,.15);--warn:#E0A53A;--warnSoft:rgba(224,165,58,.15);
+    --bad:#E8675B;--badSoft:rgba(232,103,91,.16);--info:#6A99EC;--infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B;--neutralSoft:rgba(245,243,234,.08);--field:#15150F;--fieldBorder:rgba(245,243,234,.22);
+  }
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A;--bg2:#0A0A07;--surface:#1A1A14;--surface2:#211F18;--surface3:#28261D;
+  --ink:#F5F3EA;--ink2:#D9D6CA;--inkDim:rgba(245,243,234,.60);--inkMute:rgba(245,243,234,.40);--inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09);--hairline2:rgba(245,243,234,.15);--hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100;--accentInk:#1A1400;--accentSoft:rgba(255,209,0,.15);--accentBorder:rgba(255,209,0,.40);--accentText:#FFD100;
+  --good:#46C07E;--goodSoft:rgba(70,192,126,.15);--warn:#E0A53A;--warnSoft:rgba(224,165,58,.15);
+  --bad:#E8675B;--badSoft:rgba(232,103,91,.16);--info:#6A99EC;--infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B;--neutralSoft:rgba(245,243,234,.08);--field:#15150F;--fieldBorder:rgba(245,243,234,.22);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fontSans);font-size:13.5px;line-height:1.4}
+h1{font-size:21px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
+h3{font-size:13px;margin:0;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkDim)}
+p{margin:0}
+code{font-family:var(--fontMono);font-size:12px;background:var(--surface3);padding:1px 5px;border-radius:5px}
+.wrap{max-width:1600px;margin:0 auto;padding:20px 24px 80px}
+.toolbar{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--hairline2);padding:12px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.tb-group{display:flex;align-items:center;gap:8px}
+.tb-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inkMute)}
+.seg{display:inline-flex;background:var(--surface3);border:1px solid var(--hairline2);border-radius:var(--r10);padding:2px;gap:2px}
+.seg button{border:none;background:transparent;color:var(--inkDim);font:inherit;font-weight:600;font-size:12px;padding:6px 11px;border-radius:8px;cursor:pointer;font-family:var(--fontSans)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06)}
+.switchbox{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--ink2)}
+.switchbox input{width:34px;height:20px;appearance:none;background:var(--hairline3);border-radius:99px;position:relative;cursor:pointer;margin:0}
+.switchbox input:checked{background:var(--accent)}
+.switchbox input::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:99px;background:#fff;transition:transform .15s}
+.switchbox input:checked::after{transform:translateX(14px);background:var(--accentInk)}
+.count-badge{font-family:var(--fontMono);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--goodSoft);color:var(--good)}
+.count-badge.bad{background:var(--badSoft);color:var(--bad)}
+
+section.screen{margin:44px 0}
+.screen-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:4px}
+.screen-src{font-family:var(--fontMono);font-size:11.5px;color:var(--inkMute)}
+.screen-desc{font-size:12.5px;color:var(--inkDim);margin:6px 0 16px;max-width:900px}
+
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--hairline2);margin-bottom:16px;flex-wrap:wrap}
+.tabs button{border:none;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:var(--inkDim);padding:9px 4px 11px;margin-right:18px;cursor:pointer;border-bottom:2px solid transparent;font-family:var(--fontSans)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabpanel{display:none}
+.tabpanel.active{display:block}
+
+.compare-row{display:flex;gap:20px;align-items:flex-start;overflow-x:auto;padding-bottom:12px}
+.compare-row.stack{flex-direction:column}
+.frame-col{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;width:var(--frame-w)}
+.frame-col.mini{width:150px}
+.frame-col-label{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.frame-col-label .name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute)}
+.device-frame{position:relative;border:1px solid var(--hairline3);border-radius:var(--r14);overflow:hidden;background:var(--bg);box-shadow:0 1px 0 rgba(0,0,0,.04),0 8px 22px rgba(0,0,0,.07)}
+.device-frame .hw-content{position:relative;background:var(--bg)}
+.device-frame.capped .hw-content{max-height:560px;overflow:hidden}
+.fold-note{position:absolute;left:0;right:0;bottom:0;padding:6px 12px;font-size:11px;font-weight:700;color:#fff;background:linear-gradient(rgba(192,57,43,0),rgba(192,57,43,.92) 55%);text-align:right}
+.hw-overlay{position:absolute;inset:0;pointer-events:none;z-index:5;display:none}
+body.show-hitareas .hw-overlay{display:block}
+.hw-tap-box{position:absolute;border-radius:6px;box-sizing:border-box}
+.hw-tap-box.bad{border:2px solid var(--bad);background:rgba(192,57,43,.13)}
+.hw-tap-box.ok{border:1.5px dashed rgba(31,138,79,.55);background:rgba(31,138,79,.05)}
+
+/* ── component classes, sized off variant-scoped custom properties ── */
+[data-tap]{position:relative;box-sizing:border-box}
+.row-flex{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.pbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--r8);font-family:var(--fontSans);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent}
+.pbtn-xs{height:var(--sz-xs,30px);padding:0 10px;font-size:11.5px;background:var(--surface);border-color:var(--hairline3);color:var(--ink)}
+.pbtn-xs.hp::before{content:'';position:absolute;top:var(--pad-xs-y,0);bottom:var(--pad-xs-y,0);left:var(--pad-xs-x,0);right:var(--pad-xs-x,0)}
+.pbtn-sm{height:var(--sz-sm,34px);padding:0 12px;font-size:12.5px;background:var(--surface);border-color:var(--hairline3);color:var(--ink)}
+.pbtn-sm.hp::before{content:'';position:absolute;top:var(--pad-sm,0);bottom:var(--pad-sm,0);left:var(--pad-sm,0);right:var(--pad-sm,0)}
+.pbtn-md{height:var(--sz-md,40px);padding:0 16px;font-size:13.5px;background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.pbtn-md.hp::before{content:'';position:absolute;top:var(--pad-md,0);bottom:var(--pad-md,0);left:var(--pad-md,0);right:var(--pad-md,0)}
+.pbtn-accent{background:var(--accent);border-color:var(--accentBorder);color:var(--accentInk)}
+
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:var(--r999);font-size:12.5px;font-weight:600;padding:0 13px;height:var(--sz-xs,30px);background:var(--surface);border:1px solid var(--hairline2);color:var(--ink2);cursor:pointer}
+.chip.hp::before{content:'';position:absolute;top:var(--pad-xs-y,0);bottom:var(--pad-xs-y,0);left:var(--pad-xs-x,0);right:var(--pad-xs-x,0)}
+.chip.active{background:var(--accent);border-color:var(--accentBorder);color:var(--accentInk)}
+
+.iconbtn{width:var(--sz-icon,40px);height:var(--sz-icon,40px);display:inline-flex;align-items:center;justify-content:center;border-radius:var(--r8);background:transparent;border:none;color:var(--ink2);cursor:pointer}
+.iconbtn.hp::before{content:'';position:absolute;top:var(--pad-icon,0);bottom:var(--pad-icon,0);left:var(--pad-icon,0);right:var(--pad-icon,0)}
+.iconbtn.circle{border-radius:99px;border:1px solid var(--hairline2);background:var(--surface)}
+
+.checkwrap{width:var(--sz-check,20px);height:var(--sz-check,20px);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border-radius:8px}
+.checkwrap.hp::before{content:'';position:absolute;top:var(--pad-check,0);bottom:var(--pad-check,0);left:var(--pad-check,0);right:var(--pad-check,0)}
+.checkglyph{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--hairline3);flex:0 0 auto}
+.checkglyph.on{background:var(--ink);border-color:var(--ink)}
+
+.switchwrap{width:var(--sz-switchw,37px);height:var(--sz-switchh,20px);display:inline-flex;align-items:center;cursor:pointer}
+.switchwrap.hp::before{content:'';position:absolute;top:var(--pad-switch-y,0);bottom:var(--pad-switch-y,0);left:var(--pad-switch-x,0);right:var(--pad-switch-x,0)}
+.switchglyph{width:37px;height:20px;border-radius:99px;background:var(--hairline3);position:relative;flex:0 0 auto}
+.switchglyph.on{background:var(--accent)}
+.switchglyph i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:99px;background:var(--surface)}
+.switchglyph.on i{left:19px;background:var(--accentInk)}
+
+.stepperbtn{width:var(--sz-stepper,30px);height:var(--sz-stepper,30px);display:inline-flex;align-items:center;justify-content:center;border-radius:var(--r8);background:transparent;border:none;color:var(--ink);cursor:pointer}
+.stepperbtn.hp::before{content:'';position:absolute;top:var(--pad-stepper,0);bottom:var(--pad-stepper,0);left:var(--pad-stepper,0);right:var(--pad-stepper,0)}
+
+.tileadd{height:var(--sz-tileadd,30px);padding:0 12px;border-radius:9px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--hairline3);color:var(--ink);cursor:pointer}
+.tileadd.hp::before{content:'';position:absolute;top:var(--pad-tileadd,0);bottom:var(--pad-tileadd,0);left:var(--pad-tileadd,0);right:var(--pad-tileadd,0)}
+
+.sortpill{height:var(--sz-sort,32px);padding:0 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:transparent;border:1px solid var(--hairline2);color:var(--inkDim);cursor:pointer}
+.sortpill.hp::before{content:'';position:absolute;top:var(--pad-sort,0);bottom:var(--pad-sort,0);left:var(--pad-sort,0);right:var(--pad-sort,0)}
+.sortpill.active{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+
+.loctoggle{height:var(--sz-loc,28px);padding:0 10px;border-radius:6px;font-size:12.5px;font-weight:600;background:transparent;border:none;color:var(--inkDim);cursor:pointer}
+.loctoggle.hp::before{content:'';position:absolute;top:var(--pad-loc,0);bottom:var(--pad-loc,0);left:var(--pad-loc,0);right:var(--pad-loc,0)}
+.loctoggle.active{background:var(--ink);color:var(--surface)}
+
+.msfilter{height:var(--sz-ms,30px);padding:0 11px;border-radius:99px;font-size:12.5px;font-weight:600;background:transparent;border:1px solid var(--hairline2);color:var(--inkDim);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.msfilter.hp::before{content:'';position:absolute;top:var(--pad-ms,0);bottom:var(--pad-ms,0);left:var(--pad-ms,0);right:var(--pad-ms,0)}
+
+.fieldsm{height:var(--sz-fieldsm,34px);display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:var(--r8);background:var(--field);border:1px solid var(--fieldBorder);color:var(--inkMute);font-size:12.5px}
+
+.searchicon{width:var(--sz-searchicon,38px);height:var(--sz-searchicon,38px);border-radius:99px;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--hairline2);color:var(--ink2);cursor:pointer}
+.searchicon.hp::before{content:'';position:absolute;top:var(--pad-searchicon,0);bottom:var(--pad-searchicon,0);left:var(--pad-searchicon,0);right:var(--pad-searchicon,0)}
+
+.pipe-row{display:grid;grid-template-columns:28px minmax(160px,2fr) 1fr 1fr 1fr 1fr;width:100%;min-height:var(--sz-piperow,44px);align-items:center;border:none;background:transparent;border-bottom:1px solid var(--hairline);text-align:left;font-family:var(--fontSans);cursor:pointer}
+.pipe-row:hover{background:var(--surface3)}
+.densrow{display:flex;align-items:center;min-height:var(--sz-densrow,36px);padding:0 14px;border-bottom:1px solid var(--hairline);font-size:12.5px;color:var(--ink)}
+.densrow.hp::before{content:'';position:absolute;top:var(--pad-densrow,0);bottom:var(--pad-densrow,0);left:0;right:0}
+
+/* ── variant token sets ── */
+.variant-before{--sz-xs:30px;--sz-sm:34px;--sz-md:40px;--sz-icon:40px;--sz-check:20px;--sz-switchw:37px;--sz-switchh:20px;--sz-stepper:30px;--sz-tileadd:30px;--sz-sort:32px;--sz-loc:28px;--sz-ms:30px;--sz-fieldsm:34px;--sz-searchicon:38px;--sz-densrow:36px;--sz-piperow:44px;
+  --pad-xs-x:0;--pad-xs-y:0;--pad-sm:0;--pad-md:0;--pad-icon:0;--pad-check:0;--pad-switch-x:0;--pad-switch-y:0;--pad-stepper:0;--pad-tileadd:0;--pad-sort:0;--pad-loc:0;--pad-ms:0;--pad-searchicon:0;--pad-densrow:0}
+
+.variant-p1-touch{--sz-xs:40px;--sz-sm:44px;--sz-md:44px;--sz-icon:44px;--sz-check:20px;--sz-switchw:37px;--sz-switchh:20px;--sz-stepper:44px;--sz-tileadd:44px;--sz-sort:44px;--sz-loc:44px;--sz-ms:44px;--sz-fieldsm:44px;--sz-searchicon:44px;--sz-densrow:44px;--sz-piperow:44px;
+  --pad-xs-x:-2px;--pad-xs-y:-2px;--pad-sm:0;--pad-md:0;--pad-icon:0;--pad-check:-12px;--pad-switch-x:-4px;--pad-switch-y:-12px;--pad-stepper:0;--pad-tileadd:0;--pad-sort:0;--pad-loc:0;--pad-ms:0;--pad-searchicon:0;--pad-densrow:0}
+
+.variant-p1-mouse{--sz-xs:30px;--sz-sm:34px;--sz-md:40px;--sz-icon:40px;--sz-check:20px;--sz-switchw:37px;--sz-switchh:20px;--sz-stepper:30px;--sz-tileadd:30px;--sz-sort:32px;--sz-loc:28px;--sz-ms:30px;--sz-fieldsm:34px;--sz-searchicon:38px;--sz-densrow:36px;--sz-piperow:44px;
+  --pad-xs-x:0;--pad-xs-y:0;--pad-sm:0;--pad-md:0;--pad-icon:0;--pad-check:-12px;--pad-switch-x:-4px;--pad-switch-y:-12px;--pad-stepper:0;--pad-tileadd:0;--pad-sort:0;--pad-loc:0;--pad-ms:0;--pad-searchicon:0;--pad-densrow:0}
+
+.variant-p2{--sz-xs:44px;--sz-sm:44px;--sz-md:44px;--sz-icon:44px;--sz-check:20px;--sz-switchw:37px;--sz-switchh:20px;--sz-stepper:44px;--sz-tileadd:44px;--sz-sort:44px;--sz-loc:44px;--sz-ms:44px;--sz-fieldsm:44px;--sz-searchicon:44px;--sz-densrow:44px;--sz-piperow:44px;
+  --pad-xs-x:0;--pad-xs-y:0;--pad-sm:0;--pad-md:0;--pad-icon:0;--pad-check:-12px;--pad-switch-x:-4px;--pad-switch-y:-12px;--pad-stepper:0;--pad-tileadd:0;--pad-sort:0;--pad-loc:0;--pad-ms:0;--pad-searchicon:0;--pad-densrow:0}
+
+.variant-mit{--sz-xs:30px;--sz-sm:34px;--sz-md:40px;--sz-icon:40px;--sz-check:20px;--sz-switchw:37px;--sz-switchh:20px;--sz-stepper:30px;--sz-tileadd:30px;--sz-sort:32px;--sz-loc:28px;--sz-ms:30px;--sz-fieldsm:34px;--sz-searchicon:38px;--sz-densrow:36px;--sz-piperow:44px;
+  --pad-xs-x:-7px;--pad-xs-y:-7px;--pad-sm:-5px;--pad-md:-2px;--pad-icon:-2px;--pad-check:-12px;--pad-switch-x:-4px;--pad-switch-y:-12px;--pad-stepper:-7px;--pad-tileadd:-7px;--pad-sort:-6px;--pad-loc:-8px;--pad-ms:-7px;--pad-searchicon:-3px;--pad-densrow:-4px}
+
+.note{background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px 14px;font-size:12.5px;color:var(--ink2);line-height:1.55}
+.note b{color:var(--ink)}
+.note.warn{background:var(--warnSoft);border-color:var(--warn)}
+.note.good{background:var(--goodSoft);border-color:var(--good)}
+.movecard{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px}
+.movecard .m{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:10px 12px}
+.movecard .m .k{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);margin-bottom:4px}
+.movecard .m .v{font-family:var(--fontMono);font-size:13px;color:var(--ink)}
+.movecard .m .v .before{color:var(--inkMute);text-decoration:line-through;margin-right:6px}
+.movecard .m .v .after{color:var(--bad);font-weight:700}
+#reg-fold-summary{font-family:var(--fontMono);font-size:11px;color:var(--inkDim);margin-top:8px}
+legend.legendbar{display:flex;flex-wrap:wrap;gap:18px;align-items:center;padding:14px 24px;border-top:1px solid var(--hairline2);font-size:12px;color:var(--inkDim)}
+.lg-item{display:flex;align-items:center;gap:7px}
+.lg-swatch{width:16px;height:16px;border-radius:4px;flex:0 0 auto}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="tb-group">
+    <span class="tb-label">Theme</span>
+    <div class="seg" id="theme-seg">
+      <button data-v="light" aria-pressed="true">Light</button>
+      <button data-v="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Frame width</span>
+    <div class="seg" id="width-seg">
+      <button data-v="1280" aria-pressed="true">Desktop 1280</button>
+      <button data-v="1024">Touch terminal 1024</button>
+      <button data-v="820">Tablet 820</button>
+      <button data-v="390">Phone 390</button>
+    </div>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Proposal 1 device</span>
+    <div class="seg" id="device-seg">
+      <button data-v="touch" aria-pressed="true">Touch</button>
+      <button data-v="mouse">Mouse (desktop pointer)</button>
+    </div>
+  </div>
+  <div class="tb-group">
+    <label class="switchbox"><input type="checkbox" id="overlay-toggle"><span>Show hit areas</span></label>
+  </div>
+  <div class="tb-group" style="margin-left:auto;font-size:11.5px;color:var(--inkMute)">Violation = either dimension &lt; 44px CSS. Counts are measured live from rendered DOM + CSS hit-area padding, not hard-coded.</div>
+</div>
+
+<div class="wrap">
+  <h1>Tap Targets — Before &amp; After</h1>
+  <p class="screen-desc">Owner instruction: design only, nothing here is wired to a source file. Three real screens read directly from the repo (line refs below each heading), reproduced faithfully as static markup. Two proposals, plus a Register-only mitigation. Toggle width/device/theme above; every frame recomputes its own violation count.</p>
+
+  <!-- ══════════════════════════ SHARED ATOMS ══════════════════════════ -->
+  <section class="screen" id="sec-atoms">
+    <div class="screen-head"><h2>Shared atoms — pos/atoms.jsx</h2><span class="screen-src">pos/tokens.jsx:180 (ctrlH) · pos/atoms.jsx:248 (IconBtn) · pos/atoms.jsx:387 (Switch) · pos/atoms.jsx:408 (DataTable) · pos/atoms.jsx:434 (Check)</span></div>
+    <p class="screen-desc">These four are used by nearly every screen in the estate (100+ screens per the audit's §4 ranking). Not tied to one screen — shown once, at native size, independent of the frame-width control.</p>
+    <div class="compare-row" id="row-atoms"></div>
+  </section>
+
+  <!-- ══════════════════════════ REGISTER ══════════════════════════ -->
+  <section class="screen" id="sec-register">
+    <div class="screen-head"><h2>Register — New Sale</h2><span class="screen-src">pos/screen-register.jsx:29 RegisterScreen · owner-locked file, read-only, never edited</span></div>
+    <p class="screen-desc">Intake bar (check-in tile, waiting strip), category chips + product grid (ProductRow "Add" is a real 30px button, screen-register.jsx:2347), and the cart pane (Stepper, promo/clear links, TENDER) from screen-cart.jsx:485 which Register mounts directly.</p>
+    <div class="tabs" id="reg-tabs">
+      <button aria-selected="true" data-p="p1">Proposal 1 · Touch floor</button>
+      <button data-p="p2">Proposal 2 · Uniform 44</button>
+      <button data-p="mit">Register-only mitigation (hit-area, 0 visual change)</button>
+    </div>
+
+    <div class="tabpanel active" data-panel="p1">
+      <div class="compare-row" id="row-reg-p1"></div>
+      <div class="movecard" id="reg-move-p1"></div>
+    </div>
+    <div class="tabpanel" data-panel="p2">
+      <div class="compare-row" id="row-reg-p2"></div>
+      <div class="movecard" id="reg-move-p2"></div>
+    </div>
+    <div class="tabpanel" data-panel="mit">
+      <div class="note good" style="margin-bottom:14px"><b>Mitigation 1 — invisible hit-area (shown here).</b> Every undersized control keeps today's exact pixel box (identical paint, identical row heights, identical grid) and gains a negative-inset <code>::before</code> reaching 44px. Nothing moves at 1280 or 1024 — toggle "Show hit areas" to see the invisible reach.<br><br><b>Mitigation 2 — spacing-only (not built here).</b> For the one place hit-area expansion can't be used safely — the category-chip row, where chips sit back-to-back with only 7px of gap and expanded hit zones would overlap their neighbors — the fallback is to widen the gap instead of the box. That reduces mis-taps but does <b>not</b> reach the 44px target-size standard, so it should be labelled a partial mitigation, not a fix, if the owner picks it for that one row.</div>
+      <div class="compare-row" id="row-reg-mit"></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ DRIVER APP ══════════════════════════ -->
+  <section class="screen" id="sec-driver">
+    <div class="screen-head"><h2>Driver App — Checkout / tender</h2><span class="screen-src">mobile/screen-checkout.jsx — Keypad:19, FeePick:29, MobilePayment:98</span></div>
+    <p class="screen-desc">Already touched by today's commit <code>7164204</code> (quick-cash chips got <code>minHeight:44</code>). Shown as a control: the keypad and primary CTA already use <code>PBtn size="lg"/"xl"</code> (44/48px), so this screen has the fewest violations of the three — useful as an honest baseline for what "already compliant" looks like.</p>
+    <div class="tabs" id="drv-tabs">
+      <button aria-selected="true" data-p="p1">Proposal 1 · Touch floor</button>
+      <button data-p="p2">Proposal 2 · Uniform 44</button>
+    </div>
+    <div class="tabpanel active" data-panel="p1"><div class="compare-row" id="row-drv-p1"></div></div>
+    <div class="tabpanel" data-panel="p2"><div class="compare-row" id="row-drv-p2"></div></div>
+  </section>
+
+  <!-- ══════════════════════════ BACK OFFICE ══════════════════════════ -->
+  <section class="screen" id="sec-office">
+    <div class="screen-head"><h2>METRC Pipeline — Inventory</h2><span class="screen-src">pipeline/screen-inventory.jsx:131 (header/filters), :172 (product table)</span></div>
+    <p class="screen-desc">Desktop-only back-office tool, mouse-driven by default. The 6-column product table already got its overflow-x wrapper and 44px rows (screen-inventory.jsx:179, comment cites this same audit) — the remaining violations are the toolbar: sort pills (32px, :154), the location segmented toggle (28px, :163), <code>MultiSelectFilter</code> (30px, shared/hd-ui.jsx:95), and <code>Field size="sm"</code> (34px).</p>
+    <div class="tabs" id="off-tabs">
+      <button aria-selected="true" data-p="p1">Proposal 1 · Touch floor</button>
+      <button data-p="p2">Proposal 2 · Uniform 44</button>
+    </div>
+    <div class="tabpanel active" data-panel="p1">
+      <div class="note" style="margin-bottom:14px">This screen is desktop-only by nature (dispatcher/inventory console). Proposal 1 exempts mouse-only desktops — set <b>Proposal 1 device</b> above to <b>Mouse</b> to see the actually-recommended outcome here (unchanged). Left at <b>Touch</b> for comparison.</div>
+      <div class="compare-row" id="row-off-p1"></div>
+    </div>
+    <div class="tabpanel" data-panel="p2"><div class="compare-row" id="row-off-p2"></div></div>
+  </section>
+</div>
+
+<div class="legendbar">
+  <div class="lg-item"><span class="lg-swatch" style="background:rgba(192,57,43,.13);border:2px solid var(--bad)"></span>Under 44px (violation)</div>
+  <div class="lg-item"><span class="lg-swatch" style="background:rgba(31,138,79,.05);border:1.5px dashed rgba(31,138,79,.55)"></span>44px or larger</div>
+  <div class="lg-item">Full spec: <a href="../docs/TAP-TARGET-PROPOSAL-2026-09-17.md" style="color:var(--info)">docs/TAP-TARGET-PROPOSAL-2026-09-17.md</a></div>
+  <div class="lg-item">Review round: <a href="review/tap-targets.html" style="color:var(--info)">explorations/review/tap-targets.html</a></div>
+</div>
+
+<script>
+(function(){
+  // ---------- tiny inline icon set (no external icon font) ----------
+  function svg(path, size){ size=size||14; return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+path+'</svg>'; }
+  const ICO = {
+    plus: svg('<path d="M12 5v14M5 12h14"/>'),
+    check: svg('<path d="M20 6L9 17l-5-5"/>'),
+    x: svg('<path d="M18 6L6 18M6 6l12 12"/>'),
+    search: svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'),
+    chevrondown: svg('<path d="M6 9l6 6 6-6"/>',12),
+    shield: svg('<path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"/>'),
+    sliders: svg('<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h14M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>')
+  };
+
+  // ---------- markup builders ----------
+  function reg(){
+    return ''+
+    '<div class="row-flex" style="padding:14px 16px;border-bottom:1px solid var(--hairline2)">'+
+      '<button class="tileadd hp" data-tap="New check-in tile" style="width:auto;padding:0 12px">'+ICO.plus+' New check-in</button>'+
+      '<div class="row-flex" style="flex:1">'+
+        '<div class="densrow" style="border:1px solid var(--hairline2);border-radius:12px;padding:6px 10px;flex:1;min-height:44px"><b style="font-size:12px">Priya M.</b>&nbsp;· waiting 4m</div>'+
+        '<button class="pbtn pbtn-sm hp" data-tap="Waiting-strip claim btn" style="min-width:70px">Claim</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="row-flex" style="padding:10px 16px;border-bottom:1px solid var(--hairline2)">'+
+      '<button class="searchicon hp" data-tap="Product search icon">'+ICO.search+'</button>'+
+      '<button class="chip hp active" data-tap="Category: Flower">Flower</button>'+
+      '<button class="chip hp" data-tap="Category: Vape">Vape</button>'+
+      '<button class="chip hp" data-tap="Category: Edibles">Edibles</button>'+
+      '<button class="chip hp" data-tap="Brand filter">Brand '+ICO.chevrondown+'</button>'+
+      '<button class="pbtn pbtn-md hp" data-tap="Best match toggle">'+ICO.check+' Best match</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:14px 16px">'+
+      tile('Blue Dream 3.5g','$38')+tile('Sherbet Cart 1g','$44')+tile('Wana Gummies 100mg','$22')+
+    '</div>'+
+    '<div style="border-top:1px solid var(--hairline2);background:var(--surface2);padding:14px 16px">'+
+      '<h3 style="margin-bottom:10px">Cart — screen-cart.jsx:485</h3>'+
+      '<div class="row-flex" style="justify-content:space-between;padding:8px 0">'+
+        '<span style="font-size:12.5px">Blue Dream 3.5g</span>'+
+        '<div class="row-flex">'+
+          '<button class="stepperbtn hp" data-tap="Qty −">−</button><span style="font-family:var(--fontMono);min-width:18px;text-align:center">1</span><button class="stepperbtn hp" data-tap="Qty +">+</button>'+
+        '</div>'+
+      '</div>'+
+      '<button class="pbtn pbtn-xs hp" data-tap="Clear cart link" style="color:var(--bad);border:none;background:none;padding:0">'+ICO.x+' Clear cart</button>'+
+      ' &nbsp; <button class="pbtn pbtn-xs hp" data-tap="Add promo code link" style="border:none;background:none;padding:0;color:var(--inkDim)">'+ICO.plus+' Add promo code</button>'+
+      '<div class="row-flex" style="justify-content:space-between;margin-top:12px">'+
+        '<span style="font-family:var(--fontMono);font-size:15px;font-weight:700">$41.04</span>'+
+        '<button class="pbtn pbtn-accent hp" data-tap="TENDER" style="width:52px;height:96px;writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;letter-spacing:.14em">TENDER</button>'+
+      '</div>'+
+    '</div>';
+  }
+  function tile(name, price){
+    return '<div style="border:1px solid var(--hairline2);border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:10px">'+
+      '<div style="width:36px;height:36px;border-radius:9px;background:linear-gradient(140deg,#3F9E72,#2C7A34);flex:0 0 auto"></div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+name+'</div><div style="font-size:11px;color:var(--inkMute)">'+price+'</div></div>'+
+      '<button class="tileadd hp" data-tap="'+name+' — Add">'+ICO.plus+'</button>'+
+    '</div>';
+  }
+  function drv(){
+    return ''+
+    '<div style="padding:12px 16px;background:var(--rail);border-radius:14px;margin:14px 16px;display:flex;justify-content:space-between;align-items:baseline">'+
+      '<span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6);font-family:var(--fontMono)">Balance due</span>'+
+      '<span style="font-size:26px;font-weight:700;color:var(--accent);font-family:var(--fontMono)">$41.04</span>'+
+    '</div>'+
+    '<div style="padding:0 16px"><div class="seg" style="display:flex;width:100%">'+
+      '<button class="pbtn pbtn-sm hp" data-tap="Seg: Cash" style="flex:1;background:var(--surface)" aria-pressed="true">Cash</button>'+
+      '<button class="pbtn pbtn-sm hp" data-tap="Seg: Card" style="flex:1;background:transparent">Card</button>'+
+      '<button class="pbtn pbtn-sm hp" data-tap="Seg: Split" style="flex:1;background:transparent">Split</button>'+
+    '</div></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:14px 16px 4px">'+
+      chip44('$41')+chip44('$45')+chip44('$50')+chip44('$60')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:8px 16px 16px">'+
+      ['1','2','3','4','5','6','7','8','9','.','0','del'].map(k=>'<button class="pbtn hp" data-tap="Keypad '+k+'" style="height:46px;font-size:20px;font-weight:600;background:var(--surface);border:1px solid var(--hairline2);border-radius:12px">'+(k==='del'?ICO.x:k)+'</button>').join('')+
+    '</div>'+
+    '<div style="padding:0 16px 16px"><button class="pbtn pbtn-accent hp" data-tap="Collect payment CTA" style="width:100%;height:48px;font-size:15px">'+ICO.check+' Collect $41.04</button></div>';
+  }
+  function chip44(v){ return '<button class="pbtn hp" data-tap="Quick-cash '+v+'" style="flex:1;min-width:70px;height:44px;background:var(--surface);border:1px solid var(--hairline2);color:var(--info);font-family:var(--fontMono);font-weight:700">'+v+'</button>'; }
+
+  function office(){
+    return ''+
+    '<div style="padding:16px" >'+
+    '<div class="row-flex" style="justify-content:space-between;margin-bottom:12px">'+
+      '<h3 style="font-size:20px;text-transform:none;letter-spacing:normal;color:var(--ink);font-weight:600">Inventory</h3>'+
+      '<button class="pbtn pbtn-sm hp" data-tap="Compliance holds btn">'+ICO.shield+' Compliance holds</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">'+
+      stat('Total units','8,214')+stat('Value at cost','$182K')+stat('Low stock','6')+
+    '</div>'+
+    '<div class="row-flex" style="margin-bottom:8px">'+
+      '<div class="fieldsm" data-tap="Field size=sm (search)" style="flex:1;max-width:300px">'+ICO.search+' Search…</div>'+
+      '<button class="sortpill hp active" data-tap="Sort: Velocity">Velocity</button>'+
+      '<button class="sortpill hp" data-tap="Sort: Age">Age</button>'+
+      '<button class="sortpill hp" data-tap="Sort: Value">$ value</button>'+
+    '</div>'+
+    '<div class="row-flex" style="margin-bottom:14px">'+
+      '<div style="display:inline-flex;border:1px solid var(--hairline2);border-radius:8px;padding:2px">'+
+        '<button class="loctoggle hp active" data-tap="Location: All">All</button>'+
+        '<button class="loctoggle hp" data-tap="Location: Front">Front</button>'+
+        '<button class="loctoggle hp" data-tap="Location: Back">Back</button>'+
+      '</div>'+
+      '<button class="msfilter hp" data-tap="Brand filter (MultiSelect)">Brand '+ICO.chevrondown+'</button>'+
+      '<button class="msfilter hp" data-tap="Category filter (MultiSelect)">Category '+ICO.chevrondown+'</button>'+
+    '</div>'+
+    '<div style="border:1px solid var(--hairline2);border-radius:14px;overflow:hidden">'+
+      '<div class="pipe-row" style="background:var(--surface2);border-bottom:1px solid var(--hairline2);min-height:0"><div></div><div style="padding:8px 12px;font-size:10.5px;text-transform:uppercase;color:var(--inkMute)">Product</div><div style="padding:8px 12px;font-size:10.5px;text-transform:uppercase;color:var(--inkMute)">Batches</div><div style="padding:8px 12px;font-size:10.5px;text-transform:uppercase;color:var(--inkMute);text-align:right">Units</div><div style="padding:8px 12px;font-size:10.5px;text-transform:uppercase;color:var(--inkMute)">Expiry</div><div style="padding:8px 12px;font-size:10.5px;text-transform:uppercase;color:var(--inkMute);text-align:right">Value</div></div>'+
+      pipeRow('Blue Dream 3.5g','Herb Co.','12','4,120','18d left','$58,400')+
+      pipeRow('Wana Gummies 100mg','Wana','7','980','61d left','$11,200')+
+    '</div></div>';
+  }
+  function stat(label,val){ return '<div style="border:1px solid var(--hairline2);border-radius:12px;padding:10px 12px;background:var(--surface)"><div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute)">'+label+'</div><div style="font-family:var(--fontMono);font-size:22px;margin-top:4px">'+val+'</div></div>'; }
+  function pipeRow(name,vendor,batches,units,expiry,val){
+    return '<button class="pipe-row" data-tap="Row: '+name+'"><div></div>'+
+      '<div style="padding:8px 12px"><div style="font-size:13px">'+name+'</div><div style="font-size:11px;color:var(--inkMute)">'+vendor+'</div></div>'+
+      '<div style="padding:8px 12px;font-size:13px">'+batches+'</div>'+
+      '<div style="padding:8px 12px;text-align:right;font-family:var(--fontMono);font-size:13px">'+units+'</div>'+
+      '<div style="padding:8px 12px;font-size:12.5px">'+expiry+'</div>'+
+      '<div style="padding:8px 12px;text-align:right;font-family:var(--fontMono);font-size:13px">'+val+'</div></button>';
+  }
+  const ATOM_DEFS = [
+    ['PBtn xs (links, ticket-switch)','<button class="pbtn pbtn-xs hp" data-tap="PBtn xs">Switch</button>'],
+    ['PBtn sm (most toolbar buttons)','<button class="pbtn pbtn-sm hp" data-tap="PBtn sm">Filter</button>'],
+    ['PBtn md (default)','<button class="pbtn pbtn-md hp" data-tap="PBtn md">Save</button>'],
+    ['IconBtn (always 40×40 today)','<button class="iconbtn circle hp" data-tap="IconBtn">'+ICO.x+'</button>'],
+    ['Check (20×20, no padding)','<span class="checkwrap hp" data-tap="Check"><span class="checkglyph on"></span></span>'],
+    ['Switch (20 tall × 37 wide)','<span class="switchwrap hp" data-tap="Switch"><span class="switchglyph on"><i></i></span></span>'],
+    ['DataTable dense row (36px)','<div class="densrow hp" data-tap="DataTable dense row" style="border:1px solid var(--hairline2);border-radius:10px;padding:0 12px">Row content</div>']
+  ];
+  function atomFrame(id, variantClass, html){
+    return '<div class="frame-col mini"><div class="frame-col-label"><span class="name">'+({before:'Before',['p1-touch']:'Proposal 1',p2:'Proposal 2'}[variantClass])+'</span><span class="count-badge" data-count-for="'+id+'">…</span></div>'+
+      '<div class="device-frame" id="'+id+'" style="width:auto"><div class="hw-content variant-'+variantClass+'" style="padding:18px;display:flex;align-items:center;justify-content:center;min-height:64px">'+html+'</div><div class="hw-overlay"></div></div></div>';
+  }
+  function atomsRow(label, html, idx){
+    return '<div style="display:flex;flex-direction:column;gap:6px;min-width:0"><h3 style="margin-bottom:2px">'+label+'</h3>'+
+      '<div class="compare-row" style="overflow-x:visible">'+
+        atomFrame('atom-'+idx+'-before','before',html)+
+        atomFrame('atom-'+idx+'-p1','p1-touch',html)+
+        atomFrame('atom-'+idx+'-p2','p2',html)+
+      '</div></div>';
+  }
+  function atoms(){
+    return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px">'+
+      ATOM_DEFS.map(function(d,i){ return atomsRow(d[0], d[1], i); }).join('')+
+    '</div>';
+  }
+
+  function frameCol(id, label, variantClass, bodyHtml, capped){
+    return '<div class="frame-col"><div class="frame-col-label"><span class="name">'+label+'</span><span class="count-badge" data-count-for="'+id+'">…</span></div>'+
+      '<div class="device-frame '+(capped?'capped':'')+'" id="'+id+'"><div class="hw-content variant-'+variantClass+'">'+bodyHtml+'</div><div class="hw-overlay"></div>'+(capped?'<div class="fold-note" id="'+id+'-fold" style="display:none"></div>':'')+'</div></div>';
+  }
+
+  document.getElementById('row-atoms').innerHTML = atoms();
+  document.getElementById('row-atoms').style.flexDirection = 'column';
+  document.getElementById('row-atoms').style.overflowX = 'visible';
+
+  document.getElementById('row-reg-p1').innerHTML =
+    frameCol('reg-p1-before','Before (today)','before', reg(), true)+
+    frameCol('reg-p1-after','After — Proposal 1','p1-touch', reg(), true);
+  document.getElementById('row-reg-p2').innerHTML =
+    frameCol('reg-p2-before','Before (today)','before', reg(), true)+
+    frameCol('reg-p2-after','After — Proposal 2','p2', reg(), true);
+  document.getElementById('row-reg-mit').innerHTML =
+    frameCol('reg-mit-before','Before (today)','before', reg(), true)+
+    frameCol('reg-mit-after','After — mitigation (hit-area only)','mit', reg(), true);
+
+  document.getElementById('row-drv-p1').innerHTML =
+    frameCol('drv-p1-before','Before (today)','before', drv())+
+    frameCol('drv-p1-after','After — Proposal 1','p1-touch', drv());
+  document.getElementById('row-drv-p2').innerHTML =
+    frameCol('drv-p2-before','Before (today)','before', drv())+
+    frameCol('drv-p2-after','After — Proposal 2','p2', drv());
+
+  document.getElementById('row-off-p1').innerHTML =
+    frameCol('off-p1-before','Before (today)','before', office())+
+    frameCol('off-p1-after','After — Proposal 1','p1-touch', office());
+  document.getElementById('row-off-p2').innerHTML =
+    frameCol('off-p2-before','Before (today)','before', office())+
+    frameCol('off-p2-after','After — Proposal 2','p2', office());
+
+  // ---------- scanner: measures real DOM + pseudo-element hit padding ----------
+  function readPad(el){
+    try{
+      const cs = getComputedStyle(el, '::before');
+      if(!cs || cs.content === 'none' || cs.content === '') return {t:0,r:0,b:0,l:0};
+      const t = parseFloat(cs.top), r = parseFloat(cs.right), b = parseFloat(cs.bottom), l = parseFloat(cs.left);
+      return { t: isNaN(t)?0:-t, r: isNaN(r)?0:-r, b: isNaN(b)?0:-b, l: isNaN(l)?0:-l };
+    }catch(e){ return {t:0,r:0,b:0,l:0}; }
+  }
+  function scanFrame(frame){
+    const content = frame.querySelector('.hw-content');
+    const overlay = frame.querySelector('.hw-overlay');
+    if(!content || !overlay) return;
+    overlay.innerHTML='';
+    const els = content.querySelectorAll('[data-tap]');
+    let bad = 0;
+    els.forEach(function(el){
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const pad = readPad(el);
+      const ew = w + pad.l + pad.r, eh = h + pad.t + pad.b;
+      const isBad = ew < 44 || eh < 44;
+      if(isBad) bad++;
+      const box = document.createElement('div');
+      box.className = 'hw-tap-box ' + (isBad?'bad':'ok');
+      box.style.left = (el.offsetLeft - pad.l) + 'px';
+      box.style.top = (el.offsetTop - pad.t) + 'px';
+      box.style.width = ew + 'px';
+      box.style.height = eh + 'px';
+      box.title = (el.dataset.tap||'') + ' · ' + Math.round(ew) + '×' + Math.round(eh) + (isBad?' — under 44':' — OK');
+      overlay.appendChild(box);
+    });
+    const badge = document.querySelector('[data-count-for="'+frame.id+'"]');
+    if(badge){
+      badge.textContent = bad + ' / ' + els.length + ' under 44px';
+      badge.classList.toggle('bad', bad>0);
+    }
+    // fold check for capped register frames
+    if(frame.classList.contains('capped')){
+      const fold = document.getElementById(frame.id+'-fold');
+      if(fold){
+        const hidden = content.scrollHeight - frame.clientHeight;
+        if(hidden > 12){
+          const rowH = 56; // approx rendered tile+gap height at this content
+          const rows = Math.max(1, Math.round(hidden / rowH));
+          fold.style.display='block';
+          fold.textContent = '~'+hidden+'px hidden below the fold (≈'+rows+' row'+(rows===1?'':'s')+')';
+        } else {
+          fold.style.display='none';
+        }
+      }
+    }
+  }
+  function scanAll(){
+    document.querySelectorAll('.device-frame').forEach(scanFrame);
+    updateRegisterMoves();
+  }
+
+  // ---------- register "what moves" measurement (Proposal 1 & 2 vs Before) ----------
+  function measureHeaderHeight(frameId){
+    const f = document.getElementById(frameId);
+    if(!f) return 0;
+    const rows = f.querySelectorAll('.hw-content > div');
+    // first two rows = intake bar + chip/filter bar
+    let h = 0;
+    for(let i=0;i<2 && i<rows.length;i++) h += rows[i].offsetHeight;
+    return h;
+  }
+  function updateRegisterMoves(){
+    ['p1','p2'].forEach(function(p){
+      const beforeId = 'reg-'+p+'-before', afterId = 'reg-'+p+'-after';
+      const hb = measureHeaderHeight(beforeId), ha = measureHeaderHeight(afterId);
+      const delta = ha - hb;
+      const target = document.getElementById('reg-move-'+p);
+      if(!target) return;
+      target.innerHTML =
+        '<div class="m"><div class="k">Intake + filter bar height</div><div class="v"><span class="before">'+hb+'px</span><span class="after">'+ha+'px</span> (+'+delta+'px)</div></div>'+
+        '<div class="m"><div class="k">Product grid columns</div><div class="v">unchanged — <code>auto-fill,minmax(…,1fr)</code> is width-driven, not height-driven</div></div>'+
+        '<div class="m"><div class="k">Horizontal wrap / overflow</div><div class="v">none observed at 1280 or 1024 — nothing here has a fixed width that the taller controls push past</div></div>'+
+        '<div class="m"><div class="k">Net effect</div><div class="v">~'+delta+'px less vertical room for the tile grid → check the fold notice on the frame above for the measured row impact at the current width</div></div>';
+    });
+  }
+
+  // ---------- toolbar wiring ----------
+  function segWire(id, cb){
+    const seg = document.getElementById(id);
+    seg.addEventListener('click', function(e){
+      const b = e.target.closest('button'); if(!b) return;
+      [...seg.children].forEach(x=>x.setAttribute('aria-pressed', x===b));
+      cb(b.dataset.v);
+    });
+  }
+  segWire('theme-seg', function(v){ document.documentElement.setAttribute('data-theme', v); scanAll(); });
+  segWire('width-seg', function(v){
+    document.documentElement.style.setProperty('--frame-w', v+'px');
+    document.querySelectorAll('.compare-row').forEach(r=>r.classList.toggle('stack', v==='390'));
+    requestAnimationFrame(scanAll);
+  });
+  segWire('device-seg', function(v){
+    document.querySelectorAll('[id^="row-"] [id$="-after"] .variant-p1-touch').forEach(function(){});
+    document.querySelectorAll('.hw-content.variant-p1-touch').forEach(function(el){
+      el.classList.toggle('variant-p1-touch', v==='touch');
+      el.classList.toggle('variant-p1-mouse', v==='mouse');
+    });
+    scanAll();
+  });
+  document.getElementById('overlay-toggle').addEventListener('change', function(e){
+    document.body.classList.toggle('show-hitareas', e.target.checked);
+  });
+
+  // tab wiring (Register / Driver / Office)
+  ['reg-tabs','drv-tabs','off-tabs'].forEach(function(tid){
+    const tabs = document.getElementById(tid);
+    if(!tabs) return;
+    const section = tabs.closest('section');
+    tabs.addEventListener('click', function(e){
+      const b = e.target.closest('button'); if(!b) return;
+      [...tabs.children].forEach(x=>x.setAttribute('aria-selected', x===b));
+      section.querySelectorAll('.tabpanel').forEach(p=>p.classList.toggle('active', p.dataset.panel===b.dataset.p));
+      requestAnimationFrame(scanAll);
+    });
+  });
+
+  window.addEventListener('resize', function(){ requestAnimationFrame(scanAll); });
+  requestAnimationFrame(scanAll);
+})();
+</script>
+</body>
+</html>
