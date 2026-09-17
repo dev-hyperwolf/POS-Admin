@@ -153,7 +153,7 @@
         </div>
 
         <button onClick={() => setManualOpen(true)}
-          style={{ position: 'sticky', bottom: 20, alignSelf: 'flex-end', marginRight: 20, height: 56, padding: '0 20px', borderRadius: 99, background: P.accent, color: P.accentInk, border: 'none', boxShadow: P.shadowLg, display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13.5, cursor: 'pointer', fontFamily: P.fontSans, zIndex: 40 }}>
+          style={{ position: 'sticky', bottom: window.HWSafe ? window.HWSafe.bottom(20) : 20, alignSelf: 'flex-end', marginRight: 20, height: 56, padding: '0 20px', borderRadius: 99, background: P.accent, color: P.accentInk, border: 'none', boxShadow: P.shadowLg, display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13.5, cursor: 'pointer', fontFamily: P.fontSans, zIndex: 40 }}>
           <Icon name="plus" size={18} stroke={2.4} />Manual entry
         </button>
 

@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#15140f"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>METRC Batch Pipeline — Hyperdrive</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -43,6 +45,10 @@
 <!-- The stacking scale. MUST be first: every floating layer on this page reads it,
      and the plain-JS chrome mounts before any text/babel module has run. -->
 <script src="shared/hw-z.js"></script>
+<!-- window.HWSafe.top/bottom/left/right(n) — a fixed px pad plus that edge's
+     real safe-area inset (0 in the desktop-shell layout). Plain JS, loads
+     before every screen that reads it. -->
+<script src="shared/hw-safe-area.js"></script>
 <script src="shared/brands.js"></script>
 <script src="shared/app-nav.js"></script>
 <!-- @hyper-tech/contracts: the estate's enums, ids, money, time, error and event rules as
@@ -51,6 +57,10 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<!-- window.HWPhone.isPhone()/useIsPhone()/isScanRoute() — the shared ≤600px
+     real-phone check (mobile/app.jsx, athome/account-frame.jsx, pipeline/app.jsx
+     all read it). Plain JS but calls React hooks, so it loads after React. -->
+<script src="shared/hw-phone.js"></script>
 <!-- window.ScreenBoundary (CONTAIN) + window.CriticalBoundary (REFUSE).
      PLAIN JS, after React and BEFORE babel: the file is pure
      React.createElement with no JSX, and every text/babel screen below is

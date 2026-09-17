@@ -233,12 +233,20 @@
     return String(path || '').replace(/^\//, '').replace(/\//g, ' · ') || 'This screen';
   }
 
+  const useIsPhone = window.HWPhone ? window.HWPhone.useIsPhone : function useIsPhone() { return false; };
+  const isScanRoute = window.HWPhone ? window.HWPhone.isScanRoute : function isScanRoute(p) { return p === '/scan'; };
+  if (!window.HWPhone) {
+    try {console.error('[HW phone] shared/hw-phone.js did not load — METRC Batch Pipeline.html is running with NO ' +
+      'phone breakpoint, so /scan stays framed by the rail/sidebar/topbar even on a real phone.');} catch (e) {}
+  }
+
   function App() {
     const [route, setRoute] = React.useState(() => location.hash || '#/batches');
     const [entity, setEntityState] = React.useState(() => { try { return localStorage.getItem('hd-entity') || 'thc'; } catch (e) { return 'thc'; } });
     const [collapsed, setCollapsed] = React.useState(false);
     const [searchOpen, setSearchOpen] = React.useState(false);
     const P = useP();
+    const isPhone = useIsPhone();
 
     React.useEffect(() => {
       const h = () => setRoute(location.hash || '#/batches');
@@ -283,6 +291,35 @@
     else if (path.startsWith('/admin/catalog')) screen = window.ScreenAdminCatalog ? <ScreenAdminCatalog {...ctx} /> : <Placeholder title="Master catalog" />;
     else if (path === '/settings/flags') screen = window.ScreenFlags ? <ScreenFlags {...ctx} /> : <Placeholder title="Feature flags" />;
     else screen = <Placeholder title={path.replace('/', '').replace(/\//g, ' · ') || 'Screen'} />;
+
+    /* /scan is phone-first content (pipeline/screen-scan.jsx) shown on a
+       warehouse floor, but the shell above still wrapped it in the 74px rail
+       + module sidebar + topbar meant for a desk. On a real ≤600px phone
+       (window.HWPhone, same breakpoint as mobile/app.jsx and
+       athome/account-frame.jsx) drop all three and let the scan screen fill
+       the viewport, with just enough chrome to get back to the pipeline and
+       clear the real notch/home-indicator insets. Every other route is
+       unaffected -- this only fires for /scan. /scan is still REFUSE-
+       classified (PIPE_REFUSE), so the CriticalBoundary still wraps it here;
+       only the rail/sidebar/topbar around it are gone. */
+    if (isPhone && isScanRoute(path)) {
+      const scanGuard = PIPE_REFUSE[path] ?
+      <PipeCritical key={path} name={PIPE_REFUSE[path].name} flow={PIPE_REFUSE[path].flow}>{screen}</PipeCritical> :
+      <PipeFrame key={path} name={pipeName(path)}>{screen}</PipeFrame>;
+      return (<>
+        <style>{'.hw-scan-phone-root{height:100vh;height:100dvh;width:100vw;}'}</style>
+        <div className="hw-scan-phone-root" style={{ display: 'flex', flexDirection: 'column', background: P.canvas, color: P.ink, overflow: 'hidden' }}>
+          <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', padding: (window.HWSafe ? window.HWSafe.top(8) : '8px') + ' 12px 8px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface }}>
+            <button onClick={() => navigate('#/batches')} style={{ minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', borderRadius: 8, border: 'none', background: 'transparent', color: P.ink, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+              <Icon name="chevron-left" size={18} stroke={2} />Back to Pipeline
+            </button>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: window.HWSafe ? window.HWSafe.bottom(0) : 0 }}>
+            {scanGuard}
+          </div>
+        </div>
+      </>);
+    }
 
     return (
       <div style={{ display: 'flex', height: '100%', background: P.canvas, color: P.ink }}>

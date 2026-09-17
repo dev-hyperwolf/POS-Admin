@@ -187,26 +187,18 @@ function AppInner() {
  * synchronously in the useState initializer (no effect round-trip needed
  * before first paint), so a phone never flashes the framed layout first. No
  * SSR here -- this page has no build step -- but the lazy-init guard keeps
- * this safe if that ever changes. */
-const HW_PHONE_QUERY = '(max-width: 600px)';
-function useIsPhone() {
-  const [isPhone, setIsPhone] = React.useState(() => {
-    try {return typeof window.matchMedia === 'function' && window.matchMedia(HW_PHONE_QUERY).matches;} catch (e) {return false;}
-  });
-  React.useEffect(() => {
-    let mql;
-    try {mql = window.matchMedia(HW_PHONE_QUERY);} catch (e) {return;}
-    const onChange = () => setIsPhone(mql.matches);
-    onChange();
-    if (mql.addEventListener) mql.addEventListener('change', onChange);else if (mql.addListener) mql.addListener(onChange);
-    window.addEventListener('resize', onChange);
-    return () => {
-      if (mql.removeEventListener) mql.removeEventListener('change', onChange);else if (mql.removeListener) mql.removeListener(onChange);
-      window.removeEventListener('resize', onChange);
-    };
-  }, []);
-  return isPhone;
+ * this safe if that ever changes.
+ *
+ * The check itself now lives in shared/hw-phone.js (window.HWPhone) -- this
+ * was the first of three phone-first surfaces (athome/account-frame.jsx and
+ * pipeline/app.jsx are the other two) to need it, and all three now share one
+ * copy instead of three byte-identical ones. Fall back to "never phone" (the
+ * old always-framed behaviour) and say so, rather than crash. */
+if (!window.HWPhone) {
+  try {console.error('[HW phone] shared/hw-phone.js did not load — Hyperwolf Driver App.html is running with NO ' +
+    'phone breakpoint, so a real phone falls back to the framed desktop layout.');} catch (e) {}
 }
+const useIsPhone = window.HWPhone ? window.HWPhone.useIsPhone : function useIsPhone() {return false;};
 
 // A real phone: no rail (there's no room), no device mockup (the phone IS the
 // device) -- the driver app fills the actual viewport. `.hw-phone-root` sets

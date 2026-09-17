@@ -72,7 +72,7 @@ function Row({ icon, label, sub, right, onClick, danger, badge }){ const P=useP(
 
 function ScreenHead({ title, onBack, right }){ const P=useP(); return (
   <div style={{ position:'sticky', top:0, zIndex:10, display:'flex', alignItems:'center', gap:12, padding:'14px 18px 12px', background:P.surface, borderBottom:`1px solid ${P.hairline}`, backdropFilter:'blur(8px)' }}>
-    {onBack && <button onClick={onBack} style={{ width:34, height:34, borderRadius:10, border:'none', background:P.surface3, color:P.ink, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name="chevron-left" size={20}/></button>}
+    {onBack && <button onClick={onBack} style={{ width:34, height:34, minHeight:44, borderRadius:10, border:'none', background:P.surface3, color:P.ink, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name="chevron-left" size={20}/></button>}
     <span style={{ flex:1, fontSize: 16, fontWeight:800, letterSpacing:'-.01em', color:P.ink }}>{title}</span>
     {right}
   </div>); }
@@ -107,8 +107,8 @@ function HubScreen({ go }){
       <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <span style={{ fontSize: 12.5, fontWeight:800, letterSpacing:'.16em', color:'rgba(255,255,255,.6)', textTransform:'uppercase' }}>Account</span>
         <div style={{ display:'flex', gap:8 }}>
-          <button onClick={toggle} style={{ width:34, height:34, borderRadius:10, border:'none', background:'rgba(255,255,255,.1)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name={mode==='dark'?'sun':'moon'} size={16}/></button>
-          <button onClick={()=>go('settings')} style={{ width:34, height:34, borderRadius:10, border:'none', background:'rgba(255,255,255,.1)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name="settings" size={16}/></button>
+          <button onClick={toggle} style={{ width:34, height:34, minHeight:44, borderRadius:10, border:'none', background:'rgba(255,255,255,.1)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name={mode==='dark'?'sun':'moon'} size={16}/></button>
+          <button onClick={()=>go('settings')} style={{ width:34, height:34, minHeight:44, borderRadius:10, border:'none', background:'rgba(255,255,255,.1)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name="settings" size={16}/></button>
         </div>
       </div>
       <div style={{ position:'relative', display:'flex', alignItems:'center', gap:14, marginTop:16 }}>
@@ -219,8 +219,8 @@ function OrderScreen({ id, back, go }){ const P=useP(); const o=ORDERS.find(x=>x
         <div style={{ padding:14, display:'flex', alignItems:'center', gap:12 }}>
           <Avatar name="Marcus Vale" size={44}/>
           <div style={{ flex:1 }}><div style={{ fontSize: 16, fontWeight:700, color:P.ink }}>Marcus Vale</div><div style={{ fontSize:11.5, color:P.inkMute }}>Your genius · ★ 4.9 · Tesla Model Y</div></div>
-          <button style={{ width:40, height:40, borderRadius:12, border:'none', background:P.surface3, color:P.ink, cursor:'pointer' }}><Icon name="phone" size={18}/></button>
-          <button onClick={()=>go('support')} style={{ width:40, height:40, borderRadius:12, border:'none', background:P.ink, color:P.surface, cursor:'pointer' }}><Icon name="note" size={18}/></button>
+          <button style={{ width:40, height:40, minHeight:44, borderRadius:12, border:'none', background:P.surface3, color:P.ink, cursor:'pointer' }}><Icon name="phone" size={18}/></button>
+          <button onClick={()=>go('support')} style={{ width:40, height:40, minHeight:44, borderRadius:12, border:'none', background:P.ink, color:P.surface, cursor:'pointer' }}><Icon name="note" size={18}/></button>
         </div>
       </Card2>
       <Card2>
@@ -386,7 +386,7 @@ function WalletScreen({ back }){ const P=useP(); return (<div>
             {m[3]&&<span style={{ fontSize: 11.5, fontWeight:700, color:P.good }}>DEFAULT</span>}
           </div>
         ))}
-        <div style={{ padding:'13px 15px', borderTop:`1px solid ${P.hairline}` }}><button style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', color:P.ink, fontSize:13.5, fontWeight:600, cursor:'pointer' }}><Icon name="plus" size={17}/>Add payment method</button></div>
+        <div style={{ padding:'13px 15px', borderTop:`1px solid ${P.hairline}` }}><button style={{ display:'flex', alignItems:'center', gap:9, minHeight:44, background:'none', border:'none', color:P.ink, fontSize:13.5, fontWeight:600, cursor:'pointer' }}><Icon name="plus" size={17}/>Add payment method</button></div>
       </Card2>
     </div>
     <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:4 }}>Credit activity</div>
@@ -433,7 +433,7 @@ function ReferralsScreen({ back }){ const P=useP(); return (<div>
         <div style={{ fontSize:12.5, color:'rgba(255,255,255,.65)', marginTop:6 }}>Friends get $25 off their first order. You get $25 credit when they buy.</div>
         <div style={{ marginTop:16, display:'flex', gap:8, alignItems:'center', background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.14)', borderRadius:12, padding:'11px 14px' }}>
           <span className="mono" style={{ flex:1, fontSize:15, fontWeight:700, color:'#fff', letterSpacing:'.08em' }}>REGGIE25</span>
-          <button style={{ padding:'7px 14px', background:P.accent, color:P.accentInk, border:'none', borderRadius:9, fontSize:12.5, fontWeight:700, cursor:'pointer' }}>Copy</button>
+          <button style={{ padding:'7px 14px', minHeight:44, background:P.accent, color:P.accentInk, border:'none', borderRadius:9, fontSize:12.5, fontWeight:700, cursor:'pointer' }}>Copy</button>
         </div>
       </div>
     </div>
@@ -457,7 +457,7 @@ function ProfileScreen({ back }){ const P=useP(); return (<div>
   <div style={{ padding:'14px 16px 24px', display:'flex', flexDirection:'column', gap:16 }}>
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'10px 0' }}>
       <Avatar name={ME.name} size={72} crown/>
-      <button style={{ marginTop:10, fontSize:12.5, fontWeight:600, color:P.ink, background:P.surface3, border:'none', padding:'7px 14px', borderRadius:99, cursor:'pointer' }}>Edit photo</button>
+      <button style={{ marginTop:10, fontSize:12.5, fontWeight:600, color:P.ink, background:P.surface3, border:'none', padding:'7px 14px', minHeight:44, borderRadius:99, cursor:'pointer' }}>Edit photo</button>
     </div>
     <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>Personal info</div>
       <Card2 pad={0}>
@@ -485,7 +485,7 @@ function ProfileScreen({ back }){ const P=useP(); return (<div>
 
 // ══ SCREEN: ADDRESSES ═════════════════════════════════════════════════════
 function AddressesScreen({ back }){ const P=useP(); return (<div>
-  <ScreenHead title="Saved addresses" onBack={back} right={<button style={{ width:34, height:34, borderRadius:10, border:'none', background:P.ink, color:P.surface, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name="plus" size={18}/></button>}/>
+  <ScreenHead title="Saved addresses" onBack={back} right={<button style={{ width:34, height:34, minHeight:44, borderRadius:10, border:'none', background:P.ink, color:P.surface, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name="plus" size={18}/></button>}/>
   <div style={{ padding:'14px 16px 24px', display:'flex', flexDirection:'column', gap:12 }}>
     {ADDRESSES.map((a,i)=>(<Card2 key={i}>
       <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
@@ -511,7 +511,7 @@ function FavesScreen({ back }){ const P=useP(); return (<div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <Thumb hue={f.hue}/>
         <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{f.name}</div><div style={{ marginTop:3, display:'flex', alignItems:'center', gap:8 }}><StrainTag type={f.strain} thc={f.thc}/><span style={{ fontSize: 11.5, color:P.inkMute }}>{f.cat}</span></div></div>
-        <div style={{ textAlign:'right' }}><div className="mono" style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{money(f.price)}</div><button style={{ marginTop:6, width:32, height:32, borderRadius:9, border:'none', background:P.accent, color:P.accentInk, cursor:'pointer' }}><Icon name="plus" size={17} stroke={2.4}/></button></div>
+        <div style={{ textAlign:'right' }}><div className="mono" style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{money(f.price)}</div><button style={{ marginTop:6, width:32, height:32, minHeight:44, borderRadius:9, border:'none', background:P.accent, color:P.accentInk, cursor:'pointer' }}><Icon name="plus" size={17} stroke={2.4}/></button></div>
       </div>
     </Card2>))}
   </div>
@@ -520,7 +520,7 @@ function FavesScreen({ back }){ const P=useP(); return (<div>
 // ══ SCREEN: SETTINGS (notifications & privacy) ════════════════════════════
 function SettingsScreen({ back }){ const P=useP();
   const [s,setS]=useState({ deals:true, order:true, athome:true, sms:false, email:true, loc:true, share:false });
-  const Toggle=({on,onClick})=>(<button onClick={onClick} style={{ width:44, height:26, borderRadius:99, background:on?P.accent:P.hairline3, border:'none', cursor:'pointer', padding:3, display:'flex' }}><span style={{ width:20, height:20, borderRadius:99, background:on?P.accentInk:P.surface, transform:on?'translateX(18px)':'none', transition:'transform .16s' }}/></button>);
+  const Toggle=({on,onClick})=>(<button onClick={onClick} style={{ width:44, minHeight:44, borderRadius:99, background:'transparent', border:'none', cursor:'pointer', padding:'9px 0', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ width:44, height:26, borderRadius:99, background:on?P.accent:P.hairline3, padding:3, display:'flex' }}><span style={{ width:20, height:20, borderRadius:99, background:on?P.accentInk:P.surface, transform:on?'translateX(18px)':'none', transition:'transform .16s' }}/></span></button>);
   const Item=({k,label,sub})=>(<div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 4px' }}><div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>{label}</div>{sub&&<div style={{ fontSize:11.5, color:P.inkMute, marginTop:1 }}>{sub}</div>}</div><Toggle on={s[k]} onClick={()=>setS(v=>({...v,[k]:!v[k]}))}/></div>);
   return (<div>
   <ScreenHead title="Notifications & privacy" onBack={back}/>
@@ -548,7 +548,7 @@ function SupportScreen({ back }){ const P=useP();
     {msgs.map((c,i)=>{ if(c.who==='sys') return <div key={i} style={{ textAlign:'center' }}><span className="mono" style={{ fontSize: 11.5, color:P.inkMute, background:P.surface3, padding:'4px 10px', borderRadius:99 }}>{c.m}</span></div>;
       const me=c.who==='me'; return (<div key={i} style={{ display:'flex', justifyContent:me?'flex-end':'flex-start' }}><div style={{ maxWidth:'80%', padding:'11px 14px', borderRadius:16, background:me?P.ink:P.surface, color:me?P.surface:P.ink, border:me?'none':`1px solid ${P.hairline2}`, fontSize:13.5, lineHeight:1.5 }}>{c.m}</div></div>); })}
   </div>
-  <div style={{ padding:'12px 16px', borderTop:`1px solid ${P.hairline2}`, background:P.surface, display:'flex', gap:9, alignItems:'center' }}>
+  <div style={{ position:'sticky', bottom:0, padding:'12px 16px '+(window.HWSafe?window.HWSafe.bottom(12):'12px'), borderTop:`1px solid ${P.hairline2}`, background:P.surface, display:'flex', gap:9, alignItems:'center', flex:'0 0 auto' }}>
     <input value={t} onChange={e=>setT(e.target.value)} placeholder="Message…" style={{ flex:1, padding:'12px 15px', borderRadius:99, border:`1px solid ${P.fieldBorder}`, background:P.field, color:P.ink, fontSize:13.5, outline:'none' }}/>
     <button style={{ width:44, height:44, borderRadius:99, border:'none', background:P.accent, color:P.accentInk, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="arrow-up" size={20} stroke={2.4}/></button>
   </div>
@@ -597,25 +597,10 @@ function App(){
   }
   const noTab = cur.s==='support' || cur.s==='book';
 
-  return (<div style={{ width:'100%', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:P.bg, fontFamily:P.fontSans, padding:'28px 0' }}>
-    {/* phone */}
-    <div style={{ width:390, height:'min(844px, calc(100vh - 56px))', maxHeight:844, borderRadius:46, background:'#000', padding:10, boxShadow:'0 40px 90px rgba(0,0,0,.4), 0 0 0 1px rgba(0,0,0,.2)', flex:'0 0 auto' }}>
-      <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:37, overflow:'hidden', background:P.bg, display:'flex', flexDirection:'column' }}>
-        {/* status bar */}
-        <div style={{ height:44, flex:'0 0 44px', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 26px', background:P.surface, zIndex:20 }}>
-          <span className="mono" style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>9:41</span>
-          <div style={{ position:'absolute', left:'50%', top:9, transform:'translateX(-50%)', width:96, height:26, borderRadius:20, background:'#000' }}/>
-          <span style={{ display:'flex', gap:5, alignItems:'center', color:P.ink }}><Icon name="target" size={13}/><Icon name="chart" size={13}/><span style={{ width:22, height:11, border:`1.4px solid ${P.ink}`, borderRadius:3, position:'relative' }}><span style={{ position:'absolute', inset:1.5, right:5, background:P.ink, borderRadius:1 }}/></span></span>
-        </div>
-        {/* screen */}
-        <div ref={scrollRef} style={{ flex:1, overflow:'auto', overflowX:'hidden', background:P.bg, position:'relative' }}>{screen}</div>
-        {/* tab bar */}
-        {!noTab && <TabBar tab={tab} setTab={setTab} go={goTab}/>}
-        {/* home indicator */}
-        <div style={{ height:20, flex:'0 0 20px', display:'flex', alignItems:'center', justifyContent:'center', background:noTab?P.surface:P.surface }}><span style={{ width:130, height:5, borderRadius:99, background:P.ink, opacity:.35 }}/></div>
-      </div>
-    </div>
-  </div>);
+  return (
+    <window.AccountFrame scrollRef={scrollRef} tabBar={!noTab && <TabBar tab={tab} setTab={setTab} go={goTab}/>}>
+      {screen}
+    </window.AccountFrame>);
 }
 
 window.CustomerAccountApp = function CustomerAccountApp(){ return React.createElement(ThemeProvider, null, React.createElement(App)); };
