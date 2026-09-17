@@ -86,6 +86,16 @@ The mapping in `RULE-SHAPE.md` §6 is exact. The short version:
 - **Needs a decision:** `product_id`. The contract targets `product.sku` and `product.shell_id`;
   which one survives depends on the Blaze id migration, not on this proposal.
 
+**Measured, not estimated.** `wmdemo/engage/rule_export.py` maps every `hw.rule.v1` rule to the
+vendor's legacy `ifRules` shape and lists what cannot cross, per rule, in `unsupported[]` (81
+probe checks). What comes out unsupported today: every `batch.*` field; `product.sku` and
+`product.shell_id` (pending the product-id decision); `order.channel`, `order.store_id`, `time.*`
+and any non-empty `scope`; the operators `not_in`, `between`, `before`, `after`,
+`older_than_days`, `newer_than_days`; `not` over more than one node; `bogo`, `gift`, `points`
+outcomes; and `customer.tier` / `customer.segment_id` collapse onto one `user_group`. Everything
+else (`> >= < <= == != IN`, `cart_total`, `cart_count`, `category_id`, percent and amount) maps
+cleanly. That list is the gap between the two systems, in code.
+
 The vendor's data model does not change to adopt this. `Promotion` gains one optional `rule`
 property; the four legacy fields can stay until the last old promotion expires. The export shape
 their engine reads today (`ruleType`, `creteria`, `ifRules`) is still emitted by our side for the
