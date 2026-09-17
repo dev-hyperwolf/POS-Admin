@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Product Batches and Metrc Packages — Design Overview</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #1c2024;
+    --muted: #5a6270;
+    --border: #d7dbe0;
+    --accent: #2f5fae;
+    --bg-table-head: #eef1f5;
+    --bg-code: #f2f3f5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  .page {
+    max-width: 850px;
+    margin: 0 auto;
+    padding: 48px 56px 72px;
+  }
+  h1 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 26px;
+    margin: 0 0 6px;
+    color: var(--ink);
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  h2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 19px;
+    margin: 34px 0 12px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    margin: 22px 0 8px;
+    color: var(--ink);
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 12px; }
+  p.lead {
+    font-style: italic;
+    color: var(--muted);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13.5px;
+    margin-top: -4px;
+  }
+  ul { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--ink); }
+  code {
+    font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+    background: var(--bg-code);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 28px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 22px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12.5px;
+  }
+  caption { caption-side: top; text-align: left; }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 7px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--bg-table-head);
+    font-weight: 700;
+  }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .footer-note {
+    margin-top: 40px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--muted);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  @media print {
+    body { font-size: 12.5px; }
+    .page { padding: 0 8mm; max-width: none; }
+    h2 { page-break-after: avoid; }
+    table, tr { page-break-inside: avoid; }
+    a[href]::after { content: ""; }
+  }
+  @page {
+    size: letter;
+    margin: 18mm 16mm;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Product Batches and Metrc Packages — Design Overview</h1>
+<p class="lead"><em>Hyperwolf internal design reference, shared for external development review.</em></p>
+<h2>1. Purpose</h2>
+<p>The batch is the unit of control for physical inventory: pricing, rotation, promotions, counts, pick slips, and the tags applied at receiving all key on the batch, not on anything below it. A Metrc package tag is a compliance identifier — it exists so state reporting can trace a unit of product back to the package it was reported under. A package sits <strong>under</strong> a batch, not alongside it: one batch (one harvest or production run) is routinely split across several Metrc packages, and the batch is what operators see and act on either way.</p>
+<p>Batches sit one level below the shell and variation (product) described in the companion shells document. A shell groups products by brand, format, and pack; a variation is one catalog product within a shell. A batch is a physical lot of inventory that fulfills a given product (variation) over time — the same product can be restocked from many batches across its life, and, briefly, from more than one batch at once.</p>
+<h2>2. Definitions</h2>
+<p><strong>Batch</strong> — A grower's lot: one harvest or production run, one THC lab result, one packaged date. A batch is received once (<code>received_at</code>), may have a packaged date (<code>packaged_at</code>) and an expiration (<code>expires_at</code>), and carries a quantity, a unit cost, and the store location it lives at. A batch belongs to exactly one product (<code>product_id</code>).</p>
+<p><strong>Metrc package</strong> — A compliance-tracked container with a single tag, used for state seed-to-sale reporting. A package is not a unit of business control; it has no pricing, promotion, or rotation role of its own.</p>
+<p><strong>Batch ↔ package relationship</strong> — One-to-many. A batch carries a list of Metrc packages (<code>metrc_packages</code>), each with its own tag, quantity, and packaged date, because a single grower's lot is routinely split across several packages at intake. The reverse is never true: a package does not span more than one batch.</p>
+<p><strong>Unit-level tags at receiving</strong> — Receiving asks which batch a delivery belongs to once, then records every Metrc tag scanned against that one batch. The handheld does not ask for a batch per tag.</p>
+<p><strong>Mixed-batch</strong> — The state where one product has more than one batch present and sellable at the same time (for example, a new batch arrives before the old one sells through). This must be visible, not silent: a mixed-batch product is flagged wherever it would otherwise look like a single uniform batch — on plan lines, pick slips, and counts — so staff never treat two batches of one product as interchangeable, and never treat two packages of one batch as two different products.</p>
+<h2>3. Data shapes</h2>
+<p>Shapes below are taken from <code>@hyper-tech/contracts</code> 0.4.3, the authoritative source. <code>Batch</code> is the schema of record for this document; <code>Movement</code> and <code>ReceivedItem</code> are included at a summary level because they reference a batch by id.</p>
+<h3>Batch</h3>
+<table>
+<thead><tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr>
+<td>id</td>
+<td>string</td>
+<td>yes</td>
+<td></td>
+</tr>
+<tr>
+<td>product_id</td>
+<td>string</td>
+<td>yes</td>
+<td>The variation (product) this batch fulfills</td>
+</tr>
+<tr>
+<td>sku</td>
+<td>string \</td>
+<td>null</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>batch_no</td>
+<td>string</td>
+<td>yes</td>
+<td>Grower's lot number</td>
+</tr>
+<tr>
+<td>metrc_tag</td>
+<td>string \</td>
+<td>null</td>
+<td>no</td>
+<td><strong>Deprecated as of contract 0.4.3.</strong> Kept only as "first tag" so existing readers don't break; write <code>metrc_packages</code> instead</td>
+</tr>
+<tr>
+<td>metrc_packages</td>
+<td>array</td>
+<td>no</td>
+<td><code>[{ tag: string (required), quantity?: integer, packaged_at?: ISO 8601 UTC }]</code>; one entry per Metrc package the batch has been split into</td>
+</tr>
+<tr>
+<td>packaged_at</td>
+<td>ISO 8601 UTC \</td>
+<td>null</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>expires_at</td>
+<td>ISO 8601 UTC \</td>
+<td>null</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>received_at</td>
+<td>ISO 8601 UTC</td>
+<td>yes</td>
+<td></td>
+</tr>
+<tr>
+<td>thc_pct</td>
+<td>number (0–100) \</td>
+<td>null</td>
+<td>no</td>
+<td>Lab result for this batch</td>
+</tr>
+<tr>
+<td>unit_cost</td>
+<td>Money \</td>
+<td>null</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>quantity</td>
+<td>integer</td>
+<td>yes</td>
+<td></td>
+</tr>
+<tr>
+<td>location_id</td>
+<td>string \</td>
+<td>null</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>external_ids</td>
+<td>ExternalId[]</td>
+<td>no</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>Movement (summary)</h3>
+<p>Records inventory moving between locations. Keyed by <code>product_id</code> and <code>batch_id</code>, with quantity, reason, source/destination location, and optional tag references — never a Metrc package tag directly.</p>
+<table>
+<thead><tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+</tr></thead><tbody>
+<tr>
+<td>id, at, reason, product_id, batch_id, quantity, to_location_id</td>
+<td>—</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>from_location_id, tag_ids, actor_id, ref, note</td>
+<td>—</td>
+<td>no</td>
+</tr>
+</tbody></table>
+<h3>ReceivedItem (summary)</h3>
+<p>Records one intake event. Keyed by <code>product_id</code> and <code>batch_id</code>.</p>
+<table>
+<thead><tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+</tr></thead><tbody>
+<tr>
+<td>id, received_at, kind, product_id, batch_id, quantity</td>
+<td>—</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>location_id, included_in, reason, premium</td>
+<td>—</td>
+<td>no</td>
+</tr>
+</tbody></table>
+<h2>4. How the batch keys the rest</h2>
+<ul>
+<li><strong>Rotation</strong> is oldest-batch-first, ordered by the batch's <code>received_at</code> (or <code>packaged_at</code></li>
+</ul>
+<p>where that is the more relevant date for the product type). Never ordered by package tag.</p>
+<ul>
+<li><strong>Promotions</strong> target batch attributes only: <code>batch_no</code>, <code>thc_pct</code>, <code>packaged_at</code>, or</li>
+</ul>
+<p><code>received_at</code>. A promotion rule can never reference a Metrc package tag.</p>
+<ul>
+<li><strong>Counts and pick slips</strong> are per batch. A pick slip line carries the batch number, THC, and</li>
+</ul>
+<p>packaged/received date so a packer working from paper can identify the physical lot without a screen.</p>
+<ul>
+<li><strong>The mixed-batch flag</strong> surfaces on plan lines and counts whenever a product has more than one</li>
+</ul>
+<p>batch live at once, so a mixed-batch kit or count is never mistaken for a single-batch one.</p>
+<h2>5. Metrc mapping</h2>
+<p>Compliance reporting resolves <strong>sale → unit → batch → the specific package that unit came from</strong>. This is what lets the Metrc report carry the correct package tag on every sale, while operators — receiving, counts, pick slips, promotions — work exclusively in batches and never need to know which package a given unit sits in.</p>
+<p>Metrc reporting today is keyed directly on the package tag, with no batch record beneath it, and the Hyperwolf catalog today has no batch record at all. The change described here is to introduce the batch as the operator-facing key, with Metrc packages hanging underneath it as compliance metadata — not to change what gets reported to the state, only what operators key their work on.</p>
+<h2>6. What we are asking of you now</h2>
+<p>Nothing needs to be built against this document yet. Please read it and send back questions — particularly anything in the batch↔package relationship, the data shapes, or the Metrc mapping that looks ambiguous or would need clarification before implementation.</p>
+<p>Shape and validator: <code>@hyper-tech/contracts</code> 0.4.3 <code>Batch</code> is the authoritative source for every field named above.</p>
+</div>
+</body>
+</html>
