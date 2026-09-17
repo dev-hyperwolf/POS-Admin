@@ -569,13 +569,17 @@
       var c = canvasRef.current;
       var r = c.getBoundingClientRect();
       var t = e.touches && e.touches[0];
-      return { x: (t ? t.clientX : e.clientX) - r.left, y: (t ? t.clientY : e.clientY) - r.top };
+      // The canvas keeps a fixed 340x120 backing store (a stable PNG size for the server's
+      // signature cap) but is displayed fluid (width:100%, max 340) so it fits a 375 px phone;
+      // pointer coordinates are scaled from displayed pixels to backing-store pixels.
+      var sx = r.width ? c.width / r.width : 1, sy = r.height ? c.height / r.height : 1;
+      return { x: ((t ? t.clientX : e.clientX) - r.left) * sx, y: ((t ? t.clientY : e.clientY) - r.top) * sy };
     }
     function start(e) { if (disabled) return; drawing.current = true; var p = pos(e); var ctx = canvasRef.current.getContext('2d'); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
     function move(e) {
       if (!drawing.current || disabled) return;
       var p = pos(e); var ctx = canvasRef.current.getContext('2d');
-      ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = P.ink;
+      ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#111'; // pad is always white, so ink is always dark (P.ink is light in dark mode)
       ctx.lineTo(p.x, p.y); ctx.stroke();
     }
     function end() {
@@ -592,7 +596,8 @@
       React.createElement(LabelLine, { P: P, f: f }),
       React.createElement('canvas', {
         ref: canvasRef, width: 340, height: 120,
-        style: { border: '1px solid ' + P.fieldBorder, borderRadius: P.r8, touchAction: 'none', background: '#fff' },
+        style: { border: '1px solid ' + P.fieldBorder, borderRadius: P.r8, touchAction: 'none', background: '#fff',
+                 display: 'block', width: '100%', maxWidth: 340, height: 'auto', boxSizing: 'border-box' },
         onMouseDown: start, onMouseMove: move, onMouseUp: end, onMouseLeave: end,
         onTouchStart: start, onTouchMove: move, onTouchEnd: end,
       }),
