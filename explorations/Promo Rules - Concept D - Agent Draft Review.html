@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promo Rules — Concept D: Agent Draft Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:"Inter", -apple-system, system-ui, sans-serif;
+--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+--scrim:rgba(20,18,12,.42);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+}
+[data-theme=dark]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentText:#FFD100;
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16); --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+--railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:14.5px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.theme-btn{appearance:none;border:1px solid var(--railHair);background:transparent;color:var(--railBright);
+width:32px;height:32px;border-radius:var(--r8);cursor:pointer;margin-left:auto;font-size:15px;flex:0 0 auto;}
+.theme-btn:hover{background:var(--railHover);}
+.stage{max-width:1320px;margin:16px auto 72px;padding:0 18px;}
+.intro{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+padding:14px 16px;box-shadow:var(--shadowSm);margin-bottom:14px;}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro h2{font-size:15.5px;margin:0 0 6px;letter-spacing:-.01em;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.6;margin:0 0 6px;max-width:980px;}
+.intro p:last-child{margin-bottom:0;}
+code{font-family:var(--fontMono);font-size:11.3px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+
+.switcher{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.rule-card{border:1px solid var(--hairline2);border-radius:var(--r10);padding:11px 12px;background:var(--surface);cursor:pointer;box-shadow:var(--shadowSm);}
+.rule-card.active-sel{border-color:var(--accentBorder);box-shadow:0 0 0 2px var(--accentSoft);}
+.rule-card .rname{font-size:12.6px;font-weight:600;margin-bottom:6px;line-height:1.35;}
+.rule-card .rmeta{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;font-family:var(--fontMono);white-space:nowrap;}
+.chip.draft{background:var(--neutralSoft);color:var(--neutral);}
+.chip.active{background:var(--goodSoft);color:var(--good);}
+.chip.paused{background:var(--warnSoft);color:var(--warnText);}
+.chip.ended{background:var(--neutralSoft);color:var(--inkMute);}
+.chip.src-agent{background:var(--infoSoft);color:var(--info);}
+.chip.src-ui{background:var(--surface3);color:var(--inkDim);}
+
+.cols{display:grid;grid-template-columns:280px minmax(0,1fr) 300px;gap:14px;align-items:start;}
+@media (max-width:980px){.cols{grid-template-columns:1fr;}}
+.panel{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:14px 15px;box-shadow:var(--shadowSm);}
+.panel h3{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--inkDim);margin:0 0 10px;}
+
+.prompt-block{background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r10);padding:10px 11px;font-size:12.3px;color:var(--ink2);line-height:1.6;font-style:italic;margin-bottom:12px;}
+.prompt-block::before{content:'“';} .prompt-block::after{content:'”';}
+.interp{font-size:12.5px;line-height:1.65;color:var(--ink2);margin-bottom:12px;}
+.meta-line{font-size:11px;color:var(--inkMute);font-family:var(--fontMono);margin-bottom:4px;}
+
+.rule-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.rule-title{font-size:14.5px;font-weight:700;margin:0;flex:1 1 auto;min-width:180px;}
+.cond-row{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--hairline2);
+border-radius:9px;padding:8px 10px;margin-bottom:6px;font-size:12.3px;font-family:var(--fontMono);flex-wrap:wrap;}
+.grp-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--inkMute);font-family:var(--fontSans);font-weight:700;margin:10px 0 6px;}
+.field-editable{border:1px solid var(--hairline3);background:var(--surface);border-radius:6px;padding:2px 6px;font-family:var(--fontMono);font-size:12px;}
+.readonly-note{font-size:11px;color:var(--inkMute);margin:6px 0 10px;}
+.then-line{background:var(--accentSoft);border:1px solid var(--accentBorder);border-radius:9px;padding:9px 11px;font-size:12.5px;margin-top:8px;}
+[data-theme=dark] .then-line{color:var(--ink);}
+.jsonbox{display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--hairline2);border-radius:8px;padding:9px 10px;max-height:280px;overflow:auto;}
+.jsonbox.show{display:block;}
+.jsonbox pre{margin:0;font-size:10.7px;line-height:1.55;font-family:var(--fontMono);white-space:pre-wrap;word-break:break-word;color:var(--ink2);}
+
+.btn{appearance:none;border:1px solid var(--hairline3);background:var(--surface);color:var(--ink);
+font-family:var(--fontSans);font-size:11.8px;font-weight:600;padding:7px 12px;border-radius:var(--r10);cursor:pointer;}
+.btn:hover{background:var(--surface3);}
+.btn.sm{padding:5px 9px;font-size:11px;border-radius:8px;}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme=dark] .btn.primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.btn.bad{color:var(--bad);border-color:var(--badSoft);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.disabled-note{font-size:10.8px;color:var(--warnText);font-family:var(--fontMono);margin-top:6px;}
+
+.preview-panel{background:var(--surface2);border:1px dashed var(--hairline3);border-radius:var(--r10);padding:12px;margin-bottom:12px;}
+.preview-panel .num{font-size:22px;font-weight:700;font-family:var(--fontMono);}
+.preview-panel .lbl{font-size:11px;color:var(--inkMute);margin-top:2px;}
+.preview-panel .route{font-size:10px;font-family:var(--fontMono);color:var(--inkFaint);margin-top:4px;}
+
+.audit-item{border-left:2px solid var(--hairline3);padding:2px 0 10px 10px;margin-left:4px;font-size:11.6px;line-height:1.55;position:relative;}
+.audit-item::before{content:'';position:absolute;left:-5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--inkFaint);}
+.audit-item.cur::before{background:var(--info);}
+.audit-item.ok::before{background:var(--good);}
+.audit-item.bad::before{background:var(--bad);}
+.audit-item .who{font-weight:600;}
+.audit-item .when{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;}
+.audit-item .reason{color:var(--inkDim);font-style:italic;margin-top:2px;}
+
+.reject-box{display:none;margin-top:10px;background:var(--badSoft);border:1px solid var(--bad);border-radius:9px;padding:9px 10px;}
+.reject-box.show{display:block;}
+.reject-box textarea{width:100%;min-height:56px;font-family:var(--fontSans);font-size:12px;border:1px solid var(--hairline3);border-radius:7px;padding:6px 8px;resize:vertical;}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <div>
+    <h1>Promo Rules — Concept D: Agent Draft Review</h1>
+    <div class="sub">Team 1d · <b>hw.rule.v1</b> · plan §2.5 · the screen IS the approval record</div>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">◐</button>
+</div>
+
+<div class="stage">
+  <div class="intro">
+    <div class="eyebrow">Concept D</div>
+    <h2>Agents draft. A person activates.</h2>
+    <p>Left: the agent's prompt and its plain-English interpretation. Center: the generated rule, read-only until <code>Edit</code>. Right: the live match preview and the audit trail — who drafted it, who reviewed it, what changed. Activating an <code>meta.source: "agent"</code> rule always requires a person; it is never a one-click action here.</p>
+  </div>
+
+  <div class="switcher" id="switcher"></div>
+
+  <div class="cols" id="mainCols"></div>
+</div>
+
+<script>
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', cur==='dark' ? 'light' : 'dark');
+}
+function toggleJson(id){ document.getElementById(id).classList.toggle('show'); }
+
+const RULES = [
+  {
+    id:'rule_01J0VAPE60D10PCT', name:'Vape batches aged 60d+, 10% off', status:'draft', source:'agent',
+    prompt:'discount vape batches older than 60 days by 10%',
+    interp:'Applies a <b>10% discount</b> to matched lines on any <b>vape</b> batch whose <b>age is 60 days or more</b> since it was received. Window runs Sep 20 – Oct 20, 2026. No store or channel restriction — this applies storewide, on every channel.',
+    rule:{ shape:'hw.rule.v1', id:'rule_01J0VAPE60D10PCT', name:'Vape batches aged 60d+, 10% off',
+      status:'draft', priority:50, stackable:true,
+      window:{ starts_at:'2026-09-20T00:00:00Z', ends_at:'2026-10-20T00:00:00Z' },
+      scope:{ store_ids:[], channels:[] },
+      if:{ all:[
+          { field:'product.category_id', op:'in', value:['vape'] },
+          { field:'batch.age_days', op:'gte', value:60 }
+        ], any:[], not:[] },
+      then:{ kind:'percent', value:10, applies_to:'matched_lines', cap_cents:null, max_per_order:null },
+      meta:{ author:'promo-copilot', source:'agent', prompt:'discount vape batches older than 60 days by 10%', version:1 } },
+    preview:{ batches:6, lines:14 },
+    history:[
+      { who:'promo-copilot', when:'2026-09-16 14:02', what:'Drafted from prompt', cls:'cur' },
+    ],
+  },
+  {
+    id:'rule_01J0AGED30PCT', name:'Aged 30%+ flower, 15% off', status:'active', source:'ui',
+    prompt:null,
+    interp:'Authored directly in the rule builder, not by an agent — shown here for contrast. Applies <b>15% off</b> matched lines on <b>flower</b> batches at <b>≥30% THC</b> packaged <b>more than 90 days ago</b>, West Hollywood only, in-store + delivery.',
+    rule:{ shape:'hw.rule.v1', id:'rule_01J0AGED30PCT', name:'Aged 30%+ flower, 15% off',
+      status:'active', priority:100, stackable:false,
+      window:{ starts_at:'2026-09-16T00:00:00Z', ends_at:null },
+      scope:{ store_ids:['store_wh'], channels:['in_store','delivery'] },
+      if:{ all:[
+          { field:'batch.thc_pct', op:'gte', value:30 },
+          { field:'batch.packaged_at', op:'older_than_days', value:90 },
+          { field:'product.category_id', op:'in', value:['flower'] }
+        ], any:[], not:[] },
+      then:{ kind:'percent', value:15, applies_to:'matched_lines', cap_cents:null, max_per_order:null },
+      meta:{ author:'owner', source:'ui', prompt:null, version:1 } },
+    preview:{ batches:2, lines:3 },
+    history:[
+      { who:'admin@hyperwolf.com', when:'2026-09-14 09:20', what:'Activated — scope: West Hollywood, in-store + delivery', cls:'ok' },
+      { who:'admin@hyperwolf.com', when:'2026-09-13 16:41', what:'Authored in rule builder', cls:'' },
+    ],
+  },
+  {
+    id:'rule_01J0FLRDELNB', name:'Flower, delivered OR not bronze', status:'paused', source:'ui',
+    prompt:null,
+    interp:'Authored directly in the rule builder. Applies a <b>$5.00 discount</b> (capped at $20.00, max 1 per order) to <b>flower</b> lines where the order is <b>delivery</b>, or the customer is <b>not bronze-tier</b>. Currently paused.',
+    rule:{ shape:'hw.rule.v1', id:'rule_01J0FLRDELNB', name:'Flower, delivered OR not bronze',
+      status:'paused', priority:80, stackable:true,
+      window:{ starts_at:'2026-08-01T00:00:00Z', ends_at:'2026-12-01T00:00:00Z' },
+      scope:{ store_ids:[], channels:[] },
+      if:{ all:[ { field:'product.category_id', op:'in', value:['flower'] } ],
+           any:[ { field:'order.channel', op:'eq', value:'delivery' },
+                 { all:[], any:[], not:[ { field:'customer.tier', op:'eq', value:'bronze' } ] } ],
+           not:[] },
+      then:{ kind:'amount', value:500, applies_to:'matched_lines', cap_cents:2000, max_per_order:1 },
+      meta:{ author:'owner', source:'ui', prompt:null, version:2 } },
+    preview:{ batches:3, lines:5 },
+    history:[
+      { who:'admin@hyperwolf.com', when:'2026-09-01 10:05', what:'Paused for margin review', cls:'' },
+      { who:'admin@hyperwolf.com', when:'2026-08-01 08:30', what:'Activated', cls:'ok' },
+    ],
+  },
+];
+
+// Shared standing history examples appended to every rule's audit trail —
+// one rejected, one activated, per the plan's requirement that both appear
+// somewhere in the history list.
+const SHARED_HISTORY = [
+  { who:'ops@hyperwolf.com', when:'2026-09-10 11:47', what:"Rejected agent draft “BOGO pre-rolls at close” — reason: wrong store scope, redo for WH only", cls:'bad' },
+];
+
+let selectedId = RULES[0].id;
+
+function renderSwitcher(){
+  document.getElementById('switcher').innerHTML = RULES.map(r=>`
+    <div class="rule-card ${r.id===selectedId?'active-sel':''}" onclick="selectRule('${r.id}')">
+      <div class="rname">${r.name}</div>
+      <div class="rmeta">
+        <span class="chip ${r.status}">${r.status}</span>
+        <span class="chip src-${r.source}">${r.source==='agent'?'agent-drafted':'ui-authored'}</span>
+      </div>
+    </div>`).join('');
+}
+
+function selectRule(id){ selectedId = id; render(); }
+
+function condLine(n){
+  if(n.field) return `${n.field} <b>${n.op}</b> ${JSON.stringify(n.value)}`;
+  const parts=[];
+  if(n.all&&n.all.length) parts.push(`ALL(${n.all.map(condLine).join(' • ')})`);
+  if(n.any&&n.any.length) parts.push(`ANY(${n.any.map(condLine).join(' • ')})`);
+  if(n.not&&n.not.length) parts.push(`NOR(${n.not.map(condLine).join(' • ')})`);
+  return parts.join(' ') || 'unconditional';
+}
+
+function render(){
+  renderSwitcher();
+  const r = RULES.find(x=>x.id===selectedId);
+  const isAgent = r.source==='agent';
+  const actionLabel = r.status==='active' ? 'Pause' : 'Activate';
+  const canAct = !isAgent && r.status!=='ended';
+
+  const left = `
+    <div class="panel">
+      <h3>Agent input</h3>
+      ${r.prompt ? `<div class="prompt-block">${r.prompt}</div>` : `<div class="meta-line" style="font-style:italic;">No agent prompt — authored directly in the rule builder.</div>`}
+      <h3 style="margin-top:14px;">Plain-English interpretation</h3>
+      <div class="interp">${r.interp}</div>
+      <div class="meta-line">author: ${r.rule.meta.author}</div>
+      <div class="meta-line">source: ${r.rule.meta.source}</div>
+      <div class="meta-line">version: ${r.rule.meta.version}</div>
+    </div>`;
+
+  const center = `
+    <div class="panel">
+      <div class="rule-header">
+        <h2 class="rule-title">${r.name}</h2>
+        <span class="chip ${r.status}">${r.status}</span>
+        <span class="chip src-${r.source}">${r.source==='agent'?'agent-drafted':'ui-authored'}</span>
+        <button class="btn sm" onclick="toggleEdit()" id="editBtn">Edit</button>
+      </div>
+      <div class="readonly-note" id="editNote">Read-only until Edit. Editing stamps a new version with a human author of record.</div>
+      <div class="grp-label">if.all</div>
+      ${r.rule.if.all.length ? r.rule.if.all.map(n=>`<div class="cond-row">${condLine(n)}</div>`).join('') : `<div class="cond-row" style="opacity:.6;">— empty —</div>`}
+      <div class="grp-label">if.any</div>
+      ${r.rule.if.any.length ? r.rule.if.any.map(n=>`<div class="cond-row">${condLine(n)}</div>`).join('') : `<div class="cond-row" style="opacity:.6;">— empty —</div>`}
+      <div class="grp-label">if.not</div>
+      ${r.rule.if.not.length ? r.rule.if.not.map(n=>`<div class="cond-row">${condLine(n)}</div>`).join('') : `<div class="cond-row" style="opacity:.6;">— empty —</div>`}
+      <div class="then-line"><b>then</b>: ${r.rule.then.kind} = ${JSON.stringify(r.rule.then.value)} on ${r.rule.then.applies_to}
+        ${r.rule.then.cap_cents!=null?` · cap ${r.rule.then.cap_cents}¢`:''}${r.rule.then.max_per_order!=null?` · max ${r.rule.then.max_per_order}/order`:''}</div>
+      <div class="meta-line" style="margin-top:10px;">scope.store_ids: ${JSON.stringify(r.rule.scope.store_ids)} · scope.channels: ${JSON.stringify(r.rule.scope.channels)}</div>
+      <div class="meta-line">window: ${r.rule.window.starts_at} → ${r.rule.window.ends_at ?? 'null (open-ended)'}</div>
+      <button class="btn sm" style="margin-top:8px;" onclick="toggleJson('ruleJson')">View JSON</button>
+      <div class="jsonbox" id="ruleJson"><pre>${JSON.stringify(r.rule,null,2)}</pre></div>
+
+      <div class="action-row">
+        <button class="btn primary" id="activateBtn" ${canAct?'':'disabled'}>${actionLabel}</button>
+        <button class="btn">Edit</button>
+        <button class="btn bad" onclick="toggleReject()">Reject</button>
+      </div>
+      ${isAgent ? `<div class="disabled-note">needs promos:activate — a person</div>` : ''}
+      <div class="reject-box" id="rejectBox">
+        <div class="meta-line" style="margin-bottom:6px;">Reason for rejection (recorded in the audit trail):</div>
+        <textarea placeholder="e.g. wrong store scope, redo for WH only"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button class="btn bad sm" onclick="confirmReject()">Confirm reject</button>
+          <button class="btn sm" onclick="toggleReject()">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+
+  const right = `
+    <div class="panel">
+      <h3>Live preview</h3>
+      <div class="preview-panel">
+        <div class="num">${r.preview.batches} batches · ${r.preview.lines} lines</div>
+        <div class="lbl">of the sample cart</div>
+        <div class="route">POST /api/promos/rules/${r.rule.id}/preview</div>
+      </div>
+      <h3>Audit trail</h3>
+      ${r.history.map(h=>`<div class="audit-item ${h.cls}"><span class="who">${h.who}</span> — <span class="when">${h.when}</span><div>${h.what}</div></div>`).join('')}
+      ${SHARED_HISTORY.map(h=>`<div class="audit-item ${h.cls}"><span class="who">${h.who}</span> — <span class="when">${h.when}</span><div>${h.what}</div></div>`).join('')}
+    </div>`;
+
+  document.getElementById('mainCols').innerHTML = left + center + right;
+}
+
+function toggleEdit(){
+  const note = document.getElementById('editNote');
+  note.textContent = note.textContent.startsWith('Read-only')
+    ? 'Editing… fields below become inputs in the real build. Save stamps a new version and a human author of record.'
+    : 'Read-only until Edit. Editing stamps a new version with a human author of record.';
+}
+function toggleReject(){ document.getElementById('rejectBox').classList.toggle('show'); }
+function confirmReject(){
+  const reason = document.querySelector('#rejectBox textarea').value || '(no reason given)';
+  alert('Mockup only — in the real screen this records:\\n\\nRejected by admin@hyperwolf.com\\nReason: ' + reason);
+  toggleReject();
+}
+
+render();
+</script>
+</body>
+</html>

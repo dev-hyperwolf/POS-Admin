@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promo Rules — Concept A: Sentence Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--highlightSoft:#F1EFE9;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:"Inter", -apple-system, system-ui, sans-serif;
+--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+--scrim:rgba(20,18,12,.42);
+}
+[data-theme="dark"]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+--accentHover:#FFDA33; --accentText:#FFD100;
+--highlightSoft:rgba(245,243,234,.06);
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+--neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+--railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.theme-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;margin-left:auto;}
+.theme-btn:hover{background:var(--railHover);}
+.stage{max-width:1080px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1080px;margin:0 auto;padding:16px 22px 0;}
+.intro .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px 18px;box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+code, .mono{font-family:var(--fontMono);}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.card-head .ch-t{flex:1;font-size:14px;font-weight:700;letter-spacing:-.005em;min-width:180px;}
+.card-body{padding:16px;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:11px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-draft{background:var(--neutralSoft);color:var(--ink2);}
+.pill-active{background:var(--goodSoft);color:var(--good);}
+.pill-paused{background:var(--warnSoft);color:var(--warnText);}
+.pill-ended{background:var(--badSoft);color:var(--bad);}
+.pill-agent{background:var(--infoSoft);color:var(--info);text-transform:none;letter-spacing:0;font-weight:600;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;
+font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+white-space:nowrap;border:1px solid transparent;transition:background .12s ease;}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-secondary:hover{background:var(--surface3);}
+.btn-primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+.btn-primary:hover{opacity:.9;}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-accent:hover{background:var(--accentHover);}
+.btn-ghost{background:transparent;color:var(--ink2);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn[disabled]{opacity:.48;cursor:not-allowed;}
+.btn-xs{min-height:26px;padding:0 9px;font-size:11px;}
+
+.sentence{font-size:15.5px;line-height:2.35;color:var(--ink2);}
+.connector{display:inline-block;font-weight:700;color:var(--info);text-transform:uppercase;font-size:10.5px;letter-spacing:.06em;margin:0 3px;background:var(--infoSoft);padding:2px 6px;border-radius:6px;}
+.joiner{color:var(--inkMute);font-weight:600;font-size:12.5px;margin:0 3px;font-style:italic;}
+.chip{display:inline-flex;align-items:center;gap:2px;background:var(--surface2);border:1px dashed var(--hairline3);
+border-radius:8px;padding:2px 4px 2px 8px;margin:2px 2px;vertical-align:middle;}
+.chip:hover{border-color:var(--info);}
+.chip select,.chip input{border:none;background:transparent;font:inherit;font-size:12.5px;color:var(--ink);
+font-family:var(--fontMono);cursor:pointer;padding:2px 2px;max-width:150px;}
+.chip input[type=number],.chip input[type=text],.chip input[type=date]{cursor:text;}
+.chip select:focus,.chip input:focus{outline:2px solid var(--info);outline-offset:1px;border-radius:4px;}
+.chip .rm{cursor:pointer;color:var(--inkMute);font-size:13px;padding:2px 5px;border-radius:5px;line-height:1;}
+.chip .rm:hover{background:var(--badSoft);color:var(--bad);}
+.plain-frag{color:var(--ink2);}
+.add-row{margin-top:10px;}
+.everything-note{font-style:italic;color:var(--inkMute);}
+
+.panel-eb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);
+font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin:16px 0 8px;}
+.panel-eb .grow{flex:1;border-bottom:1px solid var(--hairline);}
+.preview-box{background:var(--surface2);border:1px solid var(--hairline2);border-left:3px solid var(--info);
+border-radius:var(--r10);padding:11px 13px;}
+.preview-box .pv-num{font-size:18px;font-weight:800;font-family:var(--fontMono);color:var(--ink);}
+.preview-box .pv-bind{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);margin-top:4px;}
+.jsonview{display:none;margin-top:10px;background:var(--canvas2);border:1px solid var(--hairline2);border-radius:var(--r10);
+padding:12px 14px;font-family:var(--fontMono);font-size:11.5px;line-height:1.6;color:var(--ink2);overflow-x:auto;white-space:pre;}
+.jsonview.open{display:block;animation:fade .12s ease;}
+.footer-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--hairline);}
+.meta-bits{font-size:11px;color:var(--inkMute);font-family:var(--fontMono);}
+.agent-note{font-size:11px;color:var(--warnText);background:var(--warnSoft);padding:4px 9px;border-radius:7px;font-weight:600;}
+.ref-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ref-table th{text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);padding:7px 10px;border-bottom:1px solid var(--hairline2);}
+.ref-table td{padding:7px 10px;border-bottom:1px solid var(--hairline);font-family:var(--fontMono);}
+.stack{display:flex;flex-direction:column;gap:16px;}
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+@media (max-width:640px){
+  .doc-head{padding:11px 14px;}
+  .stage,.intro{padding-left:12px;padding-right:12px;}
+  .sentence{font-size:14px;line-height:2.5;}
+  .chip select,.chip input{max-width:110px;}
+  .card-head{padding:11px 12px;}
+  .card-body{padding:12px;}
+}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <div>
+    <h1>Promo Rules — Concept A: Sentence Builder</h1>
+    <div class="sub">Team 1d · reads as English, edits as chips · <b>hw.rule.v1</b> underneath</div>
+  </div>
+  <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+</div>
+
+<div class="intro">
+  <div class="card">
+    <div class="eyebrow">The idea</div>
+    <h2>The rule <em>is</em> a sentence. Every chip is a real field pulled from a live cannabis inventory — never a made-up placeholder.</h2>
+    <p>Each condition renders as one clause in a plain-English sentence. Clicking a chip opens a real <code>RuleField</code>/<code>RuleOp</code> dropdown — nothing on screen can express a value the contract would reject. "+ Add condition" appends a new clause to the sentence <em>and</em> to the JSON panel underneath it, live, so the two never drift apart. <code>all</code> / <code>any</code> / <code>not</code> read as sentence connectors (ALL / ANY / NONE) rather than as a tree.</p>
+    <p class="small-note">Batch is the unit of control — <code>batch.batch_no</code>, THC, packaged/received date. No Metrc tag appears anywhere on this screen, by design (owner ruling, 2026-09-14).</p>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-head"><div class="ch-t">Reference batch list</div><span class="small-note">used by the preview panels below</span></div>
+    <div class="card-body" style="padding-top:8px;padding-bottom:8px;">
+      <table class="ref-table">
+        <thead><tr><th>Batch</th><th>Category</th><th>THC</th><th>Packaged</th><th>On-hand</th></tr></thead>
+        <tbody>
+          <tr><td>B1</td><td>flower</td><td>22%</td><td>10 days ago</td><td>40 units</td></tr>
+          <tr><td>B2</td><td>flower</td><td>31%</td><td>95 days ago</td><td>12 units</td></tr>
+          <tr><td>B3</td><td>flower</td><td>34%</td><td>120 days ago</td><td>8 units</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="stack" id="rules"></div>
+</div>
+
+<script>
+const RULE_FIELD_TYPE = {
+  'batch.batch_no':'string','batch.thc_pct':'number','batch.packaged_at':'date','batch.received_at':'date',
+  'batch.expires_at':'date','batch.age_days':'number','product.shell_id':'string','product.sku':'string',
+  'product.category_id':'string','product.brand':'string','cart.subtotal_cents':'number','cart.line_count':'number',
+  'customer.tier':'enum','customer.segment_id':'string','order.channel':'enum','order.store_id':'string',
+  'time.dow':'number','time.hour':'number',
+};
+const RULE_FIELDS = Object.keys(RULE_FIELD_TYPE);
+const OPS_BY_TYPE = {
+  number:['eq','neq','gt','gte','lt','lte','between','in','not_in'],
+  string:['eq','neq','in','not_in'],
+  date:['eq','neq','gt','gte','lt','lte','between','before','after','older_than_days','newer_than_days'],
+  enum:['eq','neq','in','not_in'],
+};
+const ENUM_VALUES = { 'customer.tier':['bronze','silver','gold','platinum'], 'order.channel':['in_store','pickup','delivery'] };
+
+const rules = [
+  {
+    shape:'hw.rule.v1', id:'rule_01J0AGED30PCT', name:'Aged 30%+ flower, 15% off',
+    status:'active', priority:100, stackable:false,
+    window:{ starts_at:'2026-09-16T00:00:00Z', ends_at:null },
+    scope:{ store_ids:['store_wh'], channels:['in_store','delivery'] },
+    if:{ all:[
+        { field:'batch.thc_pct', op:'gte', value:30 },
+        { field:'batch.packaged_at', op:'older_than_days', value:90 },
+        { field:'product.category_id', op:'in', value:['flower'] },
+      ], any:[], not:[] },
+    then:{ kind:'percent', value:15, applies_to:'matched_lines', cap_cents:null, max_per_order:null },
+    meta:{ author:'owner', source:'ui', prompt:null, version:1 },
+    preview:{ batches:2, lines:2 },
+  },
+  {
+    shape:'hw.rule.v1', id:'rule_01J0FLOWERNESTED', name:'Flower — delivery or non-bronze customers, 10% off',
+    status:'paused', priority:80, stackable:true,
+    window:{ starts_at:'2026-08-01T00:00:00Z', ends_at:'2026-10-31T23:59:59Z' },
+    scope:{ store_ids:[], channels:[] },
+    if:{
+      all:[ { field:'product.category_id', op:'in', value:['flower'] } ],
+      any:[
+        { field:'order.channel', op:'eq', value:'delivery' },
+        { not:[ { any:[ { field:'customer.tier', op:'eq', value:'bronze' } ], all:[], not:[] } ] },
+      ],
+      not:[],
+    },
+    then:{ kind:'percent', value:10, applies_to:'matched_lines', cap_cents:2000, max_per_order:null },
+    meta:{ author:'owner', source:'ui', prompt:null, version:2 },
+    preview:{ batches:3, lines:3 },
+  },
+  {
+    shape:'hw.rule.v1', id:'rule_01J0VAPEAGENT', name:'Vape batches 60+ days, 10% off',
+    status:'draft', priority:50, stackable:false,
+    window:{ starts_at:'2026-09-17T00:00:00Z', ends_at:null },
+    scope:{ store_ids:[], channels:[] },
+    if:{ all:[
+        { field:'product.category_id', op:'in', value:['vape'] },
+        { field:'batch.packaged_at', op:'older_than_days', value:60 },
+      ], any:[], not:[] },
+    then:{ kind:'percent', value:10, applies_to:'matched_lines', cap_cents:null, max_per_order:null },
+    meta:{ author:'promo-copilot', source:'agent', prompt:'discount vape batches older than 60 days by 10%', version:1 },
+    preview:{ batches:0, lines:0 },
+  },
+];
+
+function fieldType(f){ return RULE_FIELD_TYPE[f] || 'string'; }
+function opsFor(f){ return OPS_BY_TYPE[fieldType(f)]; }
+function valueInputType(f){ const t=fieldType(f); return t==='number'?'number':t==='date'?'text':'text'; }
+
+function getAtPath(root, path){ let n=root; for(const k of path) n = n[k]; return n; }
+function setAtPath(root, path, key, val){ getAtPath(root, path)[key] = val; }
+
+// path is an array of keys/indices from rule.if down to (but not including) the leaf condition object.
+function renderCondChip(rule, path){
+  const cond = getAtPath(rule.if, path);
+  const t = fieldType(cond.field);
+  const ops = opsFor(cond.field);
+  const fieldOpts = RULE_FIELDS.map(f => `<option value="${f}" ${f===cond.field?'selected':''}>${f}</option>`).join('');
+  const opOpts = ops.map(o => `<option value="${o}" ${o===cond.op?'selected':''}>${o}</option>`).join('');
+  let valueField;
+  if (ENUM_VALUES[cond.field] && !['in','not_in'].includes(cond.op)) {
+    valueField = `<select data-rule="${rule.id}" data-path="${path.join('.')}" data-part="value">
+      ${ENUM_VALUES[cond.field].map(v=>`<option value="${v}" ${v===cond.value?'selected':''}>${v}</option>`).join('')}
+    </select>`;
+  } else {
+    const dispVal = Array.isArray(cond.value) ? cond.value.join(',') : cond.value;
+    valueField = `<input data-rule="${rule.id}" data-path="${path.join('.')}" data-part="value" type="${valueInputType(cond.field)}" value="${dispVal}">`;
+  }
+  return `<span class="chip">
+    <select data-rule="${rule.id}" data-path="${path.join('.')}" data-part="field">${fieldOpts}</select>
+    <select data-rule="${rule.id}" data-path="${path.join('.')}" data-part="op">${opOpts}</select>
+    ${valueField}
+    <span class="rm" data-rule="${rule.id}" data-path="${path.join('.')}" data-part="remove" title="Remove condition">✕</span>
+  </span>`;
+}
+
+function renderNode(rule, node, path){
+  if (node.field) return renderCondChip(rule, path);
+  const parts = [];
+  if (node.all && node.all.length) parts.push(`<span class="connector">ALL</span> of: ` + node.all.map((n,i)=>renderNode(rule,n,[...path,'all',i])).join(' <span class="joiner">and</span> '));
+  if (node.any && node.any.length) parts.push(`<span class="connector">ANY</span> of: ` + node.any.map((n,i)=>renderNode(rule,n,[...path,'any',i])).join(' <span class="joiner">or</span> '));
+  if (node.not && node.not.length) parts.push(`<span class="connector">NONE</span> of: ` + node.not.map((n,i)=>renderNode(rule,n,[...path,'not',i])).join(' <span class="joiner">or</span> '));
+  if (!parts.length) return '<span class="everything-note">matches everything (no conditions)</span>';
+  return parts.join(' <span class="joiner">and</span> ');
+}
+
+function thenSentence(rule){
+  const t = rule.then;
+  const kindWord = { percent:`${t.value}% off`, amount:`$${(t.value/100).toFixed(2)} off`, price:`fixed price $${(t.value/100).toFixed(2)}`,
+    points:`${t.value} loyalty points`, bogo:`buy-get ${t.value} free`, gift:`a free ${t.value}` }[t.kind];
+  const scopeWord = t.applies_to === 'cart' ? 'the whole cart' : 'matched lines';
+  const stores = rule.scope.store_ids.length ? rule.scope.store_ids.join(', ') : 'every store';
+  const channels = rule.scope.channels.length ? rule.scope.channels.join(', ') : 'every channel';
+  const ends = rule.window.ends_at ? new Date(rule.window.ends_at).toISOString().slice(0,10) : '—';
+  const starts = new Date(rule.window.starts_at).toISOString().slice(0,10);
+  const cap = t.cap_cents!=null ? `, capped at $${(t.cap_cents/100).toFixed(2)}` : '';
+  const maxpo = t.max_per_order!=null ? `, max ${t.max_per_order}/order` : '';
+  return `<span class="plain-frag">get <b>${kindWord}</b> on ${scopeWord}${cap}${maxpo}, in ${channels}, at ${stores}, from ${starts} until ${ends}${rule.stackable ? ' (stacks with other rules)' : ' (does not stack)'}.</span>`;
+}
+
+function pillClass(status){ return 'pill pill-' + status; }
+
+function activateControl(rule){
+  if (rule.meta.source === 'agent') {
+    return `<button class="btn btn-secondary" disabled>Activate</button><span class="agent-note">needs promos:activate — a person</span>`;
+  }
+  if (rule.status === 'draft' || rule.status === 'paused') return `<button class="btn btn-accent" data-act="activate" data-rule="${rule.id}">Activate</button>`;
+  if (rule.status === 'active') return `<button class="btn btn-secondary" data-act="pause" data-rule="${rule.id}">Pause</button>`;
+  return `<button class="btn btn-secondary" disabled>Ended</button>`;
+}
+
+function renderRule(rule){
+  const el = document.getElementById('card-' + rule.id);
+  const sourceTag = rule.meta.source === 'agent' ? `<span class="pill pill-agent">drafted by agent</span>` : '';
+  el.innerHTML = `
+    <div class="card-head">
+      <div class="ch-t">${rule.name}</div>
+      <span class="${pillClass(rule.status)}">${rule.status}</span>
+      ${sourceTag}
+      <button class="btn btn-ghost btn-xs" data-toggle-json="${rule.id}">View JSON</button>
+    </div>
+    <div class="card-body">
+      <div class="sentence">
+        <span class="plain-frag">Batches where</span>
+        ${renderNode(rule, rule.if, [])}
+        <br>${thenSentence(rule)}
+      </div>
+      <div class="add-row"><button class="btn btn-secondary btn-xs" data-add="${rule.id}">+ Add condition</button></div>
+
+      <div class="panel-eb"><span>Live preview</span><span class="grow"></span></div>
+      <div class="preview-box">
+        <span class="pv-num">${rule.preview.batches}</span> batches · <span class="pv-num">${rule.preview.lines}</span> lines of the sample cart match
+        <div class="pv-bind">bound to <code>POST /api/promos/rules/${rule.id}/preview</code> — static in this mockup</div>
+      </div>
+
+      <pre class="jsonview" id="json-${rule.id}"></pre>
+
+      <div class="footer-row">
+        ${activateControl(rule)}
+        <span class="meta-bits">author: ${rule.meta.author} · v${rule.meta.version}${rule.meta.prompt ? ' · prompt: "' + rule.meta.prompt + '"' : ''}</span>
+      </div>
+    </div>`;
+  document.getElementById('json-' + rule.id).textContent = JSON.stringify(rule.__raw ? rule.__raw() : stripRule(rule), null, 2);
+}
+
+function stripRule(rule){
+  const { preview, ...rest } = rule;
+  return rest;
+}
+
+function renderAll(){ rules.forEach(renderRule); }
+
+document.getElementById('rules').innerHTML = rules.map(r => `<div class="card" id="card-${r.id}"></div>`).join('');
+renderAll();
+
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  const ruleId = t.getAttribute('data-rule');
+  if (!ruleId) return;
+  const rule = rules.find(r => r.id === ruleId);
+  const pathStr = t.getAttribute('data-path');
+  const part = t.getAttribute('data-part');
+  if (!pathStr && pathStr !== '') return;
+  const path = pathStr === '' ? [] : pathStr.split('.').map(p => /^\d+$/.test(p) ? Number(p) : p);
+  const cond = getAtPath(rule.if, path);
+  if (part === 'field') {
+    cond.field = t.value;
+    cond.op = opsFor(t.value)[0];
+    cond.value = ENUM_VALUES[t.value] ? ENUM_VALUES[t.value][0] : (fieldType(t.value)==='number' ? 0 : '');
+  } else if (part === 'op') {
+    cond.op = t.value;
+  } else if (part === 'value') {
+    if (['in','not_in'].includes(cond.op)) cond.value = t.value.split(',').map(s=>s.trim());
+    else cond.value = fieldType(cond.field)==='number' ? Number(t.value) : t.value;
+  }
+  renderRule(rule);
+});
+
+document.addEventListener('click', (e) => {
+  const jt = e.target.closest('[data-toggle-json]');
+  if (jt) {
+    document.getElementById('json-' + jt.getAttribute('data-toggle-json')).classList.toggle('open');
+    jt.textContent = jt.textContent === 'View JSON' ? 'Hide JSON' : 'View JSON';
+    return;
+  }
+  const add = e.target.closest('[data-add]');
+  if (add) {
+    const rule = rules.find(r => r.id === add.getAttribute('data-add'));
+    rule.if.all.push({ field:'batch.thc_pct', op:'gte', value:30 });
+    renderRule(rule);
+    return;
+  }
+  const rm = e.target.closest('[data-part="remove"]');
+  if (rm) {
+    const rule = rules.find(r => r.id === rm.getAttribute('data-rule'));
+    const path = rm.getAttribute('data-path').split('.').map(p => /^\d+$/.test(p) ? Number(p) : p);
+    const idx = path[path.length - 1];
+    const parentPath = path.slice(0, -1);
+    const parentArr = getAtPath(rule.if, parentPath.slice(0, -1))[parentPath[parentPath.length - 1]];
+    parentArr.splice(idx, 1);
+    renderRule(rule);
+    return;
+  }
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    const rule = rules.find(r => r.id === act.getAttribute('data-rule'));
+    rule.status = act.getAttribute('data-act') === 'activate' ? 'active' : 'paused';
+    renderRule(rule);
+  }
+});
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next === 'light' ? 'Dark mode' : 'Light mode';
+});
+</script>
+</body>
+</html>

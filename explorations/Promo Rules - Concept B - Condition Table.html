@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promo Rules — Concept B: Condition Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--highlightSoft:#F1EFE9;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:"Inter", -apple-system, system-ui, sans-serif;
+--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+--scrim:rgba(20,18,12,.42);
+}
+[data-theme="dark"]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+--accentHover:#FFDA33; --accentText:#FFD100;
+--highlightSoft:rgba(245,243,234,.06);
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+--neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+--railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.theme-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;margin-left:auto;}
+.theme-btn:hover{background:var(--railHover);}
+.stage{max-width:1220px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1220px;margin:0 auto;padding:16px 22px 0;}
+.intro .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px 18px;box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+code,.mono{font-family:var(--fontMono);}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.card-head .ch-t{flex:1;font-size:14px;font-weight:700;letter-spacing:-.005em;min-width:180px;}
+.card-body{padding:16px;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:11px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-draft{background:var(--neutralSoft);color:var(--ink2);}
+.pill-active{background:var(--goodSoft);color:var(--good);}
+.pill-paused{background:var(--warnSoft);color:var(--warnText);}
+.pill-ended{background:var(--badSoft);color:var(--bad);}
+.pill-agent{background:var(--infoSoft);color:var(--info);text-transform:none;letter-spacing:0;font-weight:600;}
+.pill-sm{padding:2px 7px 3px;font-size:10px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;
+font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+white-space:nowrap;border:1px solid transparent;transition:background .12s ease;}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-secondary:hover{background:var(--surface3);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-accent:hover{background:var(--accentHover);}
+.btn-ghost{background:transparent;color:var(--ink2);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn[disabled]{opacity:.48;cursor:not-allowed;}
+.btn-xs{min-height:26px;padding:0 9px;font-size:11px;}
+.agent-note{font-size:11px;color:var(--warnText);background:var(--warnSoft);padding:4px 9px;border-radius:7px;font-weight:600;}
+
+.cond-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.cond-table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);
+padding:7px 10px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+.cond-table td{padding:7px 10px;border-bottom:1px solid var(--hairline);vertical-align:middle;}
+.grp-label{font-family:var(--fontMono);font-size:10.5px;font-weight:700;color:var(--info);background:var(--infoSoft);
+padding:2px 6px;border-radius:6px;white-space:nowrap;}
+.field-cell{font-family:var(--fontMono);font-size:12px;}
+.op-cell{font-family:var(--fontMono);font-size:12px;color:var(--inkDim);}
+.val-cell{font-family:var(--fontMono);font-size:12px;font-weight:600;}
+.batch-cell{text-align:center;font-family:var(--fontMono);font-weight:700;border-radius:6px;}
+.batch-cell.pass{color:var(--good);}
+.batch-cell.fail{color:var(--bad);background:var(--badSoft);}
+.batch-cell.ctx{color:var(--inkFaint);font-weight:400;}
+.overall-row td{border-top:2px solid var(--hairline2);border-bottom:none;background:var(--surface2);font-weight:700;}
+.table-cap{font-size:11px;color:var(--inkMute);line-height:1.6;margin-top:8px;}
+.tcw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:16px;}
+.tcw-card{background:var(--surface2);border:1px solid var(--hairline);border-radius:var(--r10);padding:10px 12px;}
+.tcw-card .tl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute);margin-bottom:5px;}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;}
+.kv .k{color:var(--inkDim);} .kv .v{font-weight:600;font-family:var(--fontMono);text-align:right;}
+
+.panel-eb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);
+font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin:16px 0 8px;}
+.preview-box{background:var(--surface2);border:1px solid var(--hairline2);border-left:3px solid var(--info);
+border-radius:var(--r10);padding:11px 13px;}
+.preview-box .pv-num{font-size:18px;font-weight:800;font-family:var(--fontMono);color:var(--ink);}
+.preview-box .pv-bind{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);margin-top:4px;}
+.jsonview{display:none;margin-top:10px;background:var(--canvas2);border:1px solid var(--hairline2);border-radius:var(--r10);
+padding:12px 14px;font-family:var(--fontMono);font-size:11.5px;line-height:1.6;color:var(--ink2);overflow-x:auto;white-space:pre;}
+.jsonview.open{display:block;animation:fade .12s ease;}
+.footer-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--hairline);}
+.meta-bits{font-size:11px;color:var(--inkMute);font-family:var(--fontMono);}
+.ref-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ref-table th{text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);padding:7px 10px;border-bottom:1px solid var(--hairline2);}
+.ref-table td{padding:7px 10px;border-bottom:1px solid var(--hairline);font-family:var(--fontMono);}
+.stack{display:flex;flex-direction:column;gap:16px;}
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+@media (max-width:640px){
+  .doc-head{padding:11px 14px;}
+  .stage,.intro{padding-left:12px;padding-right:12px;}
+  .cond-table{font-size:11px;}
+  .cond-table th,.cond-table td{padding:6px 6px;}
+  .card-head{padding:11px 12px;}
+  .card-body{padding:12px;overflow-x:auto;}
+}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <div>
+    <h1>Promo Rules — Concept B: Condition Table</h1>
+    <div class="sub">Team 1d · every row is a real evaluation, not a mockup number · <b>hw.rule.v1</b> underneath</div>
+  </div>
+  <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+</div>
+
+<div class="intro">
+  <div class="card">
+    <div class="eyebrow">The idea</div>
+    <h2>The rule is a spreadsheet of conditions, and each row is checked against the batch list live, right there in the table.</h2>
+    <p>ALL / ANY / NOT render as indented, labelled blocks instead of sentence connectors. The right-hand columns are the real per-batch pass/fail for each condition — computed in this page, not a canned screenshot — with the failing cell highlighted in red. A batch-only "Overall" row is also computed live; where a condition needs order or customer context this table doesn't have (channel, tier), it says so honestly rather than guessing. <code>then</code> / <code>scope</code> / <code>window</code> sit underneath as three compact cards, matching the shape's own three top-level keys.</p>
+    <p class="small-note">Batch is the unit of control — <code>batch.batch_no</code>, THC, packaged/received date. No Metrc tag appears anywhere on this screen, by design (owner ruling, 2026-09-14).</p>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-head"><div class="ch-t">Reference batch list</div><span class="small-note">B1 / B2 / B3 below match the table columns</span></div>
+    <div class="card-body" style="padding-top:8px;padding-bottom:8px;">
+      <table class="ref-table">
+        <thead><tr><th>Batch</th><th>Category</th><th>THC</th><th>Packaged</th><th>On-hand</th></tr></thead>
+        <tbody>
+          <tr><td>B1</td><td>flower</td><td>22%</td><td>10 days ago</td><td>40 units</td></tr>
+          <tr><td>B2</td><td>flower</td><td>31%</td><td>95 days ago</td><td>12 units</td></tr>
+          <tr><td>B3</td><td>flower</td><td>34%</td><td>120 days ago</td><td>8 units</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="stack" id="rules"></div>
+</div>
+
+<script>
+const BATCHES = [
+  { id:'B1', category:'flower', thc:22, packagedDays:10, onHand:40 },
+  { id:'B2', category:'flower', thc:31, packagedDays:95, onHand:12 },
+  { id:'B3', category:'flower', thc:34, packagedDays:120, onHand:8 },
+];
+
+const rules = [
+  {
+    shape:'hw.rule.v1', id:'rule_01J0AGED30PCT', name:'Aged 30%+ flower, 15% off',
+    status:'active', priority:100, stackable:false,
+    window:{ starts_at:'2026-09-16T00:00:00Z', ends_at:null },
+    scope:{ store_ids:['store_wh'], channels:['in_store','delivery'] },
+    if:{ all:[
+        { field:'batch.thc_pct', op:'gte', value:30 },
+        { field:'batch.packaged_at', op:'older_than_days', value:90 },
+        { field:'product.category_id', op:'in', value:['flower'] },
+      ], any:[], not:[] },
+    then:{ kind:'percent', value:15, applies_to:'matched_lines', cap_cents:null, max_per_order:null },
+    meta:{ author:'owner', source:'ui', prompt:null, version:1 },
+    preview:{ batches:2, lines:2 },
+  },
+  {
+    shape:'hw.rule.v1', id:'rule_01J0FLOWERNESTED', name:'Flower — delivery or non-bronze customers, 10% off',
+    status:'paused', priority:80, stackable:true,
+    window:{ starts_at:'2026-08-01T00:00:00Z', ends_at:'2026-10-31T23:59:59Z' },
+    scope:{ store_ids:[], channels:[] },
+    if:{
+      all:[ { field:'product.category_id', op:'in', value:['flower'] } ],
+      any:[
+        { field:'order.channel', op:'eq', value:'delivery' },
+        { not:[ { any:[ { field:'customer.tier', op:'eq', value:'bronze' } ], all:[], not:[] } ] },
+      ],
+      not:[],
+    },
+    then:{ kind:'percent', value:10, applies_to:'matched_lines', cap_cents:2000, max_per_order:null },
+    meta:{ author:'owner', source:'ui', prompt:null, version:2 },
+    preview:{ batches:3, lines:3 },
+  },
+  {
+    shape:'hw.rule.v1', id:'rule_01J0VAPEAGENT', name:'Vape batches 60+ days, 10% off',
+    status:'draft', priority:50, stackable:false,
+    window:{ starts_at:'2026-09-17T00:00:00Z', ends_at:null },
+    scope:{ store_ids:[], channels:[] },
+    if:{ all:[
+        { field:'product.category_id', op:'in', value:['vape'] },
+        { field:'batch.packaged_at', op:'older_than_days', value:60 },
+      ], any:[], not:[] },
+    then:{ kind:'percent', value:10, applies_to:'matched_lines', cap_cents:null, max_per_order:null },
+    meta:{ author:'promo-copilot', source:'agent', prompt:'discount vape batches older than 60 days by 10%', version:1 },
+    preview:{ batches:0, lines:0 },
+  },
+];
+
+// ---- three-valued evaluation: true / false / null (context-dependent — needs order/customer/cart data this table doesn't have) ----
+function evalCondition(cond, batch){
+  if (cond.field === 'product.category_id') return applyOp(cond.op, batch.category, cond.value);
+  if (cond.field === 'batch.thc_pct') return applyOp(cond.op, batch.thc, cond.value);
+  if (cond.field === 'batch.packaged_at') {
+    if (cond.op === 'older_than_days') return batch.packagedDays > cond.value;
+    if (cond.op === 'newer_than_days') return batch.packagedDays < cond.value;
+    return null;
+  }
+  return null; // order.*, customer.*, cart.*, time.*, or an unmodeled batch/product field
+}
+function applyOp(op, val, cmp){
+  switch(op){
+    case 'eq': return val === cmp;
+    case 'neq': return val !== cmp;
+    case 'gt': return val > cmp;
+    case 'gte': return val >= cmp;
+    case 'lt': return val < cmp;
+    case 'lte': return val <= cmp;
+    case 'in': return Array.isArray(cmp) && cmp.includes(val);
+    case 'not_in': return Array.isArray(cmp) && !cmp.includes(val);
+    case 'between': return Array.isArray(cmp) && val >= cmp[0] && val <= cmp[1];
+    default: return null;
+  }
+}
+function allOf(vals){ if(!vals.length) return true; if(vals.includes(false)) return false; if(vals.includes(null)) return null; return true; }
+function anyOf(vals){ if(!vals.length) return true; if(vals.includes(true)) return true; if(vals.includes(null)) return null; return false; }
+function norOf(vals){ if(!vals.length) return true; if(vals.includes(true)) return false; if(vals.includes(null)) return null; return true; }
+function evalNode(node, batch){ return node.field ? evalCondition(node, batch) : evalGroup(node, batch); }
+function evalGroup(node, batch){
+  const a = allOf((node.all||[]).map(n => evalNode(n, batch)));
+  const b = anyOf((node.any||[]).map(n => evalNode(n, batch)));
+  const c = norOf((node.not||[]).map(n => evalNode(n, batch)));
+  return allOf([a, b, c]);
+}
+
+function flatten(node, path, rows){
+  ['all','any','not'].forEach(key => {
+    (node[key] || []).forEach(item => {
+      const label = [...path, key.toUpperCase()];
+      if (item.field) rows.push({ label: label.join(' → '), cond: item });
+      else flatten(item, label, rows);
+    });
+  });
+}
+
+function cellHtml(v){
+  if (v === true) return `<td class="batch-cell pass">✓</td>`;
+  if (v === false) return `<td class="batch-cell fail">✕</td>`;
+  return `<td class="batch-cell ctx">–</td>`;
+}
+
+function pillClass(status){ return 'pill pill-' + status; }
+function activateControl(rule){
+  if (rule.meta.source === 'agent') return `<button class="btn btn-secondary" disabled>Activate</button><span class="agent-note">needs promos:activate — a person</span>`;
+  if (rule.status === 'draft' || rule.status === 'paused') return `<button class="btn btn-accent" data-act="activate" data-rule="${rule.id}">Activate</button>`;
+  if (rule.status === 'active') return `<button class="btn btn-secondary" data-act="pause" data-rule="${rule.id}">Pause</button>`;
+  return `<button class="btn btn-secondary" disabled>Ended</button>`;
+}
+function money(cents){ return '$' + (cents/100).toFixed(2); }
+function fmtDate(iso){ return iso ? new Date(iso).toISOString().slice(0,10) : '—'; }
+
+function renderRule(rule){
+  const rows = []; flatten(rule.if, [], rows);
+  const overall = BATCHES.map(b => evalGroup(rule.if, b));
+  const rowsHtml = rows.map(r => `
+    <tr>
+      <td><span class="grp-label">${r.label}</span></td>
+      <td class="field-cell">${r.cond.field}</td>
+      <td class="op-cell">${r.cond.op}</td>
+      <td class="val-cell">${Array.isArray(r.cond.value) ? '[' + r.cond.value.join(', ') + ']' : r.cond.value}</td>
+      ${BATCHES.map(b => cellHtml(evalCondition(r.cond, b))).join('')}
+    </tr>`).join('');
+  const overallHtml = `
+    <tr class="overall-row">
+      <td colspan="4">Overall (batch/product fields only)</td>
+      ${overall.map(v => cellHtml(v)).join('')}
+    </tr>`;
+  const sourceTag = rule.meta.source === 'agent' ? `<span class="pill pill-agent">drafted by agent</span>` : '';
+
+  const el = document.getElementById('card-' + rule.id);
+  el.innerHTML = `
+    <div class="card-head">
+      <div class="ch-t">${rule.name}</div>
+      <span class="${pillClass(rule.status)}">${rule.status}</span>
+      ${sourceTag}
+      <button class="btn btn-ghost btn-xs" data-toggle-json="${rule.id}">View JSON</button>
+    </div>
+    <div class="card-body">
+      <table class="cond-table">
+        <thead><tr><th>Group</th><th>Field</th><th>Op</th><th>Value</th><th>B1</th><th>B2</th><th>B3</th></tr></thead>
+        <tbody>${rowsHtml}${overallHtml}</tbody>
+      </table>
+      <div class="table-cap">– = context-dependent: needs order/customer/cart data this batch-only table doesn't carry. That's not a bug in the table — it's the same reason the live preview panel below can differ from "Overall" here.</div>
+
+      <div class="tcw-grid">
+        <div class="tcw-card">
+          <div class="tl">Then</div>
+          <div class="kv"><span class="k">kind</span><span class="v">${rule.then.kind}</span></div>
+          <div class="kv"><span class="k">value</span><span class="v">${rule.then.kind === 'percent' ? rule.then.value + '%' : rule.then.kind === 'amount' || rule.then.kind === 'price' ? money(rule.then.value) : rule.then.value}</span></div>
+          <div class="kv"><span class="k">applies_to</span><span class="v">${rule.then.applies_to}</span></div>
+          <div class="kv"><span class="k">cap_cents</span><span class="v">${rule.then.cap_cents ?? 'null'}</span></div>
+          <div class="kv"><span class="k">max_per_order</span><span class="v">${rule.then.max_per_order ?? 'null'}</span></div>
+        </div>
+        <div class="tcw-card">
+          <div class="tl">Scope</div>
+          <div class="kv"><span class="k">store_ids</span><span class="v">${rule.scope.store_ids.length ? rule.scope.store_ids.join(', ') : 'all stores'}</span></div>
+          <div class="kv"><span class="k">channels</span><span class="v">${rule.scope.channels.length ? rule.scope.channels.join(', ') : 'all channels'}</span></div>
+          <div class="kv"><span class="k">stackable</span><span class="v">${rule.stackable}</span></div>
+          <div class="kv"><span class="k">priority</span><span class="v">${rule.priority}</span></div>
+        </div>
+        <div class="tcw-card">
+          <div class="tl">Window</div>
+          <div class="kv"><span class="k">starts_at</span><span class="v">${fmtDate(rule.window.starts_at)}</span></div>
+          <div class="kv"><span class="k">ends_at</span><span class="v">${fmtDate(rule.window.ends_at)}</span></div>
+        </div>
+      </div>
+
+      <div class="panel-eb"><span>Live preview</span></div>
+      <div class="preview-box">
+        <span class="pv-num">${rule.preview.batches}</span> batches · <span class="pv-num">${rule.preview.lines}</span> lines of the sample cart match
+        <div class="pv-bind">bound to <code>POST /api/promos/rules/${rule.id}/preview</code> — static in this mockup; evaluated against a real cart (order channel + customer tier included), which is why it can differ from the batch-only "Overall" row above</div>
+      </div>
+
+      <pre class="jsonview" id="json-${rule.id}">${JSON.stringify(stripRule(rule), null, 2)}</pre>
+
+      <div class="footer-row">
+        ${activateControl(rule)}
+        <span class="meta-bits">author: ${rule.meta.author} · v${rule.meta.version}${rule.meta.prompt ? ' · prompt: "' + rule.meta.prompt + '"' : ''}</span>
+      </div>
+    </div>`;
+}
+function stripRule(rule){ const { preview, ...rest } = rule; return rest; }
+
+document.getElementById('rules').innerHTML = rules.map(r => `<div class="card" id="card-${r.id}"></div>`).join('');
+rules.forEach(renderRule);
+
+document.addEventListener('click', (e) => {
+  const jt = e.target.closest('[data-toggle-json]');
+  if (jt) {
+    document.getElementById('json-' + jt.getAttribute('data-toggle-json')).classList.toggle('open');
+    jt.textContent = jt.textContent === 'View JSON' ? 'Hide JSON' : 'View JSON';
+    return;
+  }
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    const rule = rules.find(r => r.id === act.getAttribute('data-rule'));
+    rule.status = act.getAttribute('data-act') === 'activate' ? 'active' : 'paused';
+    renderRule(rule);
+  }
+});
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next === 'light' ? 'Dark mode' : 'Light mode';
+});
+</script>
+</body>
+</html>

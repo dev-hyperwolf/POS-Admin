@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promo Rules — Concept C: Batch-First Picker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:"Inter", -apple-system, system-ui, sans-serif;
+--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+--scrim:rgba(20,18,12,.42);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+}
+[data-theme=dark]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentText:#FFD100;
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16); --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+--railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.mono{font-family:var(--fontMono);}
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:14.5px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.theme-btn{appearance:none;border:1px solid var(--railHair);background:transparent;color:var(--railBright);
+width:32px;height:32px;border-radius:var(--r8);cursor:pointer;margin-left:auto;font-size:15px;flex:0 0 auto;}
+.theme-btn:hover{background:var(--railHover);}
+.stage{max-width:1280px;margin:16px auto 72px;padding:0 18px;}
+.intro{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+padding:14px 16px;box-shadow:var(--shadowSm);margin-bottom:14px;}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro h2{font-size:15.5px;margin:0 0 6px;letter-spacing:-.01em;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.6;margin:0 0 6px;max-width:960px;}
+.intro p:last-child{margin-bottom:0;}
+code,.code-inline{font-family:var(--fontMono);font-size:11.3px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+
+.section{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+padding:16px;box-shadow:var(--shadowSm);margin-bottom:14px;}
+.section h3{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--inkDim);margin:0 0 10px;display:flex;align-items:center;gap:8px;justify-content:space-between;}
+.section h3 span.n{font-family:var(--fontMono);font-weight:500;text-transform:none;letter-spacing:0;color:var(--inkMute);font-size:11px;}
+
+/* Existing rules row */
+.rules-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.rule-card{border:1px solid var(--hairline2);border-radius:var(--r10);padding:11px 12px;background:var(--surface2);}
+.rule-card .rname{font-size:12.8px;font-weight:600;margin-bottom:6px;line-height:1.35;}
+.rule-card .rmeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+.chip{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:600;font-family:var(--fontMono);white-space:nowrap;border:1px solid transparent;}
+.chip.draft{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline2);}
+.chip.active{background:var(--goodSoft);color:var(--good);}
+.chip.paused{background:var(--warnSoft);color:var(--warnText);}
+.chip.ended{background:var(--neutralSoft);color:var(--inkMute);}
+.chip.src-agent{background:var(--infoSoft);color:var(--info);}
+.chip.src-ui{background:var(--surface3);color:var(--inkDim);}
+.btn{appearance:none;border:1px solid var(--hairline3);background:var(--surface);color:var(--ink);
+font-family:var(--fontSans);font-size:11.8px;font-weight:600;padding:7px 12px;border-radius:var(--r10);cursor:pointer;}
+.btn:hover{background:var(--surface3);}
+.btn.sm{padding:5px 9px;font-size:11px;border-radius:8px;}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme=dark] .btn.primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.btn.primary:hover{opacity:.9;}
+.btn:disabled{opacity:.5;cursor:not-allowed;background:var(--disabledBg,var(--surface3));color:var(--inkMute);}
+.jsonbox{display:none;margin-top:8px;background:var(--bg2);border:1px solid var(--hairline2);border-radius:8px;padding:9px 10px;max-height:220px;overflow:auto;}
+.jsonbox.show{display:block;}
+.jsonbox pre{margin:0;font-size:10.8px;line-height:1.55;font-family:var(--fontMono);white-space:pre-wrap;word-break:break-word;color:var(--ink2);}
+
+/* Batch table */
+table.batches{width:100%;border-collapse:collapse;font-size:12.3px;}
+table.batches th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);
+font-weight:700;padding:7px 8px;border-bottom:1px solid var(--hairline2);cursor:pointer;user-select:none;white-space:nowrap;}
+table.batches th:hover{color:var(--ink);}
+table.batches th .arrow{font-size:9px;margin-left:3px;opacity:.7;}
+table.batches td{padding:8px 8px;border-bottom:1px solid var(--hairline);vertical-align:middle;}
+table.batches tr.sel{background:var(--accentSoft);}
+table.batches td.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.batch-no{font-family:var(--fontMono);font-weight:600;}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--ink);cursor:pointer;}
+
+.derive-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;align-items:start;}
+@media (max-width:900px){.derive-grid{grid-template-columns:1fr;}}
+.cond-chip{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);
+border:1px solid var(--hairline2);border-radius:var(--r10);padding:9px 11px;margin-bottom:8px;font-size:12.3px;}
+.cond-chip .label{display:flex;flex-direction:column;gap:2px;}
+.cond-chip .label b{font-weight:600;}
+.cond-chip .label small{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;}
+.stepper{display:flex;align-items:center;gap:6px;}
+.stepper button{width:24px;height:24px;border-radius:7px;border:1px solid var(--hairline3);background:var(--surface);cursor:pointer;font-size:13px;line-height:1;}
+.stepper button:hover{background:var(--surface3);}
+.stepper .val{min-width:52px;text-align:center;font-family:var(--fontMono);font-weight:600;font-size:12.5px;}
+.catch-box{background:var(--infoSoft);border:1px solid var(--hairline2);border-radius:var(--r10);padding:10px 12px;font-size:12px;line-height:1.6;color:var(--ink2);}
+.catch-box b{color:var(--info);}
+
+.form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media (max-width:760px){.form-grid{grid-template-columns:repeat(2,1fr);}}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);font-weight:700;}
+.field select,.field input{font-family:var(--fontSans);font-size:12.5px;padding:7px 8px;border-radius:8px;border:1px solid var(--hairline3);background:var(--field,var(--surface));color:var(--ink);}
+.check-row{display:flex;gap:12px;flex-wrap:wrap;}
+.check-row label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);}
+
+.preview-panel{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--surface2);
+border:1px dashed var(--hairline3);border-radius:var(--r12);padding:14px 16px;flex-wrap:wrap;}
+.preview-panel .num{font-size:26px;font-weight:700;font-family:var(--fontMono);color:var(--ink);}
+.preview-panel .lbl{font-size:11.5px;color:var(--inkMute);}
+.preview-panel .route{font-size:10.3px;font-family:var(--fontMono);color:var(--inkFaint);margin-top:2px;}
+
+.footer-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;}
+.footer-note{font-size:11px;color:var(--warnText);font-family:var(--fontMono);}
+.badge-shape{font-size:10px;color:var(--inkFaint);font-family:var(--fontMono);}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <div>
+    <h1>Promo Rules — Concept C: Batch-First Picker</h1>
+    <div class="sub">Team 1d · <b>hw.rule.v1</b> · plan §2.5 · pick batches → derive the rule</div>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">◐</button>
+</div>
+
+<div class="stage">
+  <div class="intro">
+    <div class="eyebrow">Concept C</div>
+    <h2>Start from inventory, not from a form.</h2>
+    <p>The operator sees the live batch list first — age, THC, on-hand, packaged/received date, never a Metrc tag — and checks the batches they actually want to move. The screen derives the <b>narrowest</b> condition set that covers exactly that selection, shown as loosenable chips, then the operator adds the reward, scope and window. "What else would this catch" surfaces any batch the derived rule also matches that wasn't selected, before it's saved.</p>
+    <p>Every condition below is a real <code>RuleField</code>/<code>RuleOp</code> pair from the contract. On-hand quantity is shown for triage but is <b>not</b> a targeting field — see the report for why.</p>
+  </div>
+
+  <div class="section">
+    <h3>Existing rules <span class="n">3 seeded · hw.rule.v1</span></h3>
+    <div class="rules-row" id="existingRules"></div>
+  </div>
+
+  <div class="section">
+    <h3>1 · Pick batches <span class="n">sorted oldest first by default</span></h3>
+    <table class="batches" id="batchTable">
+      <thead>
+        <tr>
+          <th style="width:34px"></th>
+          <th data-k="batch_no">Batch <span class="arrow"></span></th>
+          <th data-k="category">Category <span class="arrow"></span></th>
+          <th data-k="thc_pct">THC % <span class="arrow"></span></th>
+          <th data-k="age_days">Age (packaged) <span class="arrow">▾</span></th>
+          <th data-k="received_days">Received <span class="arrow"></span></th>
+          <th data-k="on_hand">On-hand <span class="arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="batchBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>2 · Derived conditions <span class="n">narrowest rule covering your selection</span></h3>
+    <div class="derive-grid">
+      <div>
+        <div id="condChips"></div>
+      </div>
+      <div class="catch-box" id="catchBox"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>3 · Then / scope / window</h3>
+    <div class="form-grid" style="margin-bottom:12px;">
+      <div class="field"><label>then.kind</label>
+        <select id="thenKind">
+          <option value="percent" selected>percent</option>
+          <option value="amount">amount</option>
+          <option value="price">price</option>
+          <option value="points">points</option>
+          <option value="bogo">bogo</option>
+          <option value="gift">gift</option>
+        </select>
+      </div>
+      <div class="field"><label>then.value</label><input id="thenValue" type="number" value="15" min="0"></div>
+      <div class="field"><label>applies_to</label>
+        <select id="appliesTo"><option value="matched_lines" selected>matched_lines</option><option value="cart">cart</option></select>
+      </div>
+      <div class="field"><label>priority</label><input id="priority" type="number" value="100"></div>
+    </div>
+    <div class="form-grid" style="margin-bottom:12px;">
+      <div class="field"><label>window.starts_at</label><input id="startsAt" type="date" value="2026-09-16"></div>
+      <div class="field"><label>window.ends_at</label><input id="endsAt" type="date" placeholder="null = no end"></div>
+      <div class="field"><label>cap_cents</label><input id="capCents" type="number" placeholder="null"></div>
+      <div class="field"><label>max_per_order</label><input id="maxPerOrder" type="number" placeholder="null"></div>
+    </div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="field"><label>scope.channels</label>
+        <div class="check-row">
+          <label><input type="checkbox" class="chan" value="in_store" checked> in_store</label>
+          <label><input type="checkbox" class="chan" value="pickup"> pickup</label>
+          <label><input type="checkbox" class="chan" value="delivery" checked> delivery</label>
+        </div>
+      </div>
+      <div class="field"><label>scope.store_ids</label>
+        <div class="check-row">
+          <label><input type="checkbox" class="store" value="store_wh" checked> West Hollywood</label>
+          <label><input type="checkbox" class="store" value="store_le"> Lake Elsinore</label>
+          <label><input type="checkbox" class="store" value="store_cr"> Corona</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>4 · Live preview <span class="n mono">POST /api/promos/rules/{id}/preview</span></h3>
+    <div class="preview-panel">
+      <div>
+        <div class="num" id="previewNum">2 batches · 3 lines</div>
+        <div class="lbl">of the sample cart — static in this mockup, bound to the preview route at save time</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn sm" onclick="toggleJson('newRuleJson')">View JSON</button>
+      </div>
+    </div>
+    <div class="jsonbox" id="newRuleJson"><pre id="newRuleJsonPre"></pre></div>
+  </div>
+
+  <div class="footer-actions">
+    <span class="chip draft">draft</span>
+    <button class="btn">Save as draft</button>
+    <button class="btn primary" id="activateBtn">Activate</button>
+    <span class="badge-shape">meta.source: ui · meta.author: admin@hyperwolf.com</span>
+  </div>
+</div>
+
+<script>
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', cur==='dark' ? 'light' : 'dark');
+}
+function toggleJson(id){ document.getElementById(id).classList.toggle('show'); }
+
+// ---- seed data: three flower batches, never a Metrc tag ----
+const BATCHES = [
+  { batch_no:'BATCH-2209', category:'flower', thc_pct:22.0, age_days:10, received_days:12, on_hand:40 },
+  { batch_no:'BATCH-1187', category:'flower', thc_pct:31.0, age_days:95, received_days:98, on_hand:12 },
+  { batch_no:'BATCH-0734', category:'flower', thc_pct:34.0, age_days:120, received_days:124, on_hand:8 },
+];
+
+// ---- three seeded rules (RULE-SHAPE.md §4) ----
+const EXISTING_RULES = [
+  {
+    name:'Aged 30%+ flower, 15% off', status:'active', source:'ui',
+    rule:{ shape:'hw.rule.v1', id:'rule_01J0AGED30PCT', name:'Aged 30%+ flower, 15% off',
+      status:'active', priority:100, stackable:false,
+      window:{ starts_at:'2026-09-16T00:00:00Z', ends_at:null },
+      scope:{ store_ids:['store_wh'], channels:['in_store','delivery'] },
+      if:{ all:[
+          { field:'batch.thc_pct', op:'gte', value:30 },
+          { field:'batch.packaged_at', op:'older_than_days', value:90 },
+          { field:'product.category_id', op:'in', value:['flower'] }
+        ], any:[], not:[] },
+      then:{ kind:'percent', value:15, applies_to:'matched_lines', cap_cents:null, max_per_order:null },
+      meta:{ author:'owner', source:'ui', prompt:null, version:1 } }
+  },
+  {
+    name:'Flower, delivered OR not bronze', status:'paused', source:'ui',
+    rule:{ shape:'hw.rule.v1', id:'rule_01J0FLRDELNB', name:'Flower, delivered OR not bronze',
+      status:'paused', priority:80, stackable:true,
+      window:{ starts_at:'2026-08-01T00:00:00Z', ends_at:'2026-12-01T00:00:00Z' },
+      scope:{ store_ids:[], channels:[] },
+      if:{ all:[ { field:'product.category_id', op:'in', value:['flower'] } ],
+           any:[ { field:'order.channel', op:'eq', value:'delivery' },
+                 { all:[], any:[], not:[ { field:'customer.tier', op:'eq', value:'bronze' } ] } ],
+           not:[] },
+      then:{ kind:'amount', value:500, applies_to:'matched_lines', cap_cents:2000, max_per_order:1 },
+      meta:{ author:'owner', source:'ui', prompt:null, version:2 } }
+  },
+  {
+    name:'Vape batches aged 60d+, 10% off', status:'draft', source:'agent',
+    rule:{ shape:'hw.rule.v1', id:'rule_01J0VAPE60D10PCT', name:'Vape batches aged 60d+, 10% off',
+      status:'draft', priority:50, stackable:true,
+      window:{ starts_at:'2026-09-20T00:00:00Z', ends_at:'2026-10-20T00:00:00Z' },
+      scope:{ store_ids:[], channels:[] },
+      if:{ all:[
+          { field:'product.category_id', op:'in', value:['vape'] },
+          { field:'batch.age_days', op:'gte', value:60 }
+        ], any:[], not:[] },
+      then:{ kind:'percent', value:10, applies_to:'matched_lines', cap_cents:null, max_per_order:null },
+      meta:{ author:'promo-copilot', source:'agent', prompt:'discount vape batches older than 60 days by 10%', version:1 } }
+  },
+];
+
+function renderExisting(){
+  const el = document.getElementById('existingRules');
+  el.innerHTML = EXISTING_RULES.map((r,i)=>`
+    <div class="rule-card">
+      <div class="rname">${r.name}</div>
+      <div class="rmeta">
+        <span class="chip ${r.status}">${r.status}</span>
+        <span class="chip src-${r.source}">${r.source==='agent'?'agent-drafted':'ui-authored'}</span>
+      </div>
+      <button class="btn sm" onclick="toggleJson('exJson${i}')">View JSON</button>
+      <div class="jsonbox" id="exJson${i}"><pre>${JSON.stringify(r.rule,null,2)}</pre></div>
+    </div>`).join('');
+}
+
+// ---- batch table: sorting + selection ----
+let sortKey='age_days', sortDir=-1;
+let selected = new Set(['BATCH-1187','BATCH-0734']); // pre-selected: the two aged, high-THC batches
+let thcThresh = 31;   // gte
+let ageThresh = 95;   // packaged_at older_than_days
+
+function renderBatches(){
+  const rows = [...BATCHES].sort((a,b)=> (a[sortKey]>b[sortKey]?1:-1)*sortDir);
+  document.getElementById('batchBody').innerHTML = rows.map(b=>`
+    <tr class="${selected.has(b.batch_no)?'sel':''}">
+      <td><input type="checkbox" ${selected.has(b.batch_no)?'checked':''} onchange="toggleSel('${b.batch_no}')"></td>
+      <td class="batch-no">${b.batch_no}</td>
+      <td>${b.category}</td>
+      <td class="num">${b.thc_pct.toFixed(1)}%</td>
+      <td class="num">${b.age_days}d ago</td>
+      <td class="num">${b.received_days}d ago</td>
+      <td class="num">${b.on_hand}</td>
+    </tr>`).join('');
+  document.querySelectorAll('#batchTable th[data-k]').forEach(th=>{
+    th.querySelector('.arrow').textContent = th.dataset.k===sortKey ? (sortDir===1?'▴':'▾') : '';
+  });
+}
+function toggleSel(no){ selected.has(no)?selected.delete(no):selected.add(no); syncFromSelection(); renderAll(); }
+document.querySelectorAll('#batchTable th[data-k]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    if(sortKey===th.dataset.k) sortDir*=-1; else { sortKey=th.dataset.k; sortDir=1; }
+    renderBatches();
+  });
+});
+
+function syncFromSelection(){
+  const sel = BATCHES.filter(b=>selected.has(b.batch_no));
+  if(sel.length===0) return;
+  thcThresh = Math.min(...sel.map(b=>b.thc_pct));
+  ageThresh = Math.min(...sel.map(b=>b.age_days));
+}
+
+function matchesAt(thc, age){
+  return BATCHES.filter(b=> b.thc_pct>=thc && b.age_days>=age && b.category==='flower');
+}
+
+function renderDerived(){
+  const chipsEl = document.getElementById('condChips');
+  chipsEl.innerHTML = `
+    <div class="cond-chip">
+      <div class="label"><b>batch.thc_pct &nbsp;gte</b><small>number · loosen to widen the match</small></div>
+      <div class="stepper">
+        <button onclick="adjust('thc',-1)">−</button>
+        <span class="val">${thcThresh.toFixed(0)}%</span>
+        <button onclick="adjust('thc',1)">+</button>
+      </div>
+    </div>
+    <div class="cond-chip">
+      <div class="label"><b>batch.packaged_at &nbsp;older_than_days</b><small>date · loosen to widen the match</small></div>
+      <div class="stepper">
+        <button onclick="adjust('age',-5)">−</button>
+        <span class="val">${ageThresh}d</span>
+        <button onclick="adjust('age',5)">+</button>
+      </div>
+    </div>
+    <div class="cond-chip">
+      <div class="label"><b>product.category_id &nbsp;in</b><small>string[] · fixed by the picker's context</small></div>
+      <div class="stepper"><span class="val">[flower]</span></div>
+    </div>`;
+
+  const atThresh = matchesAt(thcThresh, ageThresh);
+  const extra = atThresh.filter(b=>!selected.has(b.batch_no));
+  const box = document.getElementById('catchBox');
+  if(extra.length===0){
+    box.innerHTML = `<b>What else would this catch:</b> nothing beyond your ${selected.size} selected batch${selected.size===1?'':'es'} — the derived rule is exactly your selection.`;
+  } else {
+    box.innerHTML = `<b>What else would this catch:</b> at these thresholds it would also match ${extra.map(b=>`${b.batch_no} (${b.thc_pct.toFixed(1)}%, packaged ${b.age_days}d ago, ${b.on_hand} on-hand)`).join(', ')} — loosen further at your own risk.`;
+  }
+  renderPreview(atThresh);
+  buildJson(atThresh);
+}
+
+function adjust(which, delta){
+  if(which==='thc') thcThresh = Math.max(0, Math.min(100, thcThresh+delta));
+  if(which==='age') ageThresh = Math.max(0, ageThresh+delta);
+  renderDerived();
+}
+
+function renderPreview(matched){
+  const lines = matched.reduce((s,b)=> s + (b.on_hand>20?2:1), 0); // illustrative sample-cart line mapping
+  document.getElementById('previewNum').textContent = `${matched.length} batch${matched.length===1?'':'es'} · ${lines} line${lines===1?'':'s'}`;
+}
+
+function currentRuleObj(matched){
+  const channels = [...document.querySelectorAll('.chan:checked')].map(c=>c.value);
+  const stores = [...document.querySelectorAll('.store:checked')].map(c=>c.value);
+  return {
+    shape:'hw.rule.v1', id:'rule_draft_new', name:`Derived: THC ≥ ${thcThresh}% flower, packaged 90+ days ago`.replace('90',ageThresh),
+    status:'draft', priority: Number(document.getElementById('priority').value)||100, stackable:false,
+    window:{ starts_at: document.getElementById('startsAt').value ? document.getElementById('startsAt').value+'T00:00:00Z' : null,
+             ends_at: document.getElementById('endsAt').value ? document.getElementById('endsAt').value+'T00:00:00Z' : null },
+    scope:{ store_ids: stores, channels: channels },
+    if:{ all:[
+        { field:'batch.thc_pct', op:'gte', value:thcThresh },
+        { field:'batch.packaged_at', op:'older_than_days', value:ageThresh },
+        { field:'product.category_id', op:'in', value:['flower'] }
+      ], any:[], not:[] },
+    then:{ kind: document.getElementById('thenKind').value, value: Number(document.getElementById('thenValue').value)||0,
+           applies_to: document.getElementById('appliesTo').value,
+           cap_cents: document.getElementById('capCents').value ? Number(document.getElementById('capCents').value) : null,
+           max_per_order: document.getElementById('maxPerOrder').value ? Number(document.getElementById('maxPerOrder').value) : null },
+    meta:{ author:'admin@hyperwolf.com', source:'ui', prompt:null, version:1 },
+  };
+}
+function buildJson(matched){
+  document.getElementById('newRuleJsonPre').textContent = JSON.stringify(currentRuleObj(matched), null, 2);
+}
+
+function renderAll(){ renderBatches(); renderDerived(); }
+document.querySelectorAll('.chan, .store, #thenKind, #thenValue, #appliesTo, #priority, #startsAt, #endsAt, #capCents, #maxPerOrder')
+  .forEach(el=> el.addEventListener('change', ()=> buildJson(matchesAt(thcThresh,ageThresh))));
+
+renderExisting();
+syncFromSelection();
+renderAll();
+</script>
+</body>
+</html>
