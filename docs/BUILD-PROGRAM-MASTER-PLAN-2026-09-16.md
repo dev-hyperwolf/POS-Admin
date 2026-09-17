@@ -222,7 +222,14 @@ Rough scale: ~28 agent runs, Sonnet-heavy in W1–W2, Haiku for scaffolds/census
 
 ---
 
-## 7. Decisions that need JT (nothing below starts until answered)
+## 7. Owner decisions — DECIDED 2026-09-16 (JT accepted the recommendations)
+
+- **D1 → Airtable stays the system of record for M0–M2**; our admin is the UI over it; revisit at M3.
+- **D2 → move the client write token off `localStorage` now**, behind Team 0, short-lived server-issued session token.
+- **D3 → wire Store Concept A directly**; the four-concept rule applies to the console pages.
+- **D4 → agents draft, humans activate** (`promos:activate` never on an agent key).
+
+Original framing kept below for the record.
 
 - **D1 — System of record for HR/LP.** Airtable stays the store and our admin is the UI over it (fast, reversible, PII stays where it is) — or data migrates into wm-demo's DB (a schema and an irreversible cut-over). Blocks M1 build; M0 planning proceeds either way. *Recommendation: Airtable stays for M0–M2; revisit at M3.*
 - **D2 — Client write token in `localStorage`** (`shared/hw-live.js`, key `hw-live-token`). Moving it to a memory/session-scoped token changes sign-in for every existing screen (re-enter on each tab/reload). Do it in this program, or list it on `DEV-TEAM-CHANGE-LIST` with the rest of the client hardening? *Recommendation: do it now, behind Team 0, with a short-lived server-issued session token; it is the one checklist item the whole client fails.*
@@ -243,4 +250,4 @@ Mechanics I am deciding myself and reporting: contracts bump to 0.5.0 (additive)
 
 ## 9. Progress log (appended as work lands)
 
-_(empty — nothing dispatched)_
+- 2026-09-16 · plan approved by JT; W1 dispatched staggered: 0a, 1a, 2a, 3a first; 1b and 3b after 1a lands (both need `contracts/index.js` quiet).
