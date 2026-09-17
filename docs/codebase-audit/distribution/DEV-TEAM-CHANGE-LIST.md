@@ -289,3 +289,57 @@ Shape and validator: `@hyper-tech/contracts` 0.4.3 `Batch`.
    no error.)
 6. Does Chromium/Puppeteer work on the production host for the PDF reports?
 7. Who set up the Grafana connection to CloudWatch two weeks ago, and where is the dashboard?
+
+## Phase 2: operator console foundation (inventory distribution API)
+
+Items 20–25 add the routes needed for the new Floor Restock and console screens, and resolve a Python/JS parity gap. Reference: CONSOLE-ENDPOINT-MAP.md section D.
+
+### 20. Shelf Par editor API
+
+The Floor Restock mockup says "Manage shelf pars" opens a par editor; the control is wired but the route does not exist. **Smallest change:** a GET /api/inventory/shelf-pars and PUT /api/inventory/shelf-pars/{location_id} pair to read/write par (par:int, updated_by, updated_at) for each Location. Attach to Floor Restock's "Manage shelf pars" link.
+
+**Why:** Shelf par levels (target qty per product per shelf) drive restock planning. Without an editor, the pars are static or absent, and Floor Restock cannot tune refill size to actual shelf space.
+
+**Prove:** The "Manage shelf pars" link in the Floor Restock UI opens a form, fetches the current pars from GET /api/inventory/shelf-pars?location_id=..., updates one, and persists via PUT.
+
+**Storage (folded from a duplicate item 26, 2026-09-16):** a `shelf_pars` table {store_id, shelf_location_id, product_id or shell_id, par_qty, updated_by, updated_at}; `plan_restock` (wmdemo/restock_engine.py, `def plan_restock`) today derives need/cap from register sales only, so PAR is absent from the plan until this lands.
+
+### 21. StatusTimeline API
+
+The Verify round concepts include a "day's status per kit" timeline (built → pack → dispatch → refill → close, with who/when/result). No event log or status route exists. **Smallest change:** a GET /api/inventory/restock/events?since=&kit_id= that returns timestamped status transitions (kind:enum, kit_id, actor, at, detail) for every restock step. Used by StatusTimeline component and status/verification screens.
+
+**Why:** Operators need to know when each kit reached each stage (built at 14:30, packed at 15:12, dispatched at 18:00) to triage delays and verify the shipment happened.
+
+**Prove:** A GET /api/inventory/restock/events?kit_id=<id> returns a sorted list of {kind, at, actor, detail}; a test kit's timeline matches manual inspection of the activity log.
+
+### 22. Box types management API
+
+REFILL-CONCEPTS.md lists "Manage box types" as a shared component; the mockup has a stub. **Smallest change:** POST /api/inventory/box-types (create), GET /api/inventory/box-types (list), PUT /api/inventory/box-types/{id} (update). Box type schema: {id, name, category, capacity_units, active, region_id}.
+
+**Why:** Box types define kit structure (how many shelves, how many units per shelf). Today they are static data; without a management API, console operators cannot adjust kit geometry to respond to product mix or demand changes.
+
+**Prove:** The console's "Manage box types" screen fetches the list, creates one, and updates its capacity; the new type appears in the Kit editor.
+
+### 23. Received lane: last-N-days filter
+
+ReceivedLane shows "received last 7 days"; client currently must call GET /api/inventory/received?day=YYYY-MM-DD once per day to backfill. **Smallest change:** add an optional ?days=7 param to GET /api/inventory/received that returns all receipts in the last N days in a single call.
+
+**Why:** The console's ReceivedLane component loads its data once; today it must loop 7 times. A range query reduces client complexity and API calls.
+
+**Prove:** GET /api/inventory/received?days=7 returns all receipts in the last 7 calendar days in one response; loop-based calls and range-based calls return the same data.
+
+### 24. Tree-walk for KitBoxTree
+
+Location hierarchy is parent_id linked; client must chase links. **Smallest change:** add GET /api/inventory/locations/tree?root_id=&kind= that returns a nested JSON tree of Locations with children[], or add a ?expand=tree param to the existing GET /api/inventory/locations to include children[].
+
+**Why:** The console's KitBoxTree component needs the full hierarchy (Region → Kit → Box) at once; today it must fetch and link manually.
+
+**Prove:** GET /api/inventory/locations/tree returns a JSON tree with nested children[] arrays; a hand-built tree from the result matches a manual walk of the database.
+
+### 25. planHandoff export in Python
+
+distribution-engine exports `planHandoff(input)` but no Python twin exists in restock_engine.py. **Smallest change:** implement plan_handoff(input) in restock_engine.py following the shape of plan_refill/plan_restock (Handoff: region → kit → summary of pack/dispatch/return cycle), or clarify that Handoff is JS-only (tablet packing screen, no backend needed yet).
+
+**Why:** The JS engine defines the handoff plan contract; a Python twin allows the backend to build handoff plans server-side for packing and dispatch screens, or confirms that the tablet will always generate its own.
+
+**Prove:** plan_handoff(input) returns a valid Handoff contract, or the PM confirms that Handoff is tablet-only and this item is marked N/A.
