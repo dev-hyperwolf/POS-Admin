@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tax Rates — Concept A: Rate Table + Timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --scrim:rgba(20,18,12,.42);
+  --lock:#6E6E66; --lockSoft:#ECEAE2;
+}
+[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --scrim:rgba(0,0,0,.62);
+  --lock:#9A968B; --lockSoft:rgba(245,243,234,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+h1,h2,h3,h4{font-family:var(--fontSans)}
+code,.mono{font-family:var(--fontMono);}
+a{color:var(--info)}
+button{font-family:var(--fontSans)}
+::selection{background:var(--accentSoft)}
+
+.doc-head{position:sticky;top:0;z-index:120;background:var(--rail);color:var(--railBright);
+  padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.theme-btn,.device-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+  font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;}
+.theme-btn:hover,.device-btn:hover{background:var(--railHover);}
+.device-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.device-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;
+  padding:6px 12px;border-radius:var(--r999);cursor:pointer;}
+.device-toggle button.on{background:var(--accent);color:var(--accentInk);}
+
+.stage{max-width:1180px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1180px;margin:0 auto;padding:16px 22px 0;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro .card{padding:16px 18px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+.route{font-family:var(--fontMono);font-size:10.5px;color:var(--info);background:var(--infoSoft);padding:1px 6px;border-radius:6px;white-space:nowrap;}
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+
+.controlbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0;}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r999);padding:3px;gap:2px;}
+.seg button{appearance:none;border:none;background:transparent;font-family:var(--fontSans);font-size:12px;font-weight:600;
+  color:var(--inkDim);padding:6px 13px;border-radius:var(--r999);cursor:pointer;white-space:nowrap;}
+.seg button.on{background:var(--ink);color:var(--surface);}
+select,input[type=text],input[type=date],input[type=number],input[type=search],input[type=file],textarea{
+  font-family:var(--fontSans);font-size:12.5px;color:var(--ink);background:var(--field);border:1px solid var(--fieldBorder);
+  border-radius:var(--r8);padding:7px 10px;min-height:32px;}
+label{font-size:11px;font-weight:600;color:var(--inkMute);text-transform:uppercase;letter-spacing:.04em;}
+
+.role-chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px 0 4px;border-radius:var(--r999);
+  background:var(--surface);border:1px solid var(--hairline2);font-size:12px;cursor:pointer;margin-left:auto;position:relative;}
+.role-chip .dot{width:22px;height:22px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);
+  display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;font-family:var(--fontMono);}
+.role-chip b{font-family:var(--fontMono);font-weight:700;}
+.role-pop{display:none;position:absolute;top:36px;right:0;width:320px;background:var(--surface);border:1px solid var(--hairline2);
+  border-radius:var(--r10);box-shadow:var(--shadowLg);padding:12px 13px;z-index:80;font-size:12px;line-height:1.6;color:var(--ink2);text-align:left;}
+.role-chip:hover .role-pop, .role-chip:focus-within .role-pop{display:block;}
+.role-pop select{width:100%;margin-top:6px;}
+.role-pop .yes{color:var(--good);font-weight:600;}
+.role-pop .no{color:var(--bad);font-weight:600;}
+
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.stat{position:relative;overflow:hidden;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowSm);padding:13px 14px;}
+.stat .strip{position:absolute;left:0;right:0;top:0;height:3px;}
+.stat .lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--inkMute);}
+.stat .val{margin-top:6px;font-size:24px;line-height:1;font-weight:500;color:var(--ink);font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.stat .sub{margin-top:6px;font-size:11.5px;color:var(--inkDim);}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:10.5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.pill-lock{background:var(--lockSoft);color:var(--lock);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;
+  font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+  white-space:nowrap;border:1px solid transparent;background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme="dark"] .btn-primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-danger{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
+.btn-sm{min-height:26px;padding:0 9px;font-size:11.5px;}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);
+  padding:8px 10px;border-bottom:1px solid var(--hairline2);white-space:nowrap;position:sticky;top:0;background:var(--surface);}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--hairline);vertical-align:top;}
+tbody tr:hover td{background:var(--highlightSoft);}
+td.num,th.num{text-align:right;font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+
+.section-eb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);
+  font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin:22px 0 10px;}
+.section-eb .grow{flex:1;border-bottom:1px solid var(--hairline);}
+
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:190;display:none;}
+.scrim.open{display:block;animation:fade .14s ease;}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:460px;max-width:92vw;max-height:86vh;overflow:auto;
+  background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r14);box-shadow:var(--shadowLg);z-index:195;display:none;}
+.modal.open{display:block;animation:fade .14s ease;}
+.modal-head{padding:14px 16px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:10px;}
+.modal-head h4{margin:0;font-size:14.5px;font-weight:700;flex:1;}
+.modal-x{appearance:none;border:none;background:var(--surface3);width:26px;height:26px;border-radius:99px;cursor:pointer;font-size:13px;color:var(--inkDim);}
+.modal-body{padding:14px 16px;}
+.modal-foot{padding:12px 16px;border-top:1px solid var(--hairline);display:flex;gap:8px;justify-content:flex-end;}
+.field{margin-bottom:10px;}
+.field .l{margin-bottom:4px;}
+.field select,.field input,.field textarea{width:100%;}
+.confirm-box{background:var(--warnSoft);border:1px solid var(--warn);border-radius:var(--r10);padding:10px 12px;font-size:12px;color:var(--warnText);line-height:1.6;margin:10px 0;}
+.confirm-box b{color:var(--ink);}
+
+.panel{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;background:var(--surface);
+  border-left:1px solid var(--hairline2);box-shadow:var(--shadowLg);z-index:150;transform:translateX(100%);transition:transform .18s ease;
+  display:flex;flex-direction:column;}
+.panel.open{transform:translateX(0);}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:10px;}
+.panel-head h4{margin:0;font-size:14.5px;font-weight:700;flex:1;}
+.panel-x{appearance:none;border:none;background:var(--surface3);width:28px;height:28px;border-radius:99px;cursor:pointer;font-size:14px;color:var(--inkDim);}
+.panel-body{padding:16px;overflow-y:auto;flex:1;}
+.panel-foot{padding:12px 16px;border-top:1px solid var(--hairline);font-size:11px;color:var(--inkMute);font-family:var(--fontMono);}
+.pfield{margin-bottom:12px;}
+.pfield .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.pfield .v{margin-top:2px;font-size:13.5px;color:var(--ink);}
+.pfield .v.mono{font-family:var(--fontMono);}
+
+/* ---- desktop/phone device-frame toggle (house rule, added 2026-09-17) ----
+   One body of markup, always. Toggling "Phone" wraps that SAME #appShell in a physical
+   phone silhouette (bezel + notch + fixed 390x844 viewport, its own scroll) rather than
+   just narrowing the browser window -- "frames the phone layout" per the house rule,
+   and every concept's CSS reflow rules (.split, .cols2, table.rtable, ...) apply inside
+   it unchanged. */
+body.frame-phone{background:
+    repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);}
+body.frame-phone .viewport{display:flex;justify-content:center;padding:26px 10px 46px;}
+body.frame-phone #appShell{width:390px;max-width:100%;background:var(--rail);border-radius:46px;
+  padding:14px 12px;box-shadow:var(--shadowLg);}
+body.frame-phone #appShell > .phone-screen{background:var(--bg2);border-radius:32px;overflow-y:auto;overflow-x:hidden;
+  height:844px;max-height:80vh;-webkit-overflow-scrolling:touch;position:relative;}
+body.frame-phone #appShell::before{content:'';display:block;width:120px;height:18px;background:var(--rail);
+  border-radius:999px;margin:2px auto 8px;}
+body:not(.frame-phone) .phone-screen{display:contents;}
+.viewport.is-phone .stage,.viewport.is-phone .intro{max-width:100%;padding:0 12px;margin:10px auto;}
+.viewport.is-phone .stat-strip{grid-template-columns:1fr 1fr;}
+.viewport.is-phone .btn,.viewport.is-phone .tab,.viewport.is-phone .seg button,.viewport.is-phone select,
+.viewport.is-phone input,.viewport.is-phone .device-btn{min-height:44px;}
+.viewport.is-phone table{font-size:12px;}
+.viewport.is-phone .panel{width:100%;}
+.viewport.is-phone .modal{width:92vw;}
+.viewport:not(.is-phone) .phone-only{display:none !important;}
+.viewport.is-phone .desktop-only{display:none !important;}
+/* Home-card / own-app-surface pairing (Cash Drawer): both markups always exist; the
+   toggle just decides which is visible, on either device size. Scoped to the specific
+   .home-shell wrapper (not a bare :not(.app-open), which would match via html/body and
+   hide .home-app-face unconditionally). */
+.home-shell.app-open .home-card-face{display:none;}
+.home-shell:not(.app-open) .home-app-face{display:none;}
+
+/* ---- reusable layout + responsive-table utilities (shared across all 16 concepts) ---- */
+.split{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start;}
+.viewport.is-phone .split{grid-template-columns:1fr;}
+.split-wide{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;}
+.viewport.is-phone .split-wide{grid-template-columns:1fr;}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.viewport.is-phone .cols2{grid-template-columns:1fr;}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.viewport.is-phone .cols3{grid-template-columns:1fr;}
+.railnav{display:flex;flex-direction:column;gap:2px;}
+.viewport.is-phone .railnav{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:8px;-webkit-overflow-scrolling:touch;}
+.railnav button{appearance:none;text-align:left;border:1px solid transparent;background:transparent;color:var(--ink2);
+  padding:8px 10px;border-radius:var(--r8);cursor:pointer;font:inherit;font-size:12.5px;white-space:nowrap;}
+.railnav button.on{background:var(--surface);border-color:var(--hairline2);box-shadow:var(--shadowSm);color:var(--ink);font-weight:700;}
+.railnav .grp{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute);margin:10px 6px 3px;}
+.viewport.is-phone .railnav .grp{display:none;}
+
+table.rtable{width:100%;}
+.viewport.is-phone table.rtable thead{display:none;}
+.viewport.is-phone table.rtable, .viewport.is-phone table.rtable tbody,
+.viewport.is-phone table.rtable tr, .viewport.is-phone table.rtable td{display:block;width:100%;}
+.viewport.is-phone table.rtable tr{border:1px solid var(--hairline2);border-radius:var(--r10);margin-bottom:8px;padding:4px 12px;background:var(--surface);}
+.viewport.is-phone table.rtable td{display:flex;justify-content:space-between;gap:10px;border:0;padding:6px 0;font-size:12.5px;text-align:right;}
+.viewport.is-phone table.rtable td::before{content:attr(data-label);color:var(--inkMute);font-weight:600;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.03em;margin-right:8px;text-align:left;}
+
+@media (max-width:900px){.stat-strip{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:640px){
+  .doc-head{padding:11px 14px;}
+  .stage,.intro{padding-left:12px;padding-right:12px;}
+  .panel{width:100vw;}
+}
+
+
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>Tax Rates — Concept A: Rate Table + Timeline</h1>
+    <div class="sub">T1+T2 · tax:read/:admin · reads <b>GET /api/tax/rates</b>, writes via close+create · <b>POST /api/tax/rates/{id}/close</b></div>
+  </div>
+  <div class="hdr-right">
+    <div class="device-toggle" role="group" aria-label="Preview device">
+    <button type="button" id="devDesktop" class="on" aria-pressed="true">Desktop</button>
+    <button type="button" id="devPhone" aria-pressed="false">Phone</button>
+  </div>
+    <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+  </div>
+</div>
+
+<div class="viewport" id="viewport">
+<div id="appShell"><div class="phone-screen">
+<div class="intro"><div class="card">
+    <div class="eyebrow">The idea</div>
+    <h2>One spreadsheet of every currently-effective rate. Click a row for its full history.</h2>
+    <p>Every rate below is marked <b>SAMPLE</b> — this module ships with no seed data on purpose (docs/TAX.md); an ops admin confirms real numbers per store before <code>WM_TAX_TABLE</code> ever goes live. There is no in-place edit anywhere: "Change" always closes the open row and creates its replacement, and the confirmation always names the effective date and every affected store before either write happens.</p>
+    <p class="small-note">Corona's local cannabis tax row has real history already — click it to see the closed 5% row and the 6% row that replaced it 2026-06-01.</p>
+  </div></div>
+  <div class="stage">
+    <div class="controlbar">
+      <span class="small-note">Signed in as</span><div class="role-chip" tabindex="0" id="roleChip">
+        <span class="dot" id="roleDot">SA</span> role: <b id="roleLabel">Store Associate</b>
+        <div class="role-pop">
+          <div><b>Simulated login</b> — <code>tax:read</code> is the baseline (view current + audit history); <code>tax:admin</code> is required to create or close a rate. Both already enforced server-side.</div>
+          <select id="roleSelect">
+            <option value="store_associate">Store Associate — tax:read only</option>
+            <option value="ops_admin">Ops Admin — tax:read + tax:admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin:0 0 0 auto;"><label>As of</label><br><input type="date" id="asOf" value="2026-09-17"></div>
+    </div>
+    <div class="card" style="padding:0;overflow:auto;">
+      <table class="rtable" id="rateTable"></table>
+    </div>
+    <div class="section-eb"><span>Append-only history</span><span class="grow"></span></div>
+    <div class="card" id="historyCard" style="padding:16px 18px;"><div class="small-note">Click a rate above to see its full history.</div></div>
+  </div>
+  
+  <div class="scrim" id="scrim"></div>
+  <div class="modal" id="modal">
+    <div class="modal-head"><h4 id="modalTitle">Change rate</h4><button class="modal-x" id="modalX" type="button">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div></div>
+</div>
+
+<script>
+
+document.getElementById('devDesktop').addEventListener('click', ()=>setDevice('desktop'));
+document.getElementById('devPhone').addEventListener('click', ()=>setDevice('phone'));
+function setDevice(mode){
+  const vp=document.getElementById('viewport');
+  vp.classList.toggle('is-phone', mode==='phone');
+  document.body.classList.toggle('frame-phone', mode==='phone');
+  document.getElementById('devDesktop').classList.toggle('on', mode==='desktop');
+  document.getElementById('devDesktop').setAttribute('aria-pressed', mode==='desktop');
+  document.getElementById('devPhone').classList.toggle('on', mode==='phone');
+  document.getElementById('devPhone').setAttribute('aria-pressed', mode==='phone');
+}
+
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
+});
+
+
+const STORES=[{id:'elsinore',name:'Lake Elsinore',city:'Lake Elsinore'},{id:'west-la',name:'West Hollywood',city:'West Hollywood'},{id:'long-beach',name:'Long Beach',city:'Long Beach'},{id:'corona',name:'Corona',city:'Corona'},{id:'riverside',name:'Riverside',city:'Riverside'}];
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function storeName(id){ if(!id) return 'All stores'; const s=STORES.find(x=>x.id===id); return s?s.name:id; }
+function pct(bps){ return (bps/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'; }
+function todayISO(){ return '2026-09-17'; }
+function tomorrowISO(){ return '2026-09-18'; }
+function slotKey(r){ return [r.store_id||'*', r.jurisdiction_kind, r.jurisdiction_name, r.kind, r.applies_to, r.member_type].join('|'); }
+
+// ---- seed rows -- EXAMPLE ONLY, marked SAMPLE everywhere shown, per docs/TAX.md's own
+// "this module ships no seed data at boot" rule: these are what an admin would have typed
+// in via POST /api/tax/rates, not a real default. ----
+let RATES = [
+  {id:'TR-a1f9', store_id:null, jurisdiction_kind:'state', jurisdiction_name:'California', kind:'excise', basis:'pre_tax', rate_bps:1500, applies_to:'cannabis', member_type:'recreational', effective_from:'2025-01-01', effective_to:null, note:'SAMPLE — confirm with JT (state cannabis excise tax)', created_by:'jt@hyperwolf.com', updated_by:'jt@hyperwolf.com', updated_at:'2025-01-01T09:00:00Z'},
+  {id:'TR-b2e1', store_id:null, jurisdiction_kind:'state', jurisdiction_name:'California', kind:'sales', basis:'post_excise', rate_bps:725, applies_to:'all', member_type:'recreational', effective_from:'2025-01-01', effective_to:null, note:'SAMPLE — confirm with JT (state sales tax, recreational only — medical is exempt by omission)', created_by:'jt@hyperwolf.com', updated_by:'jt@hyperwolf.com', updated_at:'2025-01-01T09:00:00Z'},
+  {id:'TR-c001', store_id:'elsinore', jurisdiction_kind:'city', jurisdiction_name:'Lake Elsinore', kind:'local_cannabis', basis:'pre_tax', rate_bps:500, applies_to:'cannabis', member_type:'all', effective_from:'2025-01-01', effective_to:null, note:'SAMPLE — confirm with JT', created_by:'jt@hyperwolf.com', updated_by:'jt@hyperwolf.com', updated_at:'2025-01-01T09:00:00Z'},
+  {id:'TR-c002', store_id:'west-la', jurisdiction_kind:'city', jurisdiction_name:'West Hollywood', kind:'local_cannabis', basis:'pre_tax', rate_bps:1000, applies_to:'cannabis', member_type:'all', effective_from:'2025-01-01', effective_to:null, note:'SAMPLE — confirm with JT', created_by:'jt@hyperwolf.com', updated_by:'jt@hyperwolf.com', updated_at:'2025-01-01T09:00:00Z'},
+  {id:'TR-c003', store_id:'long-beach', jurisdiction_kind:'city', jurisdiction_name:'Long Beach', kind:'local_cannabis', basis:'pre_tax', rate_bps:600, applies_to:'cannabis', member_type:'all', effective_from:'2025-01-01', effective_to:null, note:'SAMPLE — confirm with JT', created_by:'jt@hyperwolf.com', updated_by:'jt@hyperwolf.com', updated_at:'2025-01-01T09:00:00Z'},
+  {id:'TR-c004-old', store_id:'corona', jurisdiction_kind:'city', jurisdiction_name:'Corona', kind:'local_cannabis', basis:'pre_tax', rate_bps:500, applies_to:'cannabis', member_type:'all', effective_from:'2025-01-01', effective_to:'2026-06-01', note:'SAMPLE — closed, replaced by TR-c004-new', created_by:'jt@hyperwolf.com', updated_by:'priya@hyperwolf.com', updated_at:'2026-05-30T14:12:00Z'},
+  {id:'TR-c004-new', store_id:'corona', jurisdiction_kind:'city', jurisdiction_name:'Corona', kind:'local_cannabis', basis:'pre_tax', rate_bps:600, applies_to:'cannabis', member_type:'all', effective_from:'2026-06-01', effective_to:null, note:'SAMPLE — Corona city council rate increase', created_by:'jt@hyperwolf.com', updated_by:'priya@hyperwolf.com', updated_at:'2026-05-30T14:12:00Z'},
+  {id:'TR-c005', store_id:'riverside', jurisdiction_kind:'city', jurisdiction_name:'Riverside', kind:'local_cannabis', basis:'pre_tax', rate_bps:700, applies_to:'cannabis', member_type:'all', effective_from:'2025-01-01', effective_to:null, note:'SAMPLE — confirm with JT', created_by:'jt@hyperwolf.com', updated_by:'jt@hyperwolf.com', updated_at:'2025-01-01T09:00:00Z'},
+];
+let seq = 900;
+
+function isOpenAt(r, day){ return r.effective_from<=day && (r.effective_to===null || day<r.effective_to); }
+function effectiveRates(storeId, at){
+  const day = at||todayISO();
+  const all = RATES.filter(r=>isOpenAt(r,day) && (r.store_id===null || r.store_id===storeId));
+  // store-specific overrides the all-stores default for the same slot
+  const bySlot={};
+  all.forEach(r=>{ const k=[r.jurisdiction_kind,r.jurisdiction_name,r.kind,r.applies_to,r.member_type].join('|');
+    if(!bySlot[k] || r.store_id!==null) bySlot[k]=r; });
+  return Object.values(bySlot);
+}
+function historyFor(store_id, jurisdiction_kind, jurisdiction_name, kind, applies_to, member_type){
+  return RATES.filter(r=>r.store_id===store_id && r.jurisdiction_kind===jurisdiction_kind && r.jurisdiction_name===jurisdiction_name && r.kind===kind && r.applies_to===applies_to && r.member_type===member_type)
+    .sort((a,b)=>a.effective_from.localeCompare(b.effective_from));
+}
+function allSlots(){
+  const seen={}; const out=[];
+  RATES.forEach(r=>{ const k=slotKey(r); if(!seen[k]){ seen[k]=1; out.push({store_id:r.store_id, jurisdiction_kind:r.jurisdiction_kind, jurisdiction_name:r.jurisdiction_name, kind:r.kind, applies_to:r.applies_to, member_type:r.member_type}); } });
+  return out;
+}
+function openRateForSlot(slot){
+  return RATES.find(r=>r.store_id===slot.store_id && r.jurisdiction_kind===slot.jurisdiction_kind && r.jurisdiction_name===slot.jurisdiction_name && r.kind===slot.kind && r.applies_to===slot.applies_to && r.member_type===slot.member_type && r.effective_to===null);
+}
+
+// ---- POST /api/tax/rates -- create_rate(body, actor). 409 rate_overlap if the exact slot
+// already has an open (or future) row whose window overlaps the new one. ----
+function createRate(body, actor){
+  if(RATES.find(r=>r.id===body.id)) return {ok:false,status:409,code:'rate_id_exists',error:'a rate with that id already exists'};
+  if(body.rate_bps<0 || body.rate_bps>10000) return {ok:false,status:400,code:'bad_rate_bps',error:'rate_bps must be 0-10000'};
+  const overlap = RATES.find(r=>r.store_id===(body.store_id||null) && r.jurisdiction_kind===body.jurisdiction_kind && r.jurisdiction_name===body.jurisdiction_name && r.kind===body.kind && r.applies_to===body.applies_to && r.member_type===body.member_type
+    && (r.effective_to===null || r.effective_to>body.effective_from));
+  if(overlap) return {ok:false,status:409,code:'rate_overlap',error:`overlaps existing rate ${overlap.id} (open ${overlap.effective_from}${overlap.effective_to?(' → '+overlap.effective_to):', no end date'}) — close it first`};
+  const rate = {id:body.id||('TR-'+(seq++).toString(36)), store_id:body.store_id||null, jurisdiction_kind:body.jurisdiction_kind, jurisdiction_name:body.jurisdiction_name,
+    kind:body.kind, basis:body.basis, rate_bps:body.rate_bps, applies_to:body.applies_to, member_type:body.member_type,
+    effective_from:body.effective_from, effective_to:null, note:body.note||'', created_by:actor, updated_by:actor, updated_at:new Date().toISOString()};
+  RATES.push(rate);
+  return {ok:true,status:200,rate};
+}
+// ---- POST /api/tax/rates/{id}/close -- omitting effective_to closes as of TOMORROW (no gap). ----
+function closeRate(id, effective_to, actor){
+  const r = RATES.find(x=>x.id===id);
+  if(!r) return {ok:false,status:404,code:'not_found',error:'unknown rate id'};
+  if(r.effective_to) return {ok:false,status:409,code:'already_closed',error:'already closed as of '+r.effective_to};
+  r.effective_to = effective_to || tomorrowISO();
+  r.updated_by = actor; r.updated_at = new Date().toISOString();
+  return {ok:true,status:200,rate:r};
+}
+
+// ---- GET /api/tax/audit/sale/{order_id} -- persisted, never recomputed. ----
+const SALES = [
+  {order_id:'ORD-58211', store_id:'corona', at:'2026-09-15T18:22:00Z', subtotal_cents:6400, tax_total_cents:1354,
+   tax_breakdown:[{jurisdiction:'California',kind:'excise',rate_bps:1500,basis_cents:6400,tax_cents:960},
+                  {jurisdiction:'Corona',kind:'local_cannabis',rate_bps:600,basis_cents:6400,tax_cents:384},
+                  {jurisdiction:'California',kind:'sales',rate_bps:725,basis_cents:7744,tax_cents:56}]},
+  {order_id:'ORD-58230', store_id:'west-la', at:'2026-09-16T14:05:00Z', subtotal_cents:12800, tax_total_cents:2611,
+   tax_breakdown:[{jurisdiction:'California',kind:'excise',rate_bps:1500,basis_cents:12800,tax_cents:1920},
+                  {jurisdiction:'West Hollywood',kind:'local_cannabis',rate_bps:1000,basis_cents:12800,tax_cents:1280},
+                  {jurisdiction:'California',kind:'sales',rate_bps:725,basis_cents:0,tax_cents:0}]},
+  {order_id:'ORD-58241', store_id:'elsinore', at:'2026-09-16T20:41:00Z', subtotal_cents:3200, tax_total_cents:null, tax_breakdown:null, offNote:'WM_TAX_TABLE was off at sale time'},
+  {order_id:'ORD-58255', store_id:'riverside', at:'2026-09-17T11:12:00Z', subtotal_cents:9100, tax_total_cents:1583,
+   tax_breakdown:[{jurisdiction:'California',kind:'excise',rate_bps:1500,basis_cents:9100,tax_cents:1365},
+                  {jurisdiction:'Riverside',kind:'local_cannabis',rate_bps:700,basis_cents:9100,tax_cents:637},
+                  {jurisdiction:'California',kind:'sales',rate_bps:725,basis_cents:0,tax_cents:0}]},
+  {order_id:'ORD-58260', store_id:'long-beach', at:'2026-09-17T13:03:00Z', subtotal_cents:5500, tax_total_cents:0, tax_breakdown:[], offNote:'customer resolved medical — recreational-only sales rate did not apply, local/excise rows below'},
+];
+function findSale(orderId){ return SALES.find(s=>s.order_id.toLowerCase()===String(orderId||'').toLowerCase()); }
+function fmt$c(cents){ if(cents==null) return '—'; return '$'+(cents/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+// ---- role simulation: tax:read (baseline) vs tax:admin (write) ----
+const ROLES={
+  'store_associate':{label:'Store Associate', scopes:['tax:read']},
+  'ops_admin':{label:'Ops Admin', scopes:['tax:read','tax:admin']},
+};
+let CURRENT_ROLE='store_associate';
+function hasScope(s){ return ROLES[CURRENT_ROLE].scopes.includes(s); }
+function kindLabel(k){ return {excise:'Excise',sales:'Sales',local_cannabis:'Local cannabis',other:'Other (federal tier)'}[k]||k; }
+
+document.getElementById('roleSelect').addEventListener('change', (e)=>{ CURRENT_ROLE=e.target.value; onRoleChange(); });
+function refreshRoleChip(){
+  document.getElementById('roleDot').textContent = CURRENT_ROLE==='ops_admin'?'OA':'SA';
+  document.getElementById('roleLabel').textContent = ROLES[CURRENT_ROLE].label;
+}
+
+document.getElementById('modalX').onclick = closeModal;
+document.getElementById('scrim').onclick = closeModal;
+function openModal(title, bodyHtml, footHtml){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalFoot').innerHTML = footHtml||'';
+  document.getElementById('scrim').classList.add('open');
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('scrim').classList.remove('open');
+  document.getElementById('modal').classList.remove('open');
+}
+
+// The one write flow every concept shares: close the open rate (if any) as of a chosen
+// date, then create its replacement -- docs/TAX.md's entire "edit a rate" workflow. The
+// confirmation always states the effective date and every affected store BEFORE anything
+// is written, per the gap-closure card's security requirement for admin-only tax changes.
+function startChangeFlow(slot, onDone){
+  const openRate = openRateForSlot(slot);
+  const closeDate = tomorrowISO();
+  const storeLabel = slot.store_id ? storeName(slot.store_id) : 'ALL STORES (no store-specific override exists for this slot)';
+  let draft = { jurisdiction_kind:slot.jurisdiction_kind, jurisdiction_name:slot.jurisdiction_name, kind:slot.kind,
+                basis: openRate?openRate.basis:'pre_tax', applies_to: slot.applies_to, member_type: slot.member_type,
+                store_id: slot.store_id, rate_bps: openRate?openRate.rate_bps:1000, effective_from: closeDate, note:'' };
+  renderStep();
+  function renderStep(){
+    openModal(openRate ? ('Change: '+slot.jurisdiction_name+' '+kindLabel(slot.kind)) : ('New rate: '+slot.jurisdiction_name+' '+kindLabel(slot.kind)),
+      `${openRate?`<div class="field"><div class="l">Current rate</div><div>${pct(openRate.rate_bps)} · ${openRate.basis} · effective since ${openRate.effective_from}</div></div>`:''}
+       <div class="field"><div class="l">New rate (%)</div><input type="number" id="mRateBps" step="0.01" value="${(draft.rate_bps/100).toFixed(2)}"></div>
+       <div class="field"><div class="l">Basis</div><select id="mBasis"><option value="pre_tax" ${draft.basis==='pre_tax'?'selected':''}>pre_tax</option><option value="post_excise" ${draft.basis==='post_excise'?'selected':''}>post_excise</option><option value="gross" ${draft.basis==='gross'?'selected':''}>gross</option></select></div>
+       <div class="field"><div class="l">Effective from</div><input type="date" id="mEffFrom" value="${draft.effective_from}"></div>
+       <div class="field"><div class="l">Note</div><input type="text" id="mNote" placeholder="e.g. city council rate increase, confirm with JT"></div>
+       ${!hasScope('tax:admin') ? '<div class="confirm-box" style="background:var(--lockSoft);border-color:var(--hairline3);color:var(--ink2);">You are signed in as '+ROLES[CURRENT_ROLE].label+' — tax:admin is required to submit this change. You can fill out the form to see the confirmation, but Submit stays disabled.</div>' : ''}`,
+      `<button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="mNext">Review</button>`);
+    document.getElementById('mNext').onclick = ()=>{
+      draft.rate_bps = Math.round(parseFloat(document.getElementById('mRateBps').value||'0')*100);
+      draft.basis = document.getElementById('mBasis').value;
+      draft.effective_from = document.getElementById('mEffFrom').value;
+      draft.note = document.getElementById('mNote').value;
+      renderConfirm();
+    };
+  }
+  function renderConfirm(){
+    openModal('Confirm change',
+      `<div class="confirm-box">
+        <b>Effective date:</b> ${draft.effective_from}<br>
+        <b>Affected store(s):</b> ${storeLabel}<br>
+        <b>Jurisdiction:</b> ${draft.jurisdiction_name} · ${kindLabel(draft.kind)}<br>
+        ${openRate? `<b>Closes</b> ${openRate.id} (${pct(openRate.rate_bps)}) effective ${draft.effective_from} (no gap — the day before the new rate starts is the old rate's last covered day)<br>`:''}
+        <b>Opens</b> new rate at <b>${pct(draft.rate_bps)}</b>, basis <b>${draft.basis}</b>, from <b>${draft.effective_from}</b>, open-ended.
+      </div>
+      <div class="small-note">This is an append-only change — nothing is edited in place. ${openRate?openRate.id:'(no prior rate)'} stays in the audit history exactly as it was.</div>`,
+      `<button class="btn" onclick="closeModal()">Back / cancel</button><button class="btn btn-primary" id="mSubmit" ${hasScope('tax:admin')?'':'disabled title=\'needs tax:admin\''}>Close &amp; create</button>`);
+    document.getElementById('mSubmit').onclick = ()=>{
+      if(openRate){ closeRate(openRate.id, draft.effective_from, 'you@hyperwolf.com'); }
+      const res = createRate({ id:null, store_id:draft.store_id, jurisdiction_kind:draft.jurisdiction_kind, jurisdiction_name:draft.jurisdiction_name,
+        kind:draft.kind, basis:draft.basis, rate_bps:draft.rate_bps, applies_to:draft.applies_to, member_type:draft.member_type,
+        effective_from:draft.effective_from, note:draft.note }, 'you@hyperwolf.com');
+      closeModal();
+      if(onDone) onDone(res);
+    };
+  }
+}
+
+let selectedSlot = null;
+document.getElementById('asOf').onchange = renderTable;
+function renderTable(){
+  const at = document.getElementById('asOf').value;
+  const rows = [];
+  STORES.concat([{id:null,name:'ALL STORES (default)'}]).forEach(()=>{});
+  const seenSlots = {};
+  RATES.forEach(r=>{ const k=slotKey(r); if(seenSlots[k]) return; seenSlots[k]=1; });
+  const slots = allSlots();
+  const cols=['Jurisdiction','Kind','Store','Rate','Basis','Applies to','Member type','Effective','Action'];
+  const trs = slots.map(slot=>{
+    const open = openRateForSlot(slot);
+    const active = open && isOpenAt(open, at);
+    return {slot, open, active};
+  }).sort((a,b)=> a.slot.jurisdiction_name.localeCompare(b.slot.jurisdiction_name) || a.slot.kind.localeCompare(b.slot.kind));
+  const tbl = document.getElementById('rateTable');
+  tbl.innerHTML = '<thead><tr>'+cols.map(c=>`<th>${esc(c)}</th>`).join('')+'</tr></thead><tbody>'+
+    trs.map(({slot,open,active})=>`<tr style="cursor:pointer;" data-k="${esc(slotKey(slot))}">
+      <td data-label="Jurisdiction">${esc(slot.jurisdiction_name)} <span class="small-note">(${esc(slot.jurisdiction_kind)})</span></td>
+      <td data-label="Kind">${esc(kindLabel(slot.kind))}</td>
+      <td data-label="Store">${esc(storeName(slot.store_id))}</td>
+      <td data-label="Rate">${open?pct(open.rate_bps):'<span class="pill pill-bad">none open</span>'}</td>
+      <td data-label="Basis">${open?esc(open.basis):'—'}</td>
+      <td data-label="Applies to">${esc(slot.applies_to)}</td>
+      <td data-label="Member type">${esc(slot.member_type)}</td>
+      <td data-label="Effective">${open?('since '+esc(open.effective_from)):'—'} ${active?'<span class="pill pill-good">active</span>':'<span class="pill pill-warn">not active on this date</span>'}</td>
+      <td data-label="Action"><button class="btn btn-sm chgbtn" data-k="${esc(slotKey(slot))}" ${hasScope('tax:admin')?'':'disabled title="needs tax:admin"'}>Change</button></td>
+    </tr>`).join('')+'</tbody>';
+  tbl.querySelectorAll('tr[data-k]').forEach(tr=>tr.addEventListener('click', (e)=>{ if(e.target.closest('button')) return; selectSlot(tr.dataset.k); }));
+  tbl.querySelectorAll('.chgbtn').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); const slot=slots.find(s=>slotKey(s)===b.dataset.k); startChangeFlow(slot, ()=>{ renderTable(); if(selectedSlot) renderHistory(selectedSlot); }); }));
+}
+function selectSlot(k){ const slots=allSlots(); selectedSlot = slots.find(s=>slotKey(s)===k); renderHistory(selectedSlot); }
+function renderHistory(slot){
+  const hist = historyFor(slot.store_id, slot.jurisdiction_kind, slot.jurisdiction_name, slot.kind, slot.applies_to, slot.member_type);
+  document.getElementById('historyCard').innerHTML = `<h3 style="margin:0 0 10px;font-size:14px;">${esc(slot.jurisdiction_name)} · ${esc(kindLabel(slot.kind))} · ${esc(storeName(slot.store_id))}</h3>` +
+    hist.map(r=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--hairline);">
+      <div style="width:10px;height:10px;border-radius:99px;margin-top:5px;background:${r.effective_to?'var(--inkFaint)':'var(--good)'};"></div>
+      <div style="flex:1;">
+        <div><b>${pct(r.rate_bps)}</b> · ${esc(r.basis)} · <span class="mono">${esc(r.id)}</span> ${r.effective_to?'<span class="pill pill-neutral">closed</span>':'<span class="pill pill-good">open</span>'}</div>
+        <div class="small-note">${esc(r.effective_from)} → ${r.effective_to?esc(r.effective_to):'open-ended'} · by ${esc(r.updated_by)} · ${esc((r.updated_at||'').replace('T',' ').slice(0,16))}</div>
+        <div class="small-note">${esc(r.note||'')}</div>
+      </div></div>`).join('');
+}
+function onRoleChange(){ refreshRoleChip(); renderTable(); if(selectedSlot) renderHistory(selectedSlot); }
+refreshRoleChip(); renderTable();
+
+</script>
+</body>
+</html>
