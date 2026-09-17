@@ -88,7 +88,7 @@
           {rows.length === 0
             ? <div style={{ padding: '40px 20px', textAlign: 'center', fontSize: 13.5, color: P.inkMute }}>No customers match those filters.</div>
             : <div style={{ overflowX: 'auto' }}>
-              <HDTable>
+              <HDTable noWrap>
                 <thead><tr>
                   <TH>Customer</TH><TH>Tier</TH><TH>RFM</TH><TH align="right">Lifetime</TH><TH align="right">Orders</TH>
                   <TH align="right">Recency</TH><TH align="right">Points</TH><TH>Consent</TH>

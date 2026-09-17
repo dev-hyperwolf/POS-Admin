@@ -449,7 +449,7 @@
       body = (
         <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r14, overflow: 'hidden', background: P.surface }}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead>
                 <tr>
                   <SortableTH label="No." k="session_number" sort={sort || { key: '', dir: 'desc' }} onSort={onSort} />

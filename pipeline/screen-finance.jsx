@@ -203,7 +203,7 @@
         <div style={{ padding: 20 }}>
           <Card padding={0} style={{ overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
-              <HDTable>
+              <HDTable noWrap>
                 <thead><tr>
                   <TH width={140}>Status</TH><TH>Invoice #</TH><TH>Manifest #</TH><TH>Vendor</TH><TH>Entity</TH><TH>Due</TH>
                   <TH align="right">Amount</TH><TH align="right">Variance</TH><TH align="right" width={140}>Action</TH>
@@ -401,7 +401,7 @@
         <div style={{ padding: 20 }}>
           <Card padding={0} style={{ overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
-              <HDTable>
+              <HDTable noWrap>
                 <thead><tr>
                   <TH width={120}>Source</TH><TH>Vendor</TH><TH align="right">Amount</TH><TH>Date</TH><TH>Status</TH><TH>Linked to</TH><TH align="right" width={160}>Action</TH>
                 </tr></thead>

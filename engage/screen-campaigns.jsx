@@ -86,7 +86,7 @@
             </div>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Time</TH><TH>Channel</TH><TH>Recipient</TH><TH>Template</TH><TH>Campaign</TH><TH>Status</TH><TH>Reason</TH></tr></thead>
               <tbody>
                 {rows.length === 0

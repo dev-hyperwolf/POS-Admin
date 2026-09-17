@@ -240,3 +240,115 @@ test('FormView threads the autosave flag into every draft helper call (source ch
   const sign = fs.readFileSync(path.join(ROOT, 'shared', 'hw-sign-page.jsx'), 'utf8');
   assert.match(sign, /autosave:\s*false/, 'signing page opts out of draft autosave');
 });
+
+// ── Idempotency-Key (wmdemo forms server, FIX 3, 2026-09-17) ───────────────────────────────
+
+test('genIdemKey returns a fresh, server-acceptable key every call', () => {
+  const { genIdemKey } = HDForm._submit;
+  const a = genIdemKey();
+  const b = genIdemKey();
+  assert.match(a, /^[A-Za-z0-9_-]{8,128}$/, 'must satisfy the server\'s own IDEMPOTENCY_KEY_RE');
+  assert.match(b, /^[A-Za-z0-9_-]{8,128}$/);
+  assert.notEqual(a, b, 'two calls must not collide');
+});
+
+test('defaultSubmit sends the Idempotency-Key header when given one, and omits it otherwise', async () => {
+  const win = getSandboxWindow();
+  const calls = [];
+  win.fetch = (url, opts) => {
+    calls.push({ url, opts });
+    return Promise.resolve({
+      status: 200,
+      json: () => Promise.resolve({ submission: { id: 1 } }),
+    });
+  };
+  try {
+    const { defaultSubmit } = HDForm._submit;
+    const withKey = await defaultSubmit({ id: 'writeup' }, { employeeId: 'e1' }, null, 'test-idem-key-0001');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].opts.headers['Idempotency-Key'], 'test-idem-key-0001');
+    assert.equal(withKey.ok, true);
+    assert.equal(withKey.body.submission.id, 1);
+
+    const withoutKey = await defaultSubmit({ id: 'writeup' }, { employeeId: 'e1' }, null);
+    assert.equal(calls.length, 2);
+    assert.equal('Idempotency-Key' in calls[1].opts.headers, false,
+      'no key given -> no header sent, exactly the pre-FIX-3 request shape');
+    assert.equal(withoutKey.ok, true);
+  } finally {
+    delete win.fetch;
+  }
+});
+
+// ── _inputAttrs (MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #2) ───────
+
+// `plain()` (defined above, next to its doc comment) crosses the vm realm
+// boundary — a plain object built inside the vm sandbox has a different
+// Object prototype than Node's, so a bare assert.deepEqual would fail
+// "same structure but not reference-equal" even for genuinely identical output.
+
+test('_inputAttrs: money always gets a decimal keypad, never touching validation', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'money' })), { inputMode: 'decimal', autoComplete: 'off', enterKeyHint: 'done' });
+});
+
+test('_inputAttrs: number gets a numeric keypad by default', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'number' })), { inputMode: 'numeric', autoComplete: 'off', enterKeyHint: 'done' });
+});
+
+test('_inputAttrs: number ignores an unrecognized format and still gets a numeric keypad', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'number', format: 'quantity' })), { inputMode: 'numeric', autoComplete: 'off', enterKeyHint: 'done' });
+});
+
+test('_inputAttrs: plain text with no format is untouched (byte-identical to pre-fix behavior)', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'text' })), {});
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'textarea' })), {});
+});
+
+test('_inputAttrs: text format phone gets type=tel and a tel autofill', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'text', format: 'phone' })), { type: 'tel', inputMode: 'tel', autoComplete: 'tel', enterKeyHint: 'done' });
+});
+
+test('_inputAttrs: text format email gets type=email and autoCapitalize off', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'text', format: 'email' })),
+    { type: 'email', inputMode: 'email', autoComplete: 'email', autoCapitalize: 'off', enterKeyHint: 'done' });
+});
+
+test('_inputAttrs: text format zip gets a numeric keypad and postal-code autofill', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'text', format: 'zip' })), { type: 'text', inputMode: 'numeric', autoComplete: 'postal-code', enterKeyHint: 'done' });
+});
+
+test('_inputAttrs: text format pin with oneTimeCode true gets autoComplete=one-time-code', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'text', format: 'pin', oneTimeCode: true })),
+    { type: 'text', inputMode: 'numeric', autoComplete: 'one-time-code', enterKeyHint: 'done' });
+});
+
+test('_inputAttrs: text format pin WITHOUT oneTimeCode defaults autoComplete=off (a permanent PIN, not a delivered code)', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'text', format: 'pin' })),
+    { type: 'text', inputMode: 'numeric', autoComplete: 'off', enterKeyHint: 'done' });
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'text', format: 'pin', oneTimeCode: false })),
+    { type: 'text', inputMode: 'numeric', autoComplete: 'off', enterKeyHint: 'done' });
+});
+
+test('_inputAttrs: date/time/datetime map to the matching native input type, no forced inputMode', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'date' })), { type: 'date', autoComplete: 'off' });
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'time' })), { type: 'time', autoComplete: 'off' });
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'datetime' })), { type: 'datetime-local', autoComplete: 'off' });
+});
+
+test('_inputAttrs: an unrecognized/unsupported type (select, person, pin_required, undefined) returns {} — never invents a backend contract', () => {
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'select' })), {});
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'person' })), {});
+  assert.deepEqual(plain(HDForm._inputAttrs({ type: 'pin_required' })), {});
+  assert.deepEqual(plain(HDForm._inputAttrs(undefined)), {});
+  assert.deepEqual(plain(HDForm._inputAttrs({})), {});
+});
+
+test('FormView generates one Idempotency-Key per instance and threads it into every submit (source check)', () => {
+  const src = fs.readFileSync(HD_FORM, 'utf8');
+  const body = src.slice(src.indexOf('function FormView('), src.indexOf('window.HDForm = {'));
+  assert.match(body, /idemKeyRef\.current === null\) idemKeyRef\.current = genIdemKey\(\)/,
+    'the key is generated once (lazy useRef init), never on every render');
+  assert.match(body, /defaultSubmit\(definition, payload, opts\.station, idemKeyRef\.current\)/);
+  assert.match(body, /idempotency_key:\s*idemKeyRef\.current/,
+    'a caller-supplied onSubmit also receives the same key, so it can opt in too');
+});

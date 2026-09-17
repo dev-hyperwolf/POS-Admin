@@ -31,7 +31,7 @@
             <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Percent of the cohort ordering again in month N.</p>
           </header>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Cohort</TH><TH align="right">Size</TH>{[0, 1, 2, 3, 4, 5].map((m) => <TH key={m} align="right">M{m}</TH>)}<TH align="right">6-mo LTV</TH></tr></thead>
               <tbody>
                 {cohorts.map((c) => (
@@ -173,7 +173,7 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Zone</TH><TH>ZIP</TH><TH align="right">Customers</TH><TH align="right">Revenue · 30d</TH><TH align="right">AOV</TH><TH align="right">Growth</TH><TH>Share</TH></tr></thead>
               <tbody>
                 {zones.map((z) => (
@@ -226,7 +226,7 @@
             <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Sorted by signups; consent rate flags where coaching would help.</p>
           </header>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Staff</TH><TH>Role</TH><TH align="right">Signups</TH><TH align="right">Opt-ins</TH><TH align="right">Consent rate</TH><TH align="right">Redemptions</TH><TH align="right">Attributed</TH></tr></thead>
               <tbody>
                 {staff.map((s, i) => {
@@ -290,7 +290,7 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Resource</TH><TH align="right">Usage</TH><TH align="right">Cost</TH><TH>Monthly cap</TH></tr></thead>
               <tbody>
                 {lines.map((l) => (

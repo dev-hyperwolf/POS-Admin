@@ -23,7 +23,7 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Integrator</TH><TH>Status</TH><TH>Sync health</TH><TH>Direction</TH><TH align="right">Rows · 24h</TH><TH>Last sync</TH><TH width={40}></TH></tr></thead>
               <tbody>
                 {D.INTEGRATIONS.map((r) => {

@@ -32,7 +32,7 @@
 
         <Card padding={0}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr style={{ background: P.surface2 }}>
                 <TH>Count</TH><TH>Room</TH><TH align="right">Expected</TH><TH align="right">Found</TH>
                 <TH align="right">Not located</TH><TH width={190}>Coverage</TH><TH align="right">Passes</TH>
@@ -118,7 +118,7 @@
               <CardHead title="Coverage by pass" sub="Each pass only ever adds. Overlap between passes costs walking time, never accuracy — the same EPC read twice is one unit." />
               <div style={{ marginBottom: 16 }}><CoverageBar pct={c.coveragePct} height={12} /></div>
               <div style={{ overflowX: 'auto' }}>
-                <HDTable>
+                <HDTable noWrap>
                   <thead><tr style={{ background: P.surface2 }}>
                     <TH width={72}>Pass</TH><TH align="right">Reads</TH><TH align="right">Newly seen</TH>
                     <TH align="right">Cumulative</TH><TH width={180}>Coverage after</TH>
@@ -153,7 +153,7 @@
                 ? <EmptyState compact icon="check-circle" title="Everything on the list was found." body="100% coverage. No second pass needed." />
                 : <React.Fragment>
                   <div style={{ overflowX: 'auto' }}>
-                    <HDTable>
+                    <HDTable noWrap>
                       <thead><tr style={{ background: P.surface2 }}>
                         <TH>EPC</TH><TH>SKU</TH><TH>Tag material</TH><TH align="right">Last seen</TH>
                       </tr></thead>

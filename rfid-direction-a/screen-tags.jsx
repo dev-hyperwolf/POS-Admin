@@ -75,7 +75,7 @@
               <CardHead title="Bindings created" sub="EPC ↔ retail ID, 1:1 in both directions. The EPC carries no product meaning — the SKU lives in the registry, so a re-SKU never means re-tagging a physical unit." />
               <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, overflow: 'hidden' }}>
                 <div style={{ overflowX: 'auto' }}>
-                  <HDTable>
+                  <HDTable noWrap>
                     <thead><tr style={{ background: P.surface2 }}>
                       <TH>EPC</TH><TH>Retail ID</TH><TH>State</TH>
                     </tr></thead>
@@ -235,7 +235,7 @@
             <CardHead title="Recent runs" sub="Every run writes an audit event, whether it succeeded or was refused. Open one for its bindings — or for the collision that stopped it." />
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr style={{ background: P.surface2 }}>
                 <TH>Run</TH><TH>SKU</TH><TH>Package</TH><TH align="right">Requested</TH>
                 <TH align="right">Bound</TH><TH>Printed</TH><TH>Actor</TH><TH align="right">When</TH><TH>Result</TH>
@@ -307,7 +307,7 @@
           {rows.length === 0
             ? <EmptyState icon="barcode" title="No bindings match." body="Nothing in the registry matches those filters." action={<PBtn size="sm" variant="secondary" onClick={() => { setQ(''); setStates([]); setSkus([]); }}>Clear all</PBtn>} />
             : <div style={{ overflowX: 'auto' }}>
-              <HDTable>
+              <HDTable noWrap>
                 <thead><tr style={{ background: P.surface2 }}>
                   <TH>EPC</TH><TH>Retail ID</TH><TH>SKU</TH><TH>METRC package</TH><TH>State</TH><TH>Material</TH><TH align="right">Registered</TH>
                 </tr></thead>

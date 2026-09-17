@@ -211,7 +211,7 @@
                 <PBtn size="sm" variant="secondary" icon="plus" style={{ marginLeft: 'auto' }}>Add batch</PBtn>
               </div>
               <div style={{ overflowX: 'auto' }}>
-                <HDTable>
+                <HDTable noWrap>
                   <thead><tr>
                     <TH>METRC package</TH><TH align="right">Qty</TH><TH align="right">Potency</TH><TH>Package / Expires</TH>
                     <TH align="right">Wholesale</TH><TH align="right">Margin</TH><TH>Source</TH><TH>Status</TH>
@@ -287,7 +287,7 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Shell</TH><TH>Audience</TH><TH align="right">Base price</TH><TH align="right">Target margin</TH><TH align="right">Products</TH><TH></TH></tr></thead>
               <tbody>
                 {shells.map((t) => {

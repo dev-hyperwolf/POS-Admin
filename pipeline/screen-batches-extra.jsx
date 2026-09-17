@@ -66,7 +66,7 @@
             ? <HDEmpty icon="package" title={archived.length === 0 ? 'Nothing archived yet' : 'No matches'}
               body={archived.length === 0 ? 'Batches will appear here once they reach a terminal state or sit on shelf for more than 7 days.' : 'Try a different search term.'} />
             : <div style={{ overflowX: 'auto' }}>
-              <HDTable>
+              <HDTable noWrap>
                 <thead>
                   <tr style={{ background: P.surface2 }}>
                     <SortableTH label="Product" k="productName" sort={sort} onSort={onSort} />

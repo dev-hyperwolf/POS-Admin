@@ -192,7 +192,7 @@
           {rows.length === 0
             ? <EmptyState icon="activity" title="No events match." body="Nothing in the last 24 hours matches those filters." action={<PBtn size="sm" variant="secondary" onClick={() => { setQ(''); setActions([]); }}>Clear all</PBtn>} />
             : <div style={{ overflowX: 'auto' }}>
-              <HDTable>
+              <HDTable noWrap>
                 <thead><tr style={{ background: P.surface2 }}>
                   <TH width={132}>When</TH><TH width={110}>Actor</TH><TH width={250}>Action</TH><TH width={210}>Subject</TH><TH>Detail</TH>
                 </tr></thead>

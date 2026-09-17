@@ -224,7 +224,7 @@
     return (
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r14, overflow: 'hidden', background: P.surface }}>
         <div style={{ overflowX: 'auto' }}>
-          <HDTable>
+          <HDTable noWrap>
             <thead><tr>
               <SortableTH label="Budtender" k="name" sort={sort} onSort={onSort} />
               <SortableTH label="Projected" k="projected_cents" sort={sort} onSort={onSort} align="right" />

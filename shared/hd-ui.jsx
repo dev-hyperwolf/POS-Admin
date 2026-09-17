@@ -169,10 +169,124 @@
   };
 
   // Table primitives — 34px compact rows, uppercase micro-label heads.
-  window.HDTable = function HDTable({ children, style }) {
+  //
+  // MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #1: half the estate's
+  // HDTable callers wrapped it in `overflowX:auto` themselves and half forgot
+  // to, so a table either scrolled or silently compressed illegibly depending
+  // on which screen you were on. HDTable now wraps ITSELF by default — the
+  // `noWrap` prop is the escape hatch for a caller that already supplies its
+  // own scroll container (own padding/maxHeight/etc. around the wrapper), so
+  // it doesn't get a second nested scrollbar. `minWidth` lets a caller pin an
+  // exact figure; left unset, it is derived from the table's own header-cell
+  // count (`_minWidthForCols`) via `_colCount`, so a table that compresses to
+  // mush at 390px instead scrolls at a legible width.
+  //
+  // `stackBelow` (px) is opt-in: below that CONTAINER width (measured with a
+  // ResizeObserver on the wrapper itself, never window/viewport — a table
+  // nested in a narrow sidebar should stack even on a wide screen) each row
+  // renders as a labelled card instead of scrolling. No ResizeObserver in this
+  // runtime -> `_shouldStack` is never asked and the table just scrolls, which
+  // is always correct, only less pretty.
+  function minWidthForCols(n) {
+    const cols = Number(n) || 0;
+    if (cols <= 0) return 480;
+    return Math.max(480, Math.min(1600, cols * 120 + 40));
+  }
+  function shouldStack(width, stackBelow) {
+    if (!stackBelow || typeof width !== 'number' || !(width > 0)) return false;
+    return width < stackBelow;
+  }
+  function colCountInNode(node) {
+    if (!node || typeof node !== 'object' || !node.props) return 0;
+    if (node.type === 'tr') {
+      return React.Children.toArray(node.props.children).reduce((total, cell) => total + ((cell && cell.props && cell.props.colSpan) || 1), 0);
+    }
+    for (const kid of React.Children.toArray(node.props.children || [])) {
+      const n = colCountInNode(kid);
+      if (n) return n;
+    }
+    return 0;
+  }
+  function colCount(children) {
+    try {
+      for (const node of React.Children.toArray(children)) {
+        const n = colCountInNode(node);
+        if (n) return n;
+      }
+    } catch (e) { /* best-effort only — falls back to the default min-width */ }
+    return 0;
+  }
+  // Renders each `<tr>` (from a `<thead>`/`<tbody>` pair, or bare) as a
+  // bordered card: one label/value line per cell, taking the label from the
+  // matching `<TH>` at the same index. A `colSpan>1` cell (an empty-state row,
+  // a section divider) is never labelled — it just spans the card full width,
+  // same as it would span the table.
+  function stackedCards(children, P) {
+    const sections = React.Children.toArray(children);
+    const headLabels = [];
+    const bodyRows = [];
+    sections.forEach((sec) => {
+      if (!sec || !sec.props) return;
+      if (sec.type === 'thead') {
+        React.Children.toArray(sec.props.children).forEach((tr) => {
+          if (tr && tr.props) React.Children.toArray(tr.props.children).forEach((th) => headLabels.push(th && th.props ? th.props.children : null));
+        });
+      } else if (sec.type === 'tbody') {
+        React.Children.toArray(sec.props.children).forEach((tr) => { if (tr && tr.type === 'tr') bodyRows.push(tr); });
+      } else if (sec.type === 'tr') {
+        bodyRows.push(sec);
+      }
+    });
+    return bodyRows.map((tr, i) => {
+      const cells = React.Children.toArray(tr.props.children);
+      const onClick = tr.props.onClick;
+      return (
+        <div key={tr.key ?? i} onClick={onClick} style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: '10px 12px', marginBottom: 8, background: P.surface, cursor: onClick ? 'pointer' : 'default', minHeight: onClick ? 44 : undefined }}>
+          {cells.map((cell, ci) => {
+            if (!cell || !cell.props) return null;
+            if (cell.props.colSpan > 1) return <div key={ci} style={{ padding: '4px 0' }}>{cell.props.children}</div>;
+            const label = headLabels[ci];
+            return (
+              <div key={ci} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, padding: '4px 0', borderBottom: ci < cells.length - 1 ? `1px solid ${P.hairline}` : 'none', fontSize: 13.5 }}>
+                {label ? <span style={{ color: P.inkMute, fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.05em', flex: '0 0 auto' }}>{label}</span> : <span />}
+                <span style={{ color: P.ink, textAlign: 'right', fontFamily: cell.props.mono ? P.fontMono : 'inherit' }}>{cell.props.children}</span>
+              </div>);
+          })}
+        </div>);
+    });
+  }
+  window.HDTable = function HDTable({ children, style, minWidth, noWrap, stackBelow }) {
     const P = useP();
-    return <table style={{ width: '100%', fontSize: 13.5, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans, ...style }}>{children}</table>;
+    const wrapRef = React.useRef(null);
+    const [stacked, setStacked] = React.useState(false);
+    React.useEffect(() => {
+      if (!stackBelow || noWrap) { setStacked(false); return undefined; }
+      const el = wrapRef.current;
+      if (!el || typeof ResizeObserver === 'undefined') { setStacked(false); return undefined; } // no-RO fallback: scroll only, never stack
+      const ro = new ResizeObserver((entries) => {
+        const w = entries[0] && entries[0].contentRect && entries[0].contentRect.width;
+        if (typeof w === 'number') setStacked(shouldStack(w, stackBelow));
+      });
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, [stackBelow, noWrap]);
+
+    if (noWrap) {
+      const mw = minWidth != null ? minWidth : minWidthForCols(colCount(children));
+      return <table style={{ width: '100%', minWidth: mw, fontSize: 13.5, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans, ...style }}>{children}</table>;
+    }
+    if (stackBelow && stacked) {
+      return <div ref={wrapRef}>{stackedCards(children, P)}</div>;
+    }
+    const mw = minWidth != null ? minWidth : minWidthForCols(colCount(children));
+    return (
+      <div ref={wrapRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
+        <table style={{ width: '100%', minWidth: mw, fontSize: 13.5, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans, ...style }}>{children}</table>
+      </div>);
   };
+  window.HDTable._minWidthForCols = minWidthForCols;
+  window.HDTable._shouldStack = shouldStack;
+  window.HDTable._colCount = colCount;
   window.TH = function TH({ children, align = 'left', width, style, onClick }) {
     const P = useP();
     return <th onClick={onClick} style={{ textAlign: align, fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, padding: '9px 12px', borderBottom: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap', width, cursor: onClick ? 'pointer' : 'default', ...style }}>{children}</th>;
@@ -183,7 +297,7 @@
   };
   window.TR = function TR({ children, onClick, style }) {
     const P = useP();
-    return <tr onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', ...style }}
+    return <tr onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', ...(onClick ? { minHeight: 44 } : null), ...style }}
       onMouseEnter={(e) => (e.currentTarget.style.background = (style && style.background && style.background !== 'transparent') ? style.background : P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = (style && style.background) || 'transparent')}>{children}</tr>;
   };
   window.SortableTH = function SortableTH({ label, k, sort, onSort, align }) {

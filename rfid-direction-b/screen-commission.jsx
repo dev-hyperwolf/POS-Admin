@@ -139,7 +139,7 @@
     const P = useP(), HD = window.HD;
     return (
       <div style={{ overflowX: 'auto' }}>
-        <HDTable>
+        <HDTable noWrap>
           <thead>
             <tr>
               <TH>METRC package</TH>

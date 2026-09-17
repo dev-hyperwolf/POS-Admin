@@ -216,9 +216,14 @@
     const P = useP(), HD = window.HD_PIPE;
     const snap = window.HD_MAPPING.useMappingStore();
     const th = { textAlign: 'left', fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, padding: '8px 12px', borderBottom: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap' };
+    // MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #1: `overflow:'auto'`
+    // alone never engages on a `width:'100%'` table with no minWidth — table
+    // layout just compresses 8 columns into mush instead of scrolling.
+    // minWidth (32px expand column + 7 x ~130px) is what actually makes the
+    // existing overflow wrapper scroll instead of squash.
     return (
       <div style={{ overflow: 'auto', maxHeight: '100%' }}>
-        <table style={{ width: '100%', fontSize: 13.5, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans }}>
+        <table style={{ width: '100%', minWidth: 930, fontSize: 13.5, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans }}>
           <thead style={{ position: 'sticky', top: 0, background: P.surface2, zIndex: 5 }}>
             <tr>
               <th style={{ ...th, width: 32 }} aria-label="Expand"></th>
@@ -236,7 +241,7 @@
               return (
                 <React.Fragment key={inv.id}>
                   <tr tabIndex={0} onClick={() => onSelect(inv.id)} aria-selected={isSelected} aria-expanded={isExpanded}
-                    style={{ cursor: 'pointer', background: isSelected ? P.surface3 : idx % 2 === 1 ? P.surface2 : 'transparent' }}>
+                    style={{ cursor: 'pointer', minHeight: 44, background: isSelected ? P.surface3 : idx % 2 === 1 ? P.surface2 : 'transparent' }}>
                     <td style={{ ...td, width: 32, borderLeft: `3px solid ${isSelected ? P.ink : 'transparent'}` }}>
                       <button onClick={(e) => { e.stopPropagation(); onToggleExpanded(inv.id); }} aria-label={isExpanded ? 'Collapse AI matches' : 'Show AI matches'} title={isExpanded ? 'Collapse AI matches' : 'Show AI matches'}
                         style={{ display: 'inline-flex', height: 24, width: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', cursor: 'pointer', background: isExpanded ? P.surface3 : 'transparent', color: isExpanded ? P.ink : P.inkMute }}>
@@ -307,7 +312,8 @@
           <div>
             <MicroLabel style={{ marginBottom: 8 }}>Line items ({invoice.lineItems.length})</MicroLabel>
             <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: 10, overflow: 'hidden' }}>
-              <table style={{ width: '100%', fontSize: 13.5, borderCollapse: 'collapse' }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
+              <table style={{ width: '100%', minWidth: 480, fontSize: 13.5, borderCollapse: 'collapse' }}>
                 <thead style={{ background: P.surface2 }}>
                   <tr>
                     <th style={{ textAlign: 'left', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12.5 }}>Product</th>
@@ -329,6 +335,7 @@
                     </tr>))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
           {invoice.notes && (

@@ -292,7 +292,7 @@
             </button>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr>
                 <SortTH label="SKU" k="sku" sort={sort} onSort={onSort} />
                 <SortTH label="Brand" k="brand" sort={sort} onSort={onSort} />
@@ -356,7 +356,7 @@
             <p style={{ margin: '4px 0 0', fontSize: 12.5, color: P.inkMute }}>Cost vs sell vs contribution to total profit for the selected window.</p>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr>
                 <TH>Brand</TH><TH align="right">SKUs</TH><TH align="right">Cost</TH><TH align="right">Sell</TH>
                 <TH align="right">Margin %</TH><TH align="right">Profit</TH><TH align="right">Contribution</TH><TH align="right">Flagged</TH>

@@ -53,7 +53,7 @@
           {rows.length === 0
             ? <EmptyState icon="box" title="No kit sessions match." body="Nothing matches that search. Clear it to see every session from the last 48 hours." action={<PBtn size="sm" variant="secondary" onClick={() => { setQ(''); setStatus('all'); }}>Clear</PBtn>} />
             : <div style={{ overflowX: 'auto' }}>
-              <HDTable>
+              <HDTable noWrap>
                 <thead><tr style={{ background: P.surface2 }}>
                   <TH>Kit</TH><TH>Destination</TH><TH align="right">Boxes</TH><TH align="right">Planned</TH>
                   <TH align="right">Counted</TH><TH align="right">Flagged</TH><TH align="right">Moves</TH>
@@ -257,7 +257,7 @@
                   ]} />
                 </div>
                 <div style={{ overflowX: 'auto' }}>
-                  <HDTable>
+                  <HDTable noWrap>
                     <thead><tr style={{ background: P.surface2 }}>
                       <TH width={64}>Box</TH><TH>SKU</TH><TH align="right" width={82}>Planned</TH>
                       <TH align="right" width={72}>Actual</TH><TH align="right" width={56}>Δ</TH><TH width={132}>State</TH>
@@ -288,7 +288,7 @@
                 <CardHead title="Unresolved shortfall"
                   sub="Shorts with no surplus anywhere in the kit to pair against. These are missing units, not misplaced ones." />
                 <div style={{ overflowX: 'auto' }}>
-                  <HDTable>
+                  <HDTable noWrap>
                     <thead><tr style={{ background: P.surface2 }}>
                       <TH width={64}>Box</TH><TH>SKU</TH><TH align="right" width={72}>Missing</TH><TH>Most likely cause</TH>
                     </tr></thead>

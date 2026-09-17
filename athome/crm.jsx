@@ -217,13 +217,22 @@ function OverviewTab(){ const P=useP(); return (
     </div>
   </div>); }
 
+// MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #1: a hand-rolled CSS-grid
+// "table" with no overflow-x wrapper — the fixed tracks (110+120+90+110+90)
+// plus a livable width for the 1fr date/genius column just compressed at
+// 390px instead of scrolling. Smallest fix: a scroll wrapper + a minWidth
+// equal to the sum of the fixed tracks (a shared const so header and rows —
+// which must scroll in lockstep — stay pixel-identical).
+const ORDERS_TAB_MIN_W = 720; // 110+200(1fr min)+120+90+110+90
 function OrdersTab(){ const P=useP(); return (
   <Card padding={0} style={{ overflow:'hidden' }}>
+    <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', maxWidth:'100%' }}>
+    <div style={{ minWidth: ORDERS_TAB_MIN_W }}>
     <div style={{ display:'grid', gridTemplateColumns:'110px 1fr 120px 90px 110px 90px', padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
       <div>Order</div><div>Date · genius</div><div>Type</div><div>Items</div><div>Status</div><div style={{textAlign:'right'}}>Total</div>
     </div>
     {ORDERS.map((o,i)=>{ const st=STATUSMAP[o.status]; return (
-      <div key={o.id} style={{ display:'grid', gridTemplateColumns:'110px 1fr 120px 90px 110px 90px', padding:'13px 18px', borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center', cursor:'pointer' }} onMouseEnter={e=>e.currentTarget.style.background=P.surface2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+      <div key={o.id} style={{ display:'grid', gridTemplateColumns:'110px 1fr 120px 90px 110px 90px', padding:'13px 18px', minHeight:44, borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center', cursor:'pointer' }} onMouseEnter={e=>e.currentTarget.style.background=P.surface2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
         <span className="mono" style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>{o.id}</span>
         <div><span style={{ fontSize: 13.5, color:P.ink }}>{o.date}</span>{o.genius&&<span style={{ fontSize:11.5, color:P.inkMute }}> · {o.genius}</span>}</div>
         <div><span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12.5, color:P.inkDim }}><Icon name={o.kind==='@ Home'?'route':o.kind==='Pickup'?'shop':'truck'} size={15}/>{o.kind}</span></div>
@@ -231,6 +240,8 @@ function OrdersTab(){ const P=useP(); return (
         <div><Pill kind={st.k} soft dot={o.status==='in_session'}>{st.l}</Pill></div>
         <div style={{ textAlign:'right' }}>{o.total?<span className="mono" style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>{money(o.total)}</span>:<span style={{ fontSize: 12.5, color:P.inkMute }}>live</span>}{o.rating&&<div className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>★ {o.rating}</div>}</div>
       </div>); })}
+    </div>
+    </div>
   </Card>); }
 
 function AtHomeTab(){ const P=useP(); return (

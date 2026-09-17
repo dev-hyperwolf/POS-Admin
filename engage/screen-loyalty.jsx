@@ -379,7 +379,7 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Code</TH><TH>Advocate → Friend</TH><TH align="right">Risk</TH><TH>Signals</TH><TH align="right">First order</TH><TH>Attributed</TH><TH align="right">Decision</TH></tr></thead>
               <tbody>
                 {flagged.map((r) => {

@@ -212,19 +212,25 @@
       status === 'ready' && rows.length === 0 && (window.EmptyState
         ? React.createElement(window.EmptyState, { icon: 'note', title: 'No submissions yet' })
         : React.createElement('div', { style: { color: P.inkMute } }, 'No submissions yet.')),
-      status === 'ready' && rows.length > 0 && React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 13 } },
+      // MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #1: this table had no
+      // overflow-x wrapper at all, so on a phone it just compressed 5 columns
+      // into illegibility instead of scrolling. Smallest fix: a scroll
+      // wrapper + a minWidth equal to the sum of its (unlabeled, ~124px-ish)
+      // column tracks, same pattern every other fixed HDTable wrap uses.
+      status === 'ready' && rows.length > 0 && React.createElement('div', { style: { overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%' } },
+      React.createElement('table', { style: { width: '100%', minWidth: 640, borderCollapse: 'collapse', fontSize: 13 } },
         React.createElement('thead', null, React.createElement('tr', null,
           cols.map((h) => React.createElement('th', {
             key: h, style: { textAlign: 'left', padding: '8px 10px', borderBottom: `1px solid ${P.hairline2}`, color: P.inkMute, fontWeight: 600, fontSize: 11, textTransform: 'uppercase' },
           }, h)))),
         React.createElement('tbody', null, rows.map((s) => React.createElement('tr', {
-          key: s.id, onClick: () => setOpenId(s.id), style: { cursor: 'pointer' },
+          key: s.id, onClick: () => setOpenId(s.id), style: { cursor: 'pointer', minHeight: 44 },
         },
           React.createElement('td', { style: { padding: '8px 10px', borderBottom: `1px solid ${P.hairline2}` } }, s.submitted_by || '—'),
           React.createElement('td', { style: { padding: '8px 10px', borderBottom: `1px solid ${P.hairline2}` } }, window.HD ? window.HD.formatDateTime(s.submitted_at) : s.submitted_at),
           React.createElement('td', { style: { padding: '8px 10px', borderBottom: `1px solid ${P.hairline2}` } }, s.station_id || '—'),
           React.createElement('td', { style: { padding: '8px 10px', borderBottom: `1px solid ${P.hairline2}` } }, React.createElement(StatusPill, { P, status: s.status })),
-          React.createElement('td', { style: { padding: '8px 10px', borderBottom: `1px solid ${P.hairline2}`, textAlign: 'right', color: P.inkMute } }, 'Open →'))))));
+          React.createElement('td', { style: { padding: '8px 10px', borderBottom: `1px solid ${P.hairline2}`, textAlign: 'right', color: P.inkMute } }, 'Open →')))))));
   }
 
   window.HWFormsReview = SubmissionsList;

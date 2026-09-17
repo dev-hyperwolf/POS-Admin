@@ -125,6 +125,43 @@
     return { type: 'object', additionalProperties: true, required: req, properties: props };
   }
 
+  // ── input attrs (MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #2) ──────
+  // Pure, additive, NEVER consulted by fieldSchema()/validate(): the backend's
+  // FIELD_TYPES vocabulary (FORMS-MIGRATION-MATRIX-2026-09-17 §B: text,
+  // textarea, number, money, date, time, datetime, select, multiselect,
+  // boolean, person, store, photo, signature, checklist, repeating_group,
+  // computed) has no phone/email/zip/integer/quantity/pin types of its own —
+  // inventing new `f.type` values here would recreate the exact "renders
+  // client-side, `_field_schema` doesn't recognise it" contradiction that doc
+  // already flags for `pin_stepup`/`section`. Instead, an optional `f.format`
+  // hint on an EXISTING `text`/`number` field selects a better keyboard/
+  // autofill for it — the schema, minLength/pattern, and the value shape the
+  // server receives (a plain string, or for `money` an integer cents value)
+  // are exactly what fieldSchema() already produced before this existed. A
+  // FormDef with no `format` renders byte-identical to before.
+  function inputAttrs(f) {
+    f = f || {};
+    var type = f.type, format = f.format;
+    if (type === 'money') return { inputMode: 'decimal', autoComplete: 'off', enterKeyHint: 'done' };
+    if (type === 'number') return { inputMode: 'numeric', autoComplete: 'off', enterKeyHint: 'done' };
+    if (type === 'date') return { type: 'date', autoComplete: 'off' };
+    if (type === 'time') return { type: 'time', autoComplete: 'off' };
+    if (type === 'datetime') return { type: 'datetime-local', autoComplete: 'off' };
+    if (type === 'text' || type === 'textarea') {
+      if (format === 'phone') return { type: 'tel', inputMode: 'tel', autoComplete: 'tel', enterKeyHint: 'done' };
+      if (format === 'email') return { type: 'email', inputMode: 'email', autoComplete: 'email', autoCapitalize: 'off', enterKeyHint: 'done' };
+      if (format === 'zip') return { type: 'text', inputMode: 'numeric', autoComplete: 'postal-code', enterKeyHint: 'done' };
+      // A PIN field is either a code the SERVER just sent (SMS/email one-time
+      // code) -- `autoComplete:'one-time-code'` lets the OS autofill it from
+      // the message -- or a PERMANENT PIN the actor sets/re-enters, where the
+      // same autofill would offer to fill in a stale or someone-else's code;
+      // `f.oneTimeCode` (not `f.type`) is the switch, defaulting to off.
+      if (format === 'pin') return { type: 'text', inputMode: 'numeric', autoComplete: f.oneTimeCode ? 'one-time-code' : 'off', enterKeyHint: 'done' };
+      return {};
+    }
+    return {};
+  }
+
   /** Sections OR a flat `fields` array — both are FormDef-legal (proposal §2). */
   function flattenFields(definition) {
     var out = [];
@@ -260,10 +297,20 @@
     try { window.localStorage.removeItem(draftKey(definition)); } catch (e) {}
   }
 
-  function defaultSubmit(definition, data, station) {
+  // Idempotency-Key (wmdemo forms server, FIX 3, 2026-09-17): 8-128 chars of [A-Za-z0-9_-].
+  // `Date.now().toString(36)` + two `Math.random().toString(36)` slices are all lowercase
+  // letters/digits already -- no extra sanitizing needed to satisfy the server's own regex.
+  function genIdemKey() {
+    var rand = (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 24);
+    return ('hdform-' + Date.now().toString(36) + '-' + rand).slice(0, 128);
+  }
+
+  function defaultSubmit(definition, data, station, idempotencyKey) {
     var slug = definition.slug || definition.id;
+    var headers = { 'Content-Type': 'application/json' };
+    if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
     return fetch('/api/forms/' + encodeURIComponent(slug) + '/submit', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: headers,
       body: JSON.stringify({ data: data, station_id: station || null }),
     }).then(function (r) {
       return r.json().catch(function () { return null; }).then(function (body) {
@@ -328,31 +375,39 @@
 
     if (f.type === 'text' || f.type === 'textarea') {
       var Comp = f.type === 'textarea' ? 'textarea' : 'input';
+      var textAttrs = inputAttrs(f);
+      var textProps = {
+        value: value == null ? '' : value, disabled: disabled,
+        onChange: function (e) { onChange(e.target.value); },
+        style: { width: '100%', minHeight: 44, padding: '10px 13px', borderRadius: P.r8, border: '1px solid ' + P.fieldBorder, background: P.field, color: P.ink, font: 'inherit', boxSizing: 'border-box' },
+      };
+      // `type` is an input-only HTML attribute -- a textarea has no such thing.
+      if (Comp === 'input' && textAttrs.type) textProps.type = textAttrs.type;
+      if (textAttrs.inputMode) textProps.inputMode = textAttrs.inputMode;
+      if (textAttrs.autoComplete) textProps.autoComplete = textAttrs.autoComplete;
+      if (textAttrs.autoCapitalize) textProps.autoCapitalize = textAttrs.autoCapitalize;
+      if (textAttrs.enterKeyHint) textProps.enterKeyHint = textAttrs.enterKeyHint;
       return React.createElement(Row, null,
         React.createElement(LabelLine, { P: P, f: f }),
-        React.createElement(Comp, {
-          value: value == null ? '' : value, disabled: disabled,
-          onChange: function (e) { onChange(e.target.value); },
-          style: { width: '100%', minHeight: 44, padding: '10px 13px', borderRadius: P.r8, border: '1px solid ' + P.fieldBorder, background: P.field, color: P.ink, font: 'inherit', boxSizing: 'border-box' },
-        }),
+        React.createElement(Comp, textProps),
         React.createElement(ErrorLine, { P: P, msg: error }));
     }
 
     if (f.type === 'number') {
       return React.createElement(Row, null,
         React.createElement(LabelLine, { P: P, f: f }),
-        React.createElement(window.Field, {
-          value: value == null ? '' : String(value), disabled: disabled, size: 'lg', inputMode: 'numeric',
+        React.createElement(window.Field, Object.assign({
+          value: value == null ? '' : String(value), disabled: disabled, size: 'lg',
           onChange: function (e) { var n = e.target.value === '' ? null : Number(e.target.value); onChange(n); },
-        }),
+        }, inputAttrs(f))),
         React.createElement(ErrorLine, { P: P, msg: error }));
     }
 
     if (f.type === 'money') {
       return React.createElement(Row, null,
         React.createElement(LabelLine, { P: P, f: f }),
-        React.createElement(window.Field, {
-          value: value == null ? '' : centsToDollarsStr(value), disabled: disabled, size: 'lg', inputMode: 'decimal', icon: undefined,
+        React.createElement(window.Field, Object.assign({
+          value: value == null ? '' : centsToDollarsStr(value), disabled: disabled, size: 'lg', icon: undefined,
           placeholder: '0.00',
           onChange: function (e) {
             var raw = e.target.value;
@@ -360,7 +415,7 @@
             var c = dollarsToCents(raw);
             onChange(isNaN(c) ? raw : c);
           },
-        }),
+        }, inputAttrs(f))),
         React.createElement(ErrorLine, { P: P, msg: error }));
     }
 
@@ -652,6 +707,12 @@
     // (which is for a 400 only) or the toast (which disappears, and a shortfall a closer must
     // act on should not).
     var _warn = React.useState([]), warnings = _warn[0], setWarnings = _warn[1];
+    // Idempotency-Key (FIX 3, 2026-09-17): one key per MOUNTED form instance, generated once
+    // and reused on every submit attempt from this instance (including a retry after a network
+    // error) -- never regenerated on success, so this only covers the "same instance, same
+    // logical submission" case, not a deliberately reused instance submitting twice in a row.
+    var idemKeyRef = React.useRef(null);
+    if (idemKeyRef.current === null) idemKeyRef.current = genIdemKey();
 
     React.useEffect(function () {
       if (mode === 'fill') saveDraft(definition, data, autosave);
@@ -673,7 +734,9 @@
       if (!res.ok) { window.hdToast && window.hdToast({ title: 'Fix the highlighted fields', tone: 'warn' }); return; }
       setWarnings([]);
       var payload = pin ? Object.assign({}, data, { _pin: pin }) : data;
-      var run = opts.onSubmit ? opts.onSubmit({ data: payload, station_id: opts.station }) : defaultSubmit(definition, payload, opts.station);
+      var run = opts.onSubmit
+        ? opts.onSubmit({ data: payload, station_id: opts.station, idempotency_key: idemKeyRef.current })
+        : defaultSubmit(definition, payload, opts.station, idemKeyRef.current);
       setBusy(true);
       Promise.resolve(run).then(function (result) {
         setBusy(false);
@@ -784,5 +847,11 @@
     // draft persistence seam, exposed for tests only: the `autosave` third argument is the
     // opt-out the signing page relies on (a signature PNG must never land in localStorage).
     _drafts: { load: loadDraft, save: saveDraft, clear: clearDraft, key: draftKey },
+    // submit seam, exposed for tests only (FIX 3, 2026-09-17): genIdemKey/defaultSubmit are
+    // otherwise private closures with no other way to exercise the Idempotency-Key header.
+    _submit: { genIdemKey: genIdemKey, defaultSubmit: defaultSubmit },
+    // MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #2, exposed for tests only: pure
+    // FormDef-field -> {type,inputMode,autoComplete,autoCapitalize,enterKeyHint} mapping.
+    _inputAttrs: inputAttrs,
   };
 })();

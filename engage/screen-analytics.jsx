@@ -189,7 +189,7 @@
             <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Deliver, open, click, opt-out rates per campaign over the window.</p>
           </header>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Campaign</TH><TH>Channel</TH><TH align="right">Sent</TH><TH align="right">Deliver</TH><TH align="right">Open</TH><TH align="right">Click</TH><TH align="right">Opt-out</TH></tr></thead>
               <tbody>
                 {D.CAMPAIGNS.filter((c) => c.sent > 0).map((c) => {
@@ -239,7 +239,7 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr><TH>Campaign</TH><TH>Channel</TH><TH>Audience</TH><TH align="right">Sent</TH><TH align="right">Delivery</TH><TH align="right">CTR</TH><TH align="right">Revenue</TH><TH align="right">Rev / send</TH></tr></thead>
               <tbody>
                 {rows.map((c) => (

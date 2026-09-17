@@ -22,7 +22,7 @@
           <div />{sub('UID · packaged')}{sub('Loc')}{sub('Qty', 'right')}{sub('Expiry')}{sub('Value', 'right')}
         </div>
         {batches.map((b) => (
-          <button key={b.id} onClick={() => navigate('#/batches')} style={{ display: 'grid', gridTemplateColumns: INV_GRID, width: '100%', textAlign: 'left', border: 'none', background: 'transparent', borderBottom: `1px solid ${P.hairline}`, cursor: 'pointer', fontFamily: P.fontSans }}
+          <button key={b.id} onClick={() => navigate('#/batches')} style={{ display: 'grid', gridTemplateColumns: INV_GRID, width: '100%', minHeight: 44, textAlign: 'left', border: 'none', background: 'transparent', borderBottom: `1px solid ${P.hairline}`, cursor: 'pointer', fontFamily: P.fontSans }}
             onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
             <div />
             <div style={{ paddingLeft: 28, paddingRight: 12, paddingTop: 8, paddingBottom: 8 }}>
@@ -47,7 +47,7 @@
     const [open, setOpen] = React.useState(false);
     return (
       <React.Fragment>
-        <button onClick={() => setOpen((v) => !v)} style={{ display: 'grid', gridTemplateColumns: INV_GRID, width: '100%', textAlign: 'left', borderBottom: `1px solid ${P.hairline}`, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}
+        <button onClick={() => setOpen((v) => !v)} style={{ display: 'grid', gridTemplateColumns: INV_GRID, width: '100%', minHeight: 44, textAlign: 'left', borderBottom: `1px solid ${P.hairline}`, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}
           onMouseEnter={(e) => (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="chevron-right" size={14} stroke={2} color={P.inkMute} style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }} />
@@ -170,6 +170,14 @@
         </div>
 
         <Card padding={0}>
+          {/* MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #1: worst-compressing
+              table in the app — a 6-col CSS grid (INV_GRID) with NO overflow
+              wrapper at all. One scroll wrapper + minWidth (28 fixed + 200 floor +
+              4 x ~150 livable min for the 1fr columns) around the whole card body
+              keeps ProductGroup rows and their nested BatchRows sub-rows, which
+              all reuse INV_GRID, aligned and scrolling together. */}
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
+          <div style={{ minWidth: 840 }}>
           <div style={{ display: 'grid', gridTemplateColumns: INV_GRID, background: P.surface2, borderBottom: `1px solid ${P.hairline2}` }}>
             {head('')}{head('Product')}{head('Batches')}{head('Units', 'right')}{head('Soonest expiry')}{head('Value', 'right')}
           </div>
@@ -177,6 +185,8 @@
             ? <HDEmpty title="No inventory matches." body={hasActiveFilters ? 'Nothing matches the current filters. Drop one, or clear them all.' : 'No approved-for-sale inventory yet.'}
               action={hasActiveFilters ? <PBtn size="sm" variant="secondary" onClick={clearAll}>Clear all</PBtn> : undefined} />
             : grouped.map((g) => <ProductGroup key={g.productName} group={g} navigate={navigate} />)}
+          </div>
+          </div>
         </Card>
       </div>);
   };

@@ -433,12 +433,21 @@
               <PBtn size="sm" variant="secondary" icon="download" onClick={() => window.hdToast?.({ title: `${current.label} ledger exported`, description: `${rows.length} rows queued as audit_export_${tab}_${Date.now()}.csv`, tone: 'ok' })}>Export for audit</PBtn>
             </div>
             <Card padding={0} style={{ overflow: 'hidden' }}>
+              {/* MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #1: a bare 5-col
+                  CSS-grid "table" with no overflow wrapper. Scroll wrapper +
+                  minWidth equal to the fixed floor (220) plus a livable min for
+                  the four 1fr columns; header and HoldRow share this minWidth so
+                  they scroll in lockstep. */}
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
+              <div style={{ minWidth: 820 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) 1fr 1fr 1fr 1fr', background: P.surface2, borderBottom: `1px solid ${P.hairline2}` }}>
                 <div style={head}>Product / UID</div><div style={head}>Entity</div><div style={head}>Reason</div><div style={head}>Age on hold</div><div style={{ ...head, textAlign: 'right' }}>Value</div>
               </div>
               {rows.length === 0
                 ? <div style={{ padding: '40px 16px', textAlign: 'center', color: P.inkMute, fontSize: 13.5 }}>{current.empty}</div>
                 : rows.map((b) => <HoldRow key={b.id} b={b} canReturn={canReturn} onLineage={setLineage} />)}
+              </div>
+              </div>
             </Card>
           </div>
         </div>

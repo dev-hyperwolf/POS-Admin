@@ -112,7 +112,7 @@
     if (!HDTable) { return null; }
     return (
       <div style={{ overflowX: 'auto', ...style }}>
-        <HDTable>
+        <HDTable noWrap>
           <thead>
             <tr>
               <TH>Product</TH>

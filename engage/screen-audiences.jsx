@@ -107,7 +107,7 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <HDTable>
+            <HDTable noWrap>
               <thead><tr>
                 <TH width={36}>
                   <button onClick={() => setSelected(allSelected ? new Set() : new Set(visible.map((r) => r.id)))} aria-label={allSelected ? 'Deselect all' : 'Select all'}

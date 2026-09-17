@@ -65,7 +65,7 @@
     const cell = { padding: '9px 12px', borderBottom: `1px solid ${P.hairline}`, verticalAlign: 'middle' };
     return (
       <div style={{ overflowX: 'auto' }}>
-        <HDTable>
+        <HDTable noWrap>
           <thead>
             <tr>
               <TH width="42%">Product</TH>

@@ -185,11 +185,18 @@ function BoardView({ onOpen }){
     </div>
 
     <div style={{ border:`1px solid ${P.hairline2}`, borderRadius:P.r14, overflow:'hidden', background:P.surface }}>
+      {/* MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #1: hand-rolled CSS-grid
+          "table", no overflow-x wrapper — fixed tracks (150+130+120+40=440) plus a
+          livable min for the three fr columns compressed at 390px. Scroll wrapper +
+          minWidth equal to that sum is the smallest fix; header and rows share the
+          same inner minWidth div so they scroll in lockstep. */}
+      <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', maxWidth:'100%' }}>
+      <div style={{ minWidth:960 }}>
       <div style={{ display:'grid', gridTemplateColumns:'150px 1.4fr 1.2fr 130px 1fr 120px 40px', gap:0, padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
         <div>Window · ID</div><div>Customer</div><div>Region · Address</div><div>Genius</div><div>Status</div><div style={{textAlign:'right'}}>Cart · Deposit</div><div/>
       </div>
       {filtered.map((a,i)=>{ const g=geniusBy(a.genius); const st=STATUS[a.status]; return (
-        <div key={a.id} onClick={()=>onOpen(a.id)} style={{ display:'grid', gridTemplateColumns:'150px 1.4fr 1.2fr 130px 1fr 120px 40px', gap:0, padding:'14px 18px', borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center', cursor:'pointer', transition:'background .1s' }}
+        <div key={a.id} onClick={()=>onOpen(a.id)} style={{ display:'grid', gridTemplateColumns:'150px 1.4fr 1.2fr 130px 1fr 120px 40px', gap:0, padding:'14px 18px', minHeight:44, borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center', cursor:'pointer', transition:'background .1s' }}
           onMouseEnter={e=>e.currentTarget.style.background=P.surface2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
           <div><div className="mono" style={{ fontSize: 13.5, fontWeight:700, color:P.ink, fontVariantNumeric:'tabular-nums' }}>{a.win}</div><div className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>{a.id}</div></div>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}><Avatar name={a.cust} size={32} crown={a.tier===AH_TIER.gold}/><div><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{a.cust}</div><div style={{ fontSize: 11.5, color:P.inkMute }}>{a.tier!=='—'?`${a.tier} · ${a.member}`:'Non-member'}</div></div></div>
@@ -199,6 +206,8 @@ function BoardView({ onOpen }){
           <div style={{ textAlign:'right' }}>{a.subtotal? <Money n={a.subtotal} strong/> : <span style={{ fontSize:12.5, color:P.inkMute }}>—</span>}<div className="mono" style={{ fontSize: 11.5, color:a.deposit==='pending'?P.warn:P.inkMute, marginTop:1 }}>{a.deposit==='pending'?'deposit due':`dep ${a.deposit}`}</div></div>
           <div style={{ textAlign:'right', color:P.inkFaint }}><Icon name="chevron-right" size={18}/></div>
         </div>); })}
+      </div>
+      </div>
     </div>
   </div>);
 }
@@ -315,11 +324,16 @@ function RegionsView(){
     <SectionHead level={1} eyebrow="Shop @ Home · Setup" title="Regions & availability" subtitle="Turn service zones on and off, set operating windows, and control the guardrails for every house call." action={<Btn kind="primary" icon="plus">Add region</Btn>}/>
     <div style={{ display:'grid', gridTemplateColumns:'1.5fr 1fr', gap:16, alignItems:'start' }}>
       <div style={{ border:`1px solid ${P.hairline2}`, borderRadius:P.r14, overflow:'hidden', background:P.surface }}>
+        {/* MOBILE-READINESS-AUDIT-2026-09-17 §3 shared fix #1: scroll wrapper +
+            minWidth equal to the fixed tracks (90+100+90+70=350) plus a livable
+            min for the 1.4fr region-name column. */}
+        <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', maxWidth:'100%' }}>
+        <div style={{ minWidth:600 }}>
         <div style={{ display:'grid', gridTemplateColumns:'1.4fr 90px 100px 90px 70px', padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
           <div>Region</div><div>Geniuses</div><div>Window</div><div>Today</div><div style={{textAlign:'right'}}>Live</div>
         </div>
         {rows.map((r,i)=>(
-          <div key={r.id} style={{ display:'grid', gridTemplateColumns:'1.4fr 90px 100px 90px 70px', padding:'14px 18px', borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center' }}>
+          <div key={r.id} style={{ display:'grid', gridTemplateColumns:'1.4fr 90px 100px 90px 70px', padding:'14px 18px', minHeight:44, borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center' }}>
             <div style={{ display:'flex', alignItems:'center', gap:9 }}><Icon name="map" size={16} color={r.live?P.ink:P.inkFaint}/><span style={{ fontSize:13.5, fontWeight:600, color:r.live?P.ink:P.inkMute }}>{r.name}</span></div>
             <div className="mono" style={{ fontSize: 13.5, color:P.inkDim }}>{r.geniuses||'—'}</div>
             <div className="mono" style={{ fontSize: 12.5, color:P.inkDim }}>{r.slots}</div>
@@ -327,6 +341,8 @@ function RegionsView(){
             <div style={{ textAlign:'right' }}><Switch on={r.live} onChange={()=>toggle(r.id)}/></div>
           </div>
         ))}
+        </div>
+        </div>
       </div>
       <Card>
         <Eyebrow>Global guardrails</Eyebrow>
