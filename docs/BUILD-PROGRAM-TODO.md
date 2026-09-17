@@ -2,19 +2,19 @@
 
 Single source of truth for what is open. Updated by the PM session every time something lands or
 is added. Plan of record: `BUILD-PROGRAM-MASTER-PLAN-2026-09-16.md` (§9 is the history log).
-Last updated: 2026-09-17 afternoon.
+Last updated: 2026-09-17 evening.
 
 ## A. Waiting on JT (owner)
 
 | # | Item | Notes |
 |---|---|---|
 | A1 | **HyperDrive iOS app locked out (URGENT)** — all TestFlight builds expired 2026-09-17, ~39 drivers | Devs upload 1.0.6 build 3 (same version = fast beta review); check the Xcode Cloud tab for a Start Build button; then assign to both tester groups. Permanent fix = unlisted App Store release (B9). |
-| A2 | 19 owner questions, one at a time, four options | 8 routing (`ROUTING-ENGINE-PLAN` §7) + 6 Metrc (`METRC-PROGRAM-PLAN` §6) + 5 loyalty (`LOYALTY-INTEROP-PLAN`) |
+| A2 | Owner questions, one at a time, four options. **Routing 8/8 ANSWERED 2026-09-17** (D17–D19 in memory). Still open: 6 driver-assignment (`DRIVER-ASSIGNMENT-MODEL` §7), 6 Metrc, 5 loyalty, 5 swap recovery, 6 discrepancy/scoreboard | 28 open |
 | A3 | Concept picks — eight review rounds live at `/explorations/review/` | rule builder, HR Overview, LP Triage, Nav Rail, Reports, Tax Rates, Regions, Cash Drawer. Unblocks every Phase-1 screen build. |
 | A4 | Tap-target sizes — **DECIDED 2026-09-17: include Register, but NO change until JT approves before/after designs.** PM owes before/after mockups (POS incl. Register, Driver, back-office; desktop + phone). | Design only until approved. |
 | A5 | Customer Account: pick variant A/B/C; remove the design-review switcher from the live page | Switcher already hidden on phones. |
 | A6 | Real tax rates per store (five numbers); medical exemption; where rates live today | `wm-demo/docs/TAX.md` |
-| A7 | AWS: confirm `hw-assistant-deploy-dev` has the permissions boundary (IAM → Roles → it → "Permissions boundary"); later sign the connector in as that role when the dev change set is ready | View-only role cannot read role details. |
+| A7 | AWS: **re-apply the access template** (Update stack → change set → Replace template → `infra/access/hw-assistant-access.yaml`) AFTER its security review passes (B20); then switch the connector to `hw-assistant-deploy-dev` when the dev change set is ready. Also confirm `hw-assistant-deploy-dev` has the permissions boundary (IAM → Roles → it → "Permissions boundary"); later sign the connector in as that role when the dev change set is ready | View-only role cannot read role details. |
 | A8 | AWS hygiene: MFA for 5 of 10 users; confirm contractor login `techindustan-hw`; `Customer.Support` unused since 2024; inventory long-lived keys | `wm-demo/docs/AWS-INVENTORY-2026-09-17.md` |
 | A9 | From whoever hosts production: read-only MongoDB user for `hw-sync`; who controls `hyperwolf.com` DNS | Production servers are NOT in the company AWS account. |
 | A10 | Mobile apps: driver-app source repo, TestFlight/Play internal access, test accounts, push console | `MOBILE-APP-AUDIT-GROUNDWORK` |
@@ -27,7 +27,7 @@ Last updated: 2026-09-17 afternoon.
 
 | # | Item | State |
 |---|---|---|
-| B1 | Live update stream for the Render demo — fix 401 handling + per-family channel scopes, then commit, push, deploy | fix agent running |
+| B1 | DONE (committed) — live update stream, refuted twice | push with B24 |
 | B2 | AWS dev environment plan DONE (uncommitted): three phase-1 templates under the inline size limit, ~$110/mo, no NAT; BLOCKED on B17 (deploy role lacked CloudFormation actions) | waiting on B17 + A7 |
 | B3 | DONE (uncommitted) — cold-start probe (21 checks); real cause found: timesheet routes answered 500 instead of 503 when HR env is unset | refute + commit |
 | B4 | TypeScript port #4: restock, with Python goldens | dispatching |
@@ -42,11 +42,19 @@ Last updated: 2026-09-17 afternoon.
 | B13 | `GET /api/tax/audit/sale` port to TS; TS realtime parity with Python channel names | queue |
 | B14 | Forms: port employee-edit and upload-doc (Codex brief 04) | in Codex queue |
 
-| B15 | **Sale lines**: `pos_sales` stores no per-line sku/batch/quantity and nothing writes a sale inventory movement, so the Metrc day-ledger resolves zero real lines today. Record sale lines + unit→batch movement at sale time (needed for Metrc, batch promotions reporting, COGS) | next, after the wm-demo commit |
-| B16 | Dispatch core 1b: address-time quote, soft holds, staged queue, joint sequencing, score presets with on-time guard, vendor usage cap | agent running |
-| B17 | Access template update: CloudFormation actions for deploy roles (scoped to `hyperwolf-<env>-*`, deny on `shorturl-service-prod` and on its own stack), missing RDS/KMS teardown actions, view-only self-inspection | agent running → then A7 re-apply |
-| B18 | Driver assignment model from the legacy Hyperdrive settings (`DRIVER-ASSIGNMENT-MODEL-2026-09-17.md`) | specialist running |
-| B19 | Tap-target before/after mockups (design only; Register included) | agent running |
+| B15 | (agent running) **Sale lines**: `pos_sales` stores no per-line sku/batch/quantity and nothing writes a sale inventory movement, so the Metrc day-ledger resolves zero real lines today. Record sale lines + unit→batch movement at sale time (needed for Metrc, batch promotions reporting, COGS) | next, after the wm-demo commit |
+| B16 | DONE (committed 3a707e2, 317 tests) — Dispatch core 1b. NOTE: owner chose ONLY the current stop locked → change `frozenStopCount` default 2 → 1 | follow-up with B21 |
+| B17 | DONE (committed) — Access template update: CloudFormation actions for deploy roles (scoped to `hyperwolf-<env>-*`, deny on `shorturl-service-prod` and on its own stack), missing RDS/KMS teardown actions, view-only self-inspection | agent running → then A7 re-apply |
+| B18 | DONE — driver assignment model; finding: the live `swiftAssign` ranking engine is NOT in the repos we hold (ask devs; eight admin screens to screenshot) | done |
+| B19 | DONE — tap-target mockups + review round; waiting on JT's approval (A4) | done |
+
+| B20 | Security review of the AWS access template update + dev templates (bucket-prefix overlap with live `hyperwolf-*` buckets is the first thing checked) | refuter running — gate for A7 |
+| B21 | Refute dispatch core + restock TS port (both committed in wave 4, unreviewed) | refuter running |
+| B22 | Swap recovery flow build (backend does not exist; POS support SwapPanel has 3 bugs; logistics swap picker is ungoverned) — plan `SWAP-RECOVERY-FLOW-PLAN-2026-09-17.md` | after owner questions |
+| B23 | Discrepancy attribution + employee scoreboard — plan `DISCREPANCY-ATTRIBUTION-AND-SCOREBOARD-PLAN-2026-09-17.md`; handover-acceptance scan and box-placement check do not exist anywhere yet | after owner questions |
+| B24 | Push + deploy wave 4 (wm-demo `3a707e2`, POS-Admin `dc6d942`+) — buttons to JT after B15/B21 | pending |
+| B25 | `GET /api/session/me` flagged by the gate probe as echoing the presented credential (pre-existing) — verify and fix | queue |
+| B26 | Metrc recon: rerun creates duplicate exception rows; per-store wall-clock cap on package pulls | queue (with B15) |
 
 ## C. Landed today (2026-09-17) — detail in the master plan §9
 
