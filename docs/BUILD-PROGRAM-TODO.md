@@ -52,7 +52,7 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | B13 | `GET /api/tax/audit/sale` port to TS; TS realtime parity with Python channel names | queue |
 | B14 | Forms: port employee-edit and upload-doc (Codex brief 04) | in Codex queue |
 
-| B15 | (agent running) **Sale lines**: `pos_sales` stores no per-line sku/batch/quantity and nothing writes a sale inventory movement, so the Metrc day-ledger resolves zero real lines today. Record sale lines + unit→batch movement at sale time (needed for Metrc, batch promotions reporting, COGS) | next, after the wm-demo commit |
+| B15 | BUILT (uncommitted, 49 checks) — refuter running; KNOWN GAP to close before commit: line discounts are still client-trusted (must come from the promotions engine or an audited manager-override scope). **Sale lines**: `pos_sales` stores no per-line sku/batch/quantity and nothing writes a sale inventory movement, so the Metrc day-ledger resolves zero real lines today. Record sale lines + unit→batch movement at sale time (needed for Metrc, batch promotions reporting, COGS) | next, after the wm-demo commit |
 | B16 | DONE (committed 3a707e2, 317 tests) — Dispatch core 1b. NOTE: owner chose ONLY the current stop locked → change `frozenStopCount` default 2 → 1 | follow-up with B21 |
 | B17 | DONE (committed) — Access template update: CloudFormation actions for deploy roles (scoped to `hyperwolf-<env>-*`, deny on `shorturl-service-prod` and on its own stack), missing RDS/KMS teardown actions, view-only self-inspection | agent running → then A7 re-apply |
 | B18 | DONE — driver assignment model; finding: the live `swiftAssign` ranking engine is NOT in the repos we hold (ask devs; eight admin screens to screenshot) | done |
