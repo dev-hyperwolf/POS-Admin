@@ -188,6 +188,10 @@ Greenfield backend; the biggest risks are auth (client role gate is fail-open; `
 
 ---
 
+## 4b. Track 4 — platform and production cutover (added 2026-09-16 evening)
+
+JT asked for the full wiring list against the production code, host/DB/runtime recommendations, and a module system the team can extend. Plan: `docs/PLATFORM-AND-CUTOVER-PLAN-2026-09-16.md` (decisions D5–D9 pending). Route-policy coverage census: `wm-demo/docs/ROUTE-POLICY-COVERAGE.md` (83 of 98 routes unregistered; registration batches 1–3 queued).
+
 ## 5. Team 0 — security foundation (runs first, everything else builds against it)
 
 | Step | Model | Output |
