@@ -100,6 +100,14 @@ export interface Movement { id: string; at: string; reason: MovementReason; prod
 export interface ReceivedItem { id: string; received_at: string; kind: ArrivalKind; product_id: string; batch_id: string; quantity: number; location_id?: string | null; included_in?: string[]; reason?: PlanReason | null; premium?: boolean }
 export interface PlanLine { product_id: string; batch_id: string; from_location_id?: string | null; to_location_id: string; sold: number; need: number; cap: number; give: number; reasons: PlanReason[]; mixed_batch?: boolean; note?: string | null; picked_by?: string | null; picked_at?: string | null; packed_by?: string | null; packed_at?: string | null; verified_by?: string | null; verified_at?: string | null; overridden_by?: string | null }
 export interface ShellLocationBinding { shell_id: string; store_id?: string | null; side: LocationSide; location_id: string; updated_at?: string | null; updated_by?: string | null }
+export type TaxJurisdictionKind = 'state' | 'county' | 'city' | 'district';
+export type TaxKind = 'excise' | 'sales' | 'local_cannabis' | 'other';
+export type TaxBasis = 'pre_tax' | 'post_excise' | 'gross';
+export type TaxAppliesTo = 'cannabis' | 'non_cannabis' | 'all';
+export type TaxMemberType = 'recreational' | 'medical' | 'all';
+export interface TaxRate { id: string; store_id?: string | null; jurisdiction_kind: TaxJurisdictionKind; jurisdiction_name: string; kind: TaxKind; basis: TaxBasis; rate_bps: number; applies_to: TaxAppliesTo; member_type: TaxMemberType; effective_from: string; effective_to?: string | null; note?: string | null; created_by?: string | null; updated_by?: string | null; updated_at?: string | null }
+export interface TaxLine { rate_id: string; kind: TaxKind; jurisdiction: string; rate_bps: number; basis: TaxBasis; tax_cents: number }
+export interface TaxBreakdown { lines: { line_idx: number; taxable_cents: number; taxes: TaxLine[] }[]; totals: Record<string, number>; total_tax_cents: number }
 export interface Plan { id: string; kind: 'build' | 'refill' | 'restock' | 'handoff'; business_day: string; generated_at: string; channel: ChannelKind; store_id?: string | null; lines: PlanLine[]; skipped?: PlanLine[]; warnings?: string[]; inputs?: Record<string, unknown> | null; planned_by?: string | null; engine_version?: string | null; approved_by?: string | null; approved_at?: string | null }
 export interface Standing { person: Person; metric: Metric; value: number; rank: number; tied?: boolean; earned?: Money | null; progress?: number | null }
 export interface Contest { id: string; name: string; kind: ContestKind; status: ContestStatus; metric: Metric; audience: Classification[]; store_ids: string[]; starts_at?: string | null; ends_at?: string | null; prize?: Money | null }

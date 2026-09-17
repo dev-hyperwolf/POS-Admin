@@ -1,0 +1,36 @@
+{
+  "$id": "RegionHours",
+  "contract": "0.5.0",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "mon": {
+      "type": "string",
+      "nullable": true
+    },
+    "tue": {
+      "type": "string",
+      "nullable": true
+    },
+    "wed": {
+      "type": "string",
+      "nullable": true
+    },
+    "thu": {
+      "type": "string",
+      "nullable": true
+    },
+    "fri": {
+      "type": "string",
+      "nullable": true
+    },
+    "sat": {
+      "type": "string",
+      "nullable": true
+    },
+    "sun": {
+      "type": "string",
+      "nullable": true
+    }
+  }
+}

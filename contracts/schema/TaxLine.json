@@ -1,0 +1,40 @@
+{
+  "$id": "TaxLine",
+  "contract": "0.5.0",
+  "type": "object",
+  "required": [
+    "rate_id",
+    "kind",
+    "jurisdiction",
+    "rate_bps",
+    "basis",
+    "tax_cents"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "rate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "$enum": "TaxKind"
+    },
+    "jurisdiction": {
+      "type": "string"
+    },
+    "rate_bps": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "basis": {
+      "type": "string",
+      "$enum": "TaxBasis"
+    },
+    "tax_cents": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

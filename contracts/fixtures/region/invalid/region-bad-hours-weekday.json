@@ -1,0 +1,8 @@
+{
+  "shape": "Region",
+  "record": {
+    "id": "rg-bad-hours",
+    "name": "Bad Hours",
+    "opening_hours": { "funday": "10:00" }
+  }
+}

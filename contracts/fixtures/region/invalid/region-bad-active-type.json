@@ -1,0 +1,8 @@
+{
+  "shape": "Region",
+  "record": {
+    "id": "rg-bad-active",
+    "name": "Bad Active",
+    "active": "yes"
+  }
+}

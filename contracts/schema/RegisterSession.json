@@ -1,0 +1,98 @@
+{
+  "$id": "RegisterSession",
+  "contract": "0.5.0",
+  "type": "object",
+  "required": [
+    "id",
+    "store_id",
+    "register_id",
+    "opened_by",
+    "opened_at",
+    "opening_float_cents",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "store_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "register_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "opened_by": {
+      "type": "string",
+      "minLength": 1
+    },
+    "opened_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    },
+    "opening_float_cents": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "expected_cash_cents": {
+      "type": "integer",
+      "nullable": true
+    },
+    "counted_cash_cents": {
+      "type": "integer",
+      "nullable": true
+    },
+    "variance_cents": {
+      "type": "integer",
+      "nullable": true
+    },
+    "needs_review": {
+      "type": "boolean"
+    },
+    "status": {
+      "type": "string",
+      "$enum": "RegisterSessionStatus"
+    },
+    "closed_by": {
+      "type": "string",
+      "nullable": true
+    },
+    "closed_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "voided_by": {
+      "type": "string",
+      "nullable": true
+    },
+    "voided_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "void_reason": {
+      "type": "string",
+      "nullable": true
+    },
+    "notes": {
+      "type": "string",
+      "nullable": true
+    },
+    "drops": {
+      "type": "array",
+      "items": {
+        "$ref": "CashDrop"
+      }
+    },
+    "counts": {
+      "type": "array",
+      "items": {
+        "$ref": "CashCount"
+      }
+    }
+  }
+}

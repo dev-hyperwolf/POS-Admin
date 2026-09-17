@@ -907,6 +907,50 @@
     "ManagerDecision": [
       "approve_write_up",
       "dismiss_coaching"
+    ],
+    "TaxJurisdictionKind": [
+      "state",
+      "county",
+      "city",
+      "district"
+    ],
+    "TaxKind": [
+      "excise",
+      "sales",
+      "local_cannabis",
+      "other"
+    ],
+    "TaxBasis": [
+      "pre_tax",
+      "post_excise",
+      "gross"
+    ],
+    "TaxAppliesTo": [
+      "cannabis",
+      "non_cannabis",
+      "all"
+    ],
+    "TaxMemberType": [
+      "recreational",
+      "medical",
+      "all"
+    ],
+    "RegisterSessionStatus": [
+      "open",
+      "closing",
+      "closed",
+      "voided"
+    ],
+    "CashDropReason": [
+      "drop",
+      "paid_out",
+      "paid_in",
+      "float_adjust"
+    ],
+    "CashCountKind": [
+      "opening",
+      "mid",
+      "closing"
     ]
   }
 }

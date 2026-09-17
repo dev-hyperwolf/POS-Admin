@@ -27,7 +27,30 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.5.0'; // 0.5.0 (additive): PlanLine.batch_no/thc_pct/packaged_at/received_at/expires_at
+  var VERSION = '0.5.0'; // 0.5.0 (additive, Team 6a): RegisterSession/CashDrop/CashCount +
+  // RegisterSessionStatus/CashDropReason/CashCountKind (ADMIN-GAP-LIST-2026-09-17.md §B Drawers,
+  // §C items 1/3/5/9). wm-demo's own server-side cash-drawer sessions; real prior art is
+  // end-of-shift-portal/RetailFloatPlan.gs + CR/CRX Airtable, not hyper-tech (no drawer model
+  // exists there at all). No prior shape changed.
+  // 0.5.0 (additive, Team 6b): TaxRate/TaxLine/TaxBreakdown + TaxJurisdictionKind/
+  // TaxKind/TaxBasis/TaxAppliesTo/TaxMemberType (ADMIN-GAP-LIST-2026-09-17.md §B Tax, §C items 2/6/7).
+  // Rates are DATA (rows with jurisdiction/kind/basis/effective dates), never hardcoded constants --
+  // replaces pos/data.jsx:428-438's three fixed percentages. No prior shape changed.
+  // 0.5.0 (additive, Team 6c): Region (ADMIN-GAP-LIST-2026-09-17.md §B Regions, §C items 4/8/10/14;
+  // ADMIN-LIVE-AUDIT-2026-09-17.md /regions Region CRUD). Fields chosen from the three divergent
+  // vendor Region shapes (hemp-backend/models/Region.js: kml/openingHours/closingHours;
+  // distribution-backend/models/Regions.js:19-26: subRegions[{subRegionId,driverId}] --
+  // parent_region_id here is the flattened, one-hop version of that array, matching wm-demo's own
+  // drivers-carry-a-region model rather than porting a nested sub-document; hyperdrive-backend/
+  // models/Region.js: latitude/longitude/zoneType/kmlEdges polygon geometry -- LEFT OUT, kml (the
+  // hemp-backend shape) is the smaller lift and wm-demo's own wmdemo/geo.py parses/validates/
+  // point-in-polygons a KML string directly, no lat/long duplicate of the same geometry). Also left
+  // out: hyperdrive's deliveryFee/minOrderAmount/freeDeliveryAfter/taxRuleId (pricing concerns,
+  // not region identity -- Team 6b's TaxRate already owns tax, and no delivery-fee schema exists
+  // yet to hang deliveryFee off). blaze_region_id is a label only (BLAZE-DEPENDENCY-MAP.md's
+  // "Inventories/terminals/regions" row) -- nothing in this package or wm-demo calls Blaze with it.
+  // No prior shape changed.
+  // 0.5.0 (additive): PlanLine.batch_no/thc_pct/packaged_at/received_at/expires_at
   // -- batch is the unit of control everywhere (owner ruling); populated from batch_meta, null
   // when meta is absent, Floor Restock falls back to `note` only then.
   // 0.5.0 (additive, Team 3b): HrEmployee/HrEmployeeRestricted/Incident/WriteUp/
@@ -260,6 +283,30 @@
       source: 'end-of-shift-portal/Dashboard.gs:1229 LP_DISPOSITION_VALUES' },
     ManagerDecision: { values: ['approve_write_up', 'dismiss_coaching'],
       source: 'docs/migration/LP-DASHBOARD-INVENTORY.md §2 Manager Decision form: "choice: Approve Write-Up / Dismiss-Coaching"' },
+    // Team 6b, ADMIN-GAP-LIST-2026-09-17.md §B "Tax": California cannabis tax structure as DATA, never
+    // constants -- state excise (on retail, currently a percent of gross receipts), state sales tax,
+    // local cannabis business tax per jurisdiction. Real rate VALUES are never in this file; seed rows
+    // live in wmdemo and are labelled EXAMPLE pending owner confirmation per store.
+    TaxJurisdictionKind: { values: ['state', 'county', 'city', 'district'],
+      source: 'ADMIN-GAP-LIST-2026-09-17.md §B Tax -- CA cannabis tax is state excise + state sales + local (county/city/district) cannabis business tax, each its own row' },
+    TaxKind: { values: ['excise', 'sales', 'local_cannabis', 'other'],
+      source: 'vendor stilo-backend/models/Tax.js taxEntrySchema (cannabisType split, per-entry rate) + hemp-retailer-admin TaxTable/TaxTableNonCannabis.jsx; `other` reserves the vendor\'s unused federal tier (ADMIN-GAP-LIST §D item 4, UNVERIFIED need)' },
+    TaxBasis: { values: ['pre_tax', 'post_excise', 'gross'],
+      source: 'vendor taxEntrySchema.taxOrder ("pre-taxed"/"post-taxed") generalized to a 3-step compounding order: excise computed on the pre-tax base, sales computed on the post-excise base where the rate says so, `gross` covers any tax stacked on everything already computed for the line' },
+    TaxAppliesTo: { values: ['cannabis', 'non_cannabis', 'all'],
+      source: 'vendor Tax.cannabisType enum ("Cannabis"/"Non-Cannabis") + hemp-retailer-admin TaxTableNonCannabis.jsx (separate table = separate rate set); wm-demo derives cannabis/non_cannabis from taxonomy.TOP_LEVEL (Accessories = non_cannabis, everything else = cannabis)' },
+    TaxMemberType: { values: ['recreational', 'medical', 'all'],
+      source: 'vendor taxSchema.memberType enum (MedicinalUser/AdultUse) + product/tax-controllers.js getTaxByMemberType; `all` lets a rate apply regardless (most local/excise rows), a narrower value encodes a medical exemption as data (e.g. state sales tax seeded recreational-only)' },
+    // Team 6a, ADMIN-GAP-LIST-2026-09-17.md §B "Drawers": wm-demo's own server-side cash
+    // register sessions. Real prior art is end-of-shift-portal/RetailFloatPlan.gs + the CR/CRX
+    // Airtable tables (docs/REGISTER.md names what did and did not carry over) -- hyper-tech has
+    // no cash-drawer model at all.
+    RegisterSessionStatus: { values: ['open', 'closing', 'closed', 'voided'],
+      source: 'wmdemo/register.py -- "closing" is the window between a recorded closing count and POST .../close actually running' },
+    CashDropReason: { values: ['drop', 'paid_out', 'paid_in', 'float_adjust'],
+      source: 'end-of-shift-portal safe-drop vocabulary, widened for paid-outs/paid-ins and mid-shift float top-ups; direction (add/subtract from expected cash) is carried by this enum, never by the amount\'s sign. paid_in added 2026-09-17 per docs/ADMIN-LIVE-AUDIT-2026-09-17.md\'s live read of Blaze\'s own Cash Drawer screen, which tracks Paid In and Paid Out as separate first-class columns' },
+    CashCountKind: { values: ['opening', 'mid', 'closing'],
+      source: 'wmdemo/register.py -- a closing-kind count is the precondition POST .../close requires' },
   };
   var HTTP_STATUS = { bad_request: 400, unauthorized: 401, forbidden: 403, not_found: 404,
     conflict: 409, unprocessable: 422, rate_limited: 429, internal: 500, not_built: 501 };
@@ -546,6 +593,25 @@
       properties: { id: ID, name: { type: 'string' }, platform: { type: 'string', $enum: 'Platform' },
         tz: { type: 'string' }, pos: { type: 'string', $enum: 'PosVendor' }, active: { type: 'boolean' },
         region_id: { type: 'string', nullable: true }, external_ids: { type: 'array', items: { $ref: 'ExternalId' } } } },
+    // Region -- ADMIN-GAP-LIST-2026-09-17.md §B Regions, §C items 4/8/10/14; ADMIN-LIVE-AUDIT-
+    // 2026-09-17.md /regions. `updated_at` is the canonical WIRE shape (ISO-8601, this file's own
+    // time rule) -- wm-demo's own internal `regions` table stores it as an epoch float today (same
+    // representation its pre-existing driver.shift_end column already uses), a known, pre-existing
+    // gap between wm-demo's storage and this contract's ideal shape, not something this addition
+    // changes. `opening_hours`/`closing_hours` are per-weekday "HH:MM" local-time-of-day maps; a
+    // missing or null day means closed that day (wmdemo/geo.py::is_open's own documented default).
+    RegionHours: { type: 'object', additionalProperties: false,
+      properties: { mon: { type: 'string', nullable: true }, tue: { type: 'string', nullable: true },
+        wed: { type: 'string', nullable: true }, thu: { type: 'string', nullable: true },
+        fri: { type: 'string', nullable: true }, sat: { type: 'string', nullable: true },
+        sun: { type: 'string', nullable: true } } },
+    Region: { type: 'object', required: ['id', 'name'], additionalProperties: true,
+      properties: { id: ID, name: { type: 'string' }, kml: { type: 'string', nullable: true },
+        opening_hours: { $ref: 'RegionHours', nullable: true }, closing_hours: { $ref: 'RegionHours', nullable: true },
+        timezone: { type: 'string', nullable: true }, parent_region_id: { type: 'string', nullable: true },
+        blaze_region_id: { type: 'string', nullable: true }, active: { type: 'boolean', nullable: true },
+        updated_by: { type: 'string', nullable: true },
+        updated_at: { type: 'string', pattern: ISO_UTC.source, nullable: true } } },
     Person: { type: 'object', required: ['id', 'kind', 'display_name'], additionalProperties: true,
       properties: { id: ID, kind: { type: 'string', $enum: 'PersonKind' }, display_name: { type: 'string' },
         role: { type: 'string', $enum: 'Role', nullable: true }, classification: { type: 'string', $enum: 'Classification', nullable: true },
@@ -922,6 +988,81 @@
         window: { type: 'object', nullable: true, additionalProperties: false,
           properties: { lifetime: { $ref: 'Money', nullable: true }, mtd: { $ref: 'Money', nullable: true }, ytd: { $ref: 'Money', nullable: true } } },
         high_risk: { type: 'boolean', nullable: true }, recorded_at: { type: 'string', pattern: ISO_UTC.source, nullable: true } } },
+
+    // Team 6b -- tax as DATA (wmdemo/tax.py owns the table + compute(); this is the wire shape only).
+    // effective_from/effective_to are day-keys (BARE_DATE), matching the contract's own time rule
+    // ("a bare local date only for day-keys"). A rate row is never edited in place once created --
+    // wmdemo/tax.py's history model closes it (effective_to) and inserts a successor.
+    TaxRate: { type: 'object',
+      required: ['id', 'jurisdiction_kind', 'jurisdiction_name', 'kind', 'basis', 'rate_bps', 'applies_to', 'member_type', 'effective_from'],
+      additionalProperties: false,
+      properties: {
+        id: ID, store_id: { type: 'string', nullable: true }, // null = all stores
+        jurisdiction_kind: { type: 'string', $enum: 'TaxJurisdictionKind' }, jurisdiction_name: { type: 'string' },
+        kind: { type: 'string', $enum: 'TaxKind' }, basis: { type: 'string', $enum: 'TaxBasis' },
+        rate_bps: { type: 'integer', minimum: 0, maximum: 10000 }, // integer basis points, never float
+        applies_to: { type: 'string', $enum: 'TaxAppliesTo' }, member_type: { type: 'string', $enum: 'TaxMemberType' },
+        effective_from: { type: 'string', pattern: BARE_DATE.source },
+        effective_to: { type: 'string', pattern: BARE_DATE.source, nullable: true },
+        note: { type: 'string', nullable: true }, // e.g. "EXAMPLE -- confirm with JT"
+        created_by: { type: 'string', nullable: true }, updated_by: { type: 'string', nullable: true },
+        updated_at: { type: 'string', pattern: ISO_UTC.source, nullable: true } } },
+    // One row of TaxBreakdown.lines[].taxes -- the arithmetic for one tax, on one line, named back to
+    // the TaxRate that produced it (audit trail: rate_id is never dropped even though rate_bps/kind/
+    // jurisdiction/basis are copied alongside it for a caller that never looks the rate up separately).
+    TaxLine: { type: 'object', required: ['rate_id', 'kind', 'jurisdiction', 'rate_bps', 'basis', 'tax_cents'], additionalProperties: false,
+      properties: { rate_id: ID, kind: { type: 'string', $enum: 'TaxKind' }, jurisdiction: { type: 'string' },
+        rate_bps: { type: 'integer', minimum: 0, maximum: 10000 }, basis: { type: 'string', $enum: 'TaxBasis' },
+        tax_cents: { type: 'integer', minimum: 0 } } },
+    // tax.compute()'s return shape. `totals` is a per-kind cents map (e.g. {excise: 105, sales: 42}) --
+    // an open object because TaxKind is closed but which kinds actually fired depends on the seed data.
+    TaxBreakdown: { type: 'object', required: ['lines', 'totals', 'total_tax_cents'], additionalProperties: false,
+      properties: {
+        lines: { type: 'array', items: { type: 'object', required: ['line_idx', 'taxable_cents', 'taxes'], additionalProperties: false,
+          properties: { line_idx: { type: 'integer', minimum: 0 }, taxable_cents: { type: 'integer', minimum: 0 },
+            taxes: { type: 'array', items: { $ref: 'TaxLine' } } } } },
+        totals: { type: 'object' }, total_tax_cents: { type: 'integer', minimum: 0 } } },
+
+    // Team 6a -- cash drawers (ADMIN-GAP-LIST-2026-09-17.md §B "Drawers", §C items 1/3/5/9).
+    // wmdemo/register.py owns the DB and every invariant; this is the wire shape only.
+    // expected_cash_cents/counted_cash_cents/variance_cents are null until the session closes.
+    // A variance beyond HW_REGISTER_VARIANCE_ALERT_CENTS sets needs_review -- it NEVER blocks
+    // the close (RETAIL-FLOAT-D1-FALSE-BLOCK-2026-08-16.md: a close-out tool that substitutes
+    // its own arithmetic for a manager's judgment is the exact failure mode this must not repeat).
+    RegisterSession: { type: 'object',
+      required: ['id', 'store_id', 'register_id', 'opened_by', 'opened_at', 'opening_float_cents', 'status'],
+      additionalProperties: false,
+      properties: {
+        id: ID, store_id: ID, register_id: { type: 'string', minLength: 1 },
+        opened_by: { type: 'string', minLength: 1 }, opened_at: ISO,
+        opening_float_cents: { type: 'integer', minimum: 0 },
+        expected_cash_cents: { type: 'integer', nullable: true },
+        counted_cash_cents: { type: 'integer', nullable: true },
+        variance_cents: { type: 'integer', nullable: true },
+        needs_review: { type: 'boolean' },
+        status: { type: 'string', $enum: 'RegisterSessionStatus' },
+        closed_by: { type: 'string', nullable: true },
+        closed_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        voided_by: { type: 'string', nullable: true },
+        voided_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        void_reason: { type: 'string', nullable: true },
+        notes: { type: 'string', nullable: true },
+        drops: { type: 'array', items: { $ref: 'CashDrop' } },
+        counts: { type: 'array', items: { $ref: 'CashCount' } } } },
+    CashDrop: { type: 'object', required: ['id', 'session_id', 'amount_cents', 'reason', 'by', 'at'], additionalProperties: false,
+      properties: { id: ID, session_id: ID, amount_cents: { type: 'integer', minimum: 0 },
+        reason: { type: 'string', $enum: 'CashDropReason' }, by: { type: 'string', minLength: 1 }, at: ISO,
+        bag_ref: { type: 'string', nullable: true } } },
+    // denominations is {denom_cents: qty} on the wire (JSON object keys are always strings);
+    // wmdemo/register.py validates every key against its own DENOMINATIONS_CENTS set and every
+    // value as an integer >= 0, and ALWAYS computes total_cents itself from this object -- a
+    // client-supplied total_cents is refused at the route layer (over-posting guard), never
+    // silently accepted, per CASH-DROPPED-COUNTED-VERDICT-2026-08-17.md's core finding: a
+    // number the screen computes and asks the operator to retype is not a control.
+    CashCount: { type: 'object', required: ['id', 'session_id', 'kind', 'denominations', 'total_cents', 'by', 'at'], additionalProperties: false,
+      properties: { id: ID, session_id: ID, kind: { type: 'string', $enum: 'CashCountKind' },
+        denominations: { type: 'object' },
+        total_cents: { type: 'integer', minimum: 0 }, by: { type: 'string', minLength: 1 }, at: ISO } },
   };
 
   function typeOf(v) {

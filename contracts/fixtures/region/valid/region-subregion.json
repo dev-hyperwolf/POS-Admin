@@ -1,0 +1,9 @@
+{
+  "shape": "Region",
+  "record": {
+    "id": "rg-west-la-sub-1",
+    "name": "West LA -- Sub 1",
+    "parent_region_id": "rg-west-la",
+    "active": true
+  }
+}

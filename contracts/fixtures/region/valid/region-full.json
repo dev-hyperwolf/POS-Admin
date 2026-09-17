@@ -1,0 +1,18 @@
+{
+  "shape": "Region",
+  "record": {
+    "id": "rg-west-la",
+    "name": "West LA",
+    "kml": "<kml><Document><Placemark><Polygon><outerBoundaryIs><LinearRing><coordinates>-118.30,34.00,0 -118.20,34.00,0 -118.20,34.10,0 -118.30,34.10,0 -118.30,34.00,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>",
+    "opening_hours": { "mon": "09:00", "tue": "09:00", "wed": "09:00", "thu": "09:00",
+      "fri": "09:00", "sat": "10:00", "sun": null },
+    "closing_hours": { "mon": "21:00", "tue": "21:00", "wed": "21:00", "thu": "21:00",
+      "fri": "22:00", "sat": "22:00", "sun": null },
+    "timezone": "America/Los_Angeles",
+    "parent_region_id": null,
+    "blaze_region_id": "bz-914",
+    "active": true,
+    "updated_by": "key:k_abc123",
+    "updated_at": "2026-09-17T18:04:00Z"
+  }
+}
