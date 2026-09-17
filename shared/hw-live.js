@@ -22,10 +22,16 @@
 // falls back silently to the mock data that is already loaded.
 //
 // PUBLIC SURFACE: window.HW_LIVE = { status, report, refresh(), disable(),
-//   post(path, body), setToken(v), clearToken(), hasToken(), writes }.
+//   post(path, body), setToken(v), clearToken(), hasToken(), writes,
+//   login(opts), logout(), session() }.
 // post() is the ONE write path for this seam and its four siblings: it attaches
 // the x-hw-write-token header when a token is known and returns the server's own
 // error/hint instead of a bare status code.
+// login()/logout()/session() are the D2 (2026-09-16) server-issued-session
+// surface -- see the "D2" comment block below `takeTokenFromURL()`. A 401 on
+// ANY post()/get() call clears the active session and fires a
+// `hw-live:unauthenticated` window event; this file builds no sign-in UI of
+// its own for that event -- the shell's prompt is a separate task.
 // Turn it off: append `?hwlive=off`, or run `HW_LIVE.disable()` in the console.
 (function () {
   'use strict';
@@ -190,6 +196,72 @@
   _token = loadToken();
   takeTokenFromURL();           // a token on the URL wins over the stored one
 
+  // ── D2 (owner decision, 2026-09-16): the write token leaves localStorage ──
+  //
+  // WHAT'S NEW. `wmdemo/sessions.py` (`POST /api/session/login`) mints a
+  // short-lived, server-issued token instead of the one static secret above
+  // living forever in `localStorage`. That session is kept IN MEMORY
+  // (`_session`) with a `sessionStorage` fallback under `SESSION_KEY`, wrapped
+  // in try/catch like every storage touch in this file -- `sessionStorage` is
+  // per-TAB and cleared when the tab closes, which is the point: surviving a
+  // same-tab reload is useful, surviving a new tab or a restart is exactly
+  // the standing-forever behaviour D2 exists to end.
+  //
+  // THE LEGACY TOKEN IS NOT RETIRED HERE. `currentCredential()` still falls
+  // back to `_token` (the static secret above, from `localStorage['hw-live-token']`
+  // or the settings panel's setToken()) whenever there is no active session --
+  // this release keeps using it, exactly as `wmdemo/authz.py`'s own
+  // `WM_LEGACY_WRITE_TOKEN` fallback does server-side. The one thing that DOES
+  // change: the instant a session login succeeds, the legacy token is deleted
+  // from `localStorage` (never just left there unused) -- see `settleLogin`.
+  //
+  // NO UI HERE. `login()`/`logout()`/`session()` are the surface a sign-in
+  // prompt calls; building that prompt is a separate task for the shell.
+  var SESSION_KEY = 'hw-live-session';
+  var _session = null;   // {token, expires_at, scopes, store_ids, label} | null
+
+  function loadSessionFromStorage() {
+    try {
+      var raw = W.sessionStorage.getItem(SESSION_KEY);
+      if (!raw) { return null; }
+      var parsed = JSON.parse(raw);
+      return (parsed && parsed.token) ? parsed : null;
+    } catch (e) { return null; }
+  }
+  function storeSession(s) {
+    try {
+      if (s) { W.sessionStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+      else { W.sessionStorage.removeItem(SESSION_KEY); }
+    } catch (e) {}
+  }
+  _session = loadSessionFromStorage();
+
+  // The ONE credential post()/get() ever send: a live session wins over the
+  // legacy static token whenever both happen to be present (e.g. mid-migration,
+  // before the legacy token is deleted on first successful login).
+  function currentCredential() {
+    return (_session && _session.token) || _token || null;
+  }
+
+  function dispatchUnauthenticated() {
+    try {
+      var evt = (typeof W.CustomEvent === 'function') ? new W.CustomEvent('hw-live:unauthenticated')
+        : null;
+      if (evt) { W.dispatchEvent(evt); }
+    } catch (e) {}
+  }
+
+  // Drops the SESSION only -- never touches the legacy `_token`/localStorage
+  // path, which has its own independent clearToken(). A dead session must not
+  // be confused with "no legacy token configured either".
+  function clearSession() {
+    if (!_session) { return; }
+    _session = null;
+    storeSession(null);
+    _writes = 'unknown'; _tokenSent = false;
+    paintBadge();
+  }
+
   // THE one POST path. Returns the shape the sibling seams' own fetch chains
   // already build -- { ok, code, body } -- so adopting it is a one-line change
   // in each, plus `error`, `hint` and `gated` for anything that wants the
@@ -202,7 +274,8 @@
   function post(path, body) {
     var headers = { 'Content-Type': 'application/json' };
     var sent = false;
-    if (_token && sameOrigin()) { headers[TOKEN_HEADER] = _token; sent = true; }
+    var cred = currentCredential();
+    if (cred && sameOrigin()) { headers[TOKEN_HEADER] = cred; sent = true; }
     return fetch(base + path, {
       method: 'POST',
       headers: headers,
@@ -248,6 +321,7 @@
   function settleRead(res, j) {
     // A body we could not parse as JSON is evidence of nothing (same ruling
     // as settleWrite below) -- res.ok stays the only truth we assert past it.
+    if (res.status === 401) { clearSession(); dispatchUnauthenticated(); }
     return {
       ok: res.ok,
       code: res.status,
@@ -258,6 +332,10 @@
   }
 
   function settleWrite(res, j, sent) {
+    // A session that expired, was revoked, or was never valid -- clear it
+    // and let the shell's own sign-in prompt (a separate task) react, rather
+    // than silently retrying with a dead credential on every call after.
+    if (res.status === 401) { clearSession(); dispatchUnauthenticated(); }
     // Only the public-mode gate answers 403 with an `error` beginning
     // 'read-only' (wmdemo/server.py:368). Anything else -- 200, 400, 404, 500 --
     // means the gate let us through, whatever the route then decided.
@@ -285,6 +363,27 @@
       error: (j && (j.error || j.why)) || ('HTTP ' + res.status),
       hint: (j && j.hint) || null
     };
+  }
+
+  function settleLogin(res, j) {
+    if (res.ok && j && j.token) {
+      _session = { token: j.token, expires_at: j.expires_at, scopes: j.scopes,
+                  store_ids: j.store_ids, label: j.actor_label || null };
+      storeSession(_session);
+      // The legacy static token is deleted from localStorage the instant a
+      // session login succeeds -- not left behind unused. `_token` (the
+      // in-memory copy) is cleared too so currentCredential() only ever
+      // reports the new session from here on, in this tab.
+      try { W.localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+      _token = null;
+      _writes = 'unknown'; _tokenSent = false;
+      paintBadge();
+      return { ok: true, code: res.status,
+               session: { expires_at: j.expires_at, scopes: j.scopes, store_ids: j.store_ids },
+               error: null };
+    }
+    return { ok: false, code: res.status, session: null,
+             error: (j && (j.error || j.why)) || ('HTTP ' + res.status) };
   }
 
   function noteWrites(state) {
@@ -1922,6 +2021,56 @@
       _writes = 'unknown'; _tokenSent = false;
       paintBadge();
       return probeWrites();
+    },
+    // D2: server-issued session login. `token_or_pin` is today's console
+    // credential (the same static secret setToken() stores -- see
+    // wmdemo/sessions.py's own docstring on why the login body field is
+    // `token`, not `pin`), `actor_label` and `store_id` are optional. Returns
+    // a Promise of { ok, code, session, error } -- `session` is
+    // { expires_at, scopes, store_ids }, NEVER the token itself, mirroring
+    // GET /api/session/me's own contract. Never rejects, same posture as
+    // post()/get().
+    login: function (opts) {
+      opts = opts || {};
+      var cred = opts.token_or_pin != null ? opts.token_or_pin : opts.token;
+      var body = { token: cred == null ? '' : String(cred) };
+      if (opts.actor_label) { body.actor_label = String(opts.actor_label); }
+      if (opts.store_id) { body.store_id = String(opts.store_id); }
+      return fetch(base + '/api/session/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        cache: 'no-store',
+        body: JSON.stringify(body)
+      }).then(function (res) {
+        return res.json().then(function (j) { return settleLogin(res, j); },
+                               function () { return settleLogin(res, null); });
+      }).catch(function (e) {
+        return { ok: false, code: 0, session: null,
+                 error: 'request failed: ' + (e && e.message ? e.message : 'unknown') };
+      });
+    },
+    // Revokes the active credential server-side (session or, harmlessly, a
+    // legacy token that the server does not track and so cannot revoke) and
+    // always clears the local session, even if the network call fails --
+    // an operator asking to log out must end up logged out locally.
+    logout: function () {
+      var cred = currentCredential();
+      var headers = { 'Content-Type': 'application/json' };
+      if (cred && sameOrigin()) { headers[TOKEN_HEADER] = cred; }
+      return fetch(base + '/api/session/logout', {
+        method: 'POST', headers: headers, credentials: 'omit', cache: 'no-store', body: '{}'
+      }).then(function (res) { return res.json().catch(function () { return null; }); },
+             function () { return null; })
+        .then(function () { clearSession(); return true; });
+    },
+    // The active session, NEVER the token -- { expires_at, scopes, store_ids,
+    // label } -- or `null` when there is no live session (a legacy-token-only
+    // caller included; that credential carries no session record to report).
+    session: function () {
+      if (!_session) { return null; }
+      return { expires_at: _session.expires_at, scopes: _session.scopes,
+               store_ids: _session.store_ids, label: _session.label || null };
     },
     refresh: function () {
       if (!armed) { return Promise.resolve('off'); }
