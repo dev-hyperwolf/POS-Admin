@@ -106,6 +106,25 @@ const useP = window.useP,useTheme = window.useTheme;
   NAV.all = NAV.items.concat([NAV.settings]);
 })();
 
+// ── Floor restock tab registration (pos/screen-floor-restock.jsx) ─────────
+// Same rule as Brands above: MUTATE window.HW_NAV.items IN PLACE. Reassigning
+// window.HW_NAV would leave shared/app-rail.jsx and shared/app-switcher.js
+// pointing at the old object.
+//
+// Team 2b / Build Program §3.1, Store Concept A (owner decision D3): safe ->
+// shelf restock, RFID-first, built against the four live routes
+// docs/codebase-audit/distribution/CONSOLE-ENDPOINT-MAP.md section A
+// confirmed. Placed next to Register, the other floor-facing POS screen.
+(function () {
+  var NAV = window.HW_NAV;
+  if (!NAV || !Array.isArray(NAV.items)) { return; }
+  if (NAV.items.some(function (i) { return i.id === 'floor-restock'; })) { return; }
+  var at = NAV.items.findIndex(function (i) { return i.id === 'register'; });
+  NAV.items.splice(at < 0 ? NAV.items.length : at + 1, 0,
+    { id: 'floor-restock', label: 'Floor Restock', icon: 'package', pos: 'floor-restock' });
+  NAV.all = NAV.items.concat([NAV.settings]);
+})();
+
 /* ── WHERE A FAILURE STOPS ───────────────────────────────────────────────────
  *
  * On 2026-08-27 `cart.map(...)` on an undefined cart — one line, on the render
@@ -151,7 +170,7 @@ const POS_SCREEN_LABELS = {
   brands: 'Brands', cities: 'Cities', 'category-map': 'The category map',
   pricing: 'Pricing',
   'publish-gate': 'The publish gate', members: 'Members',
-  'identity-binding': 'Identity & binding', merch: 'Merch',
+  'identity-binding': 'Identity & binding', merch: 'Merch', 'floor-restock': 'Floor Restock',
   settings: 'Settings' };
 
 // Derived from window.HW.STATS.associate (pos/data.jsx), not a second hand-typed
@@ -226,6 +245,11 @@ function App() {
     <ErrorState title="The Identity &amp; binding screen did not load"
       body="pos/screen-identity-binding.jsx defines window.IdentityBindingScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
   if (route === 'merch') screen = <window.MerchScreen />;else
+  // Guarded the same way Brands is, and for the same reason: a dropped script
+  // tag must name the missing file rather than white-screening the whole app.
+  if (route === 'floor-restock') screen = window.FloorRestockScreen ? <window.FloorRestockScreen /> :
+    <ErrorState title="The Floor Restock screen did not load"
+      body="pos/screen-floor-restock.jsx defines window.FloorRestockScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
   if (route === 'settings') screen = <SettingsScreen />;else
   screen = <RegisterScreen />;
 

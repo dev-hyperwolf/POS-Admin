@@ -60,6 +60,11 @@
 <!-- @hyper-tech/contracts: the estate's enums, ids, money, time, error and event rules as
      window.HWContracts. Plain JS, IIFE, one global. See docs/BUILD-AGAINST-THE-SOURCE.md. -->
 <script src="contracts/index.js"></script>
+<!-- Floor Restock's data layer: the four live restock routes plus the shelf-picker's
+     locations route, all through window.HW_LIVE above (never a fetch of its own). Plain JS,
+     loads before React and before pos/screen-floor-restock.jsx, same discipline as its
+     shared/hw-live-*.js siblings. -->
+<script src="shared/hw-restock.js"></script>
 <!-- The sub-category -> Weedmaps node mapping board, live from /api/taxonomy.
      Same loopback gate as hw-live.js, so the GitHub Pages demo never fetches. -->
 <script src="shared/hw-live-taxonomy.js"></script>
@@ -217,6 +222,10 @@
      audit trail, and the one real undo wmdemo/wm_binding.py offers (unbind).
      No bind control -- that is a deliberate backend decision, not a gap. -->
 <script type="text/babel" src="pos/screen-identity-binding.jsx"></script>
+<!-- Floor Restock: safe -> shelf, RFID-first, built from Store Concept A (owner decision D3)
+     against the four live restock routes plus GET /api/inventory/locations for the shelf
+     picker. Data layer is shared/hw-restock.js, loaded above with the other plain-JS seams. -->
+<script type="text/babel" src="pos/screen-floor-restock.jsx"></script>
 <script type="text/babel" src="pos/app.jsx"></script>
 <script src="shared/app-switcher.js"></script>
 <script src="shared/tour-steps.js"></script>
