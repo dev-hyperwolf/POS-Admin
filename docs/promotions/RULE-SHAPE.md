@@ -176,16 +176,12 @@ hand-copied `RULE_OPS_BY_TYPE` dict carrying the identical stale "not exported y
 byte-identical to the JS table today but now two hand-synced copies instead of one. **Python must
 read `enums.json['rule_ops_by_type']`, not carry its own copy.**
 
-The whole depth/node-count/group-item/byte-size/both-or-neither-form/then-value walk in
-`validatePromotionRule` still has no Python port: `wmdemo/contracts.py` today only gives Python the
-schema-level `validate('PromotionRule', rule)` check. A record can be schema-valid and still fail
-`validatePromotionRule` in JS (wrong op for a field's type, 51 nodes, a node with both forms, a
-201-char string, an `in` value that isn't an array, an out-of-range `then.value`, an oversized
-serialized body). That is engine-team (1b) work: port `validatePromotionRule`'s logic into
-`wmdemo/contracts.py` (or a sibling module) reading `rule_field_type` / `rule_limits` /
-`rule_ops_by_type` from the same `enums.json`, before
-`qa/promo_rules_probe.py` (§2.1's Python-side parity runner) can give a fixture the same verdict
-as JS.
+**Python port (2026-09-16):** `wmdemo/contracts.py::validate_promotion_rule` mirrors the whole
+`validatePromotionRule` walk (byte gate first, every node counted, group-item cap, both-or-neither
+form, op-per-type, value typing, `then.value` bounds) and reads `rule_field_type`, `rule_limits` and
+`rule_ops_by_type` from the exported `enums.json`. `qa/promo_rules_probe.py` runs every fixture through
+it and must reach the same verdict as `test/contracts.test.mjs`; a new structural check is added to
+both sides or the battery goes red.
 
 ## 4. Worked examples
 
