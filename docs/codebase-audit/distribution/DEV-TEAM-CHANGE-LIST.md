@@ -343,3 +343,214 @@ distribution-engine exports `planHandoff(input)` but no Python twin exists in re
 **Why:** The JS engine defines the handoff plan contract; a Python twin allows the backend to build handoff plans server-side for packing and dispatch screens, or confirms that the tablet will always generate its own.
 
 **Prove:** plan_handoff(input) returns a valid Handoff contract, or the PM confirms that Handoff is tablet-only and this item is marked N/A.
+
+---
+
+## Phase 3: security & platform findings across the customer/driver estate (2026-09-17)
+
+Everything below is outside distribution-backend — it spans `hyperdrive-backend` (driver app),
+`hyperwolf-backend` (customer app), `hemp-backend`, and `stilo-backend`. It is appended here
+rather than started as a new document because this is the one list the dev team already watches.
+Each item was re-read against the live checkout at `/Users/jt/hyper-tech` today, not taken from
+a prior summary on trust. Where an item was already surfaced by the earlier codebase audit, that
+is stated explicitly with its citation so nothing here is double-counted as new.
+
+### 26. Stop storing driver passwords with base64, not encryption
+
+**What.** `hyperdrive-backend/common/util.js:208-216` — `encodeText`/`decodeText` wrap the
+`base-64` package (`require('base-64')`, line 6). `controllers/fleets/fleet-controller.js` uses
+these, not a hash, to set and check `fleetPassword`: login compare at line 48
+(`(await decodeText(fleetData.fleetPassword)).trim() != fleetPassword`), set/reset at lines 315
+and 880, a second login/compare path at line 384.
+
+**Why.** Base64 is an encoding, not encryption — anyone with read access to the `Fleets`
+collection (a DB dump, a backup, a compromised read-only credential) recovers every driver's
+plaintext password by decoding a string, no key required. This is a different, worse bug than
+the plaintext-field-named-secrets finding the earlier audit already made for `hyperwolf-backend`'s
+`Admin`/`Store`/`StoreUser` passwords (`repos/hyperwolf-backend.md:554-573`, `THE-GRADE.md`); this
+one is in the driver backend and was not previously cited.
+
+**Prove.** `fleetPassword` is a `bcrypt`/`argon2` hash after the fix; a direct read of the
+`Fleets` collection no longer discloses a usable password for any driver.
+
+### 27. hyperdrive-backend has no login rate limiting at all — not even declared
+
+**What.** `hyperdrive-backend/package.json` does not declare `express-rate-limit` anywhere
+(`grep -rln "express-rate-limit" hyperdrive-backend/` returns nothing), and no route in the repo
+throttles repeated login/OTP attempts.
+
+**Why.** The earlier audit already flagged `hyperwolf-backend` for declaring `express-rate-limit`
+in `package.json:30` and never requiring it on any route (`repos/hyperwolf-backend.md:48-52,
+498-499` — cited, not new). `hyperdrive-backend` is worse: the package was never even added.
+Between the two backends, every login surface in the estate — customer and driver — is
+brute-forceable today.
+
+**Prove.** A scripted burst of failed logins against `hyperdrive-backend`'s driver/fleet login
+route gets throttled (429) after a small number of attempts, same as the fix expected on
+`hyperwolf-backend`.
+
+### 28. Proof-of-delivery uploads are still `public-read` (carried forward, please prioritize)
+
+**What.** `hyperdrive-backend/middlewares/multiFileUploadToS3.js:22` sets `acl: 'public-read'`
+on every upload through this middleware — the same middleware that handles proof-of-delivery
+photos and signatures.
+
+**Why.** Already reported (`repos/hyperdrive-backend.md:283`, and independently in
+`MOBILE-APP-AUDIT-GROUNDWORK-2026-09-17.md` §3.2 item 2, which explicitly warns "do not port the
+ACL as-is" when this shape gets rebuilt). Restating it here because this is the first time it has
+gone into an actual dev-team ask list rather than an internal audit note — every photo/signature
+a driver has ever captured is a guessable-URL away from public view today.
+
+**Prove.** A freshly uploaded proof-of-delivery file returns 403 to an unauthenticated `GET`; the
+app still displays it to authorized viewers via a signed URL or an authenticated proxy route.
+
+### 29. Merged ID+selfie identity images are served from a public static folder
+
+**What.** `hyperwolf-backend/startup/middleware.js:57` — `app.use(express.static('uploads'))`,
+mounted with no auth in front of it. `controllers/berbix/berbix-controller.js:182` writes the
+merged ID+selfie composite image to `./uploads/${fileName}` — the same directory tree that
+`express.static` serves back to anyone who requests the filename.
+
+**Why.** This is a new finding, not previously cited by file:line in the earlier audit (which
+flagged the general pattern of unauthenticated routes and a committed Firebase key, but not this
+specific static-folder-serves-identity-documents path). A merged ID+selfie image is exactly the
+kind of KYC artifact that must never be reachable by URL guess alone — worse than the S3
+`public-read` issue above because there is not even a bucket ACL to fix; it's Express serving a
+local disk folder.
+
+**Prove.** A request for a known or guessed `uploads/<filename>` for an ID/selfie composite
+returns 403/404 without a valid session; legitimate access goes through an authenticated route
+that streams the file server-side.
+
+### 30. Name the unauthenticated order-creation route specifically
+
+**What.** `hyperwolf-backend/routes/order-routes.js:8` — `router.post('/', orderController.createOrder)`
+carries no auth/admin middleware, unlike its siblings on the same file (`:10-11,13` use `[auth]`/
+`[admin]`).
+
+**Why.** The earlier audit already flagged the shared-static-token model itself
+(`middlewares/auth.js`, `repos/hyperwolf-backend.md:190`) and the general category of "~33
+unauthenticated route files including financial writes" with two illustrative examples
+(`repos/hyperwolf-backend.md:235-238,554,683`). Order creation was one of the un-named 22 in that
+bucket; this item gives the dev team the specific file:line so it can be triaged instead of
+re-discovered.
+
+**Prove.** An anonymous `POST /api/v1/order` (no token) is refused; a valid customer session can
+still place an order.
+
+### 31. Rotate and remove the three committed Firebase service-account keys (carried forward)
+
+**What.** Three live-shaped service-account JSON files are tracked in git:
+`hyperwolf-backend/hyperdrive-firebase-adminsdk.json` (repo root), `hemp-backend/staticDB/
+fcmtoken.json`, `stilo-backend/staticDB/fcmtoken.json`.
+
+**Why.** Already reported and already tracked: `repos/hyperwolf-backend.md` Critical-5 (lines
+569-573), `repos/hemp-backend.md` (lines 289-294, 522, 797), `repos/stilo-backend.md` (lines 242,
+448-449), and `TEAM-TODO.md:13` item 0.1 ("Rotate the Firebase/GCP service-account keys committed
+in three repos"). No new file was found beyond these three. Restated here only because this is
+the first time these three land in a message actually addressed to the dev team rather than an
+internal note — TEAM-TODO.md is ours, not theirs.
+
+**Prove.** Firebase console shows the old key IDs revoked; push notifications keep working from
+the new, env-var-sourced key; `git log -p` on all three paths is scrubbed or the repos are
+confirmed private-enough that history scrubbing is deprioritized (owner's call, not ours).
+
+### 32. Stilo's "Metrc integration" is one hardcoded-license nightly POST and one live GET — harden or scope down
+
+**What.** `stilo-backend/controllers/metrc-controllers.js:22-91` (`createSales`, the only
+outbound write) and `:94-112` (`getActivePackages`, the only outbound read), both hardcoded to
+`licenseNumber=M10-0000004-LIC` (lines 78-82, 105). `createSales` has no retry, no backoff, no
+idempotency key, and never persists the payload sent or Metrc's response (verified: `data` from
+the POST is read nowhere). Its `catch` block (lines 87-90) only logs and never calls `res.send()`;
+because the same function backs `GET /api/v1/metrc/` (`metrc-routes.js:5`), a manual call that
+hits the catch branch hangs the HTTP request rather than erroring. Full analysis and both
+citations independently re-verified today against source:
+`POS-Admin/docs/METRC-PROGRAM-PLAN-2026-09-17.md` §1.1.
+
+**Why.** This is the estate's only real compliance-facing Metrc call, and it currently: (a) can't
+serve more than one licensed store without a source edit, (b) has a real double-submit risk on
+any overlap between the 23:59 cron and a manual call or process restart, and (c) can hang a
+request indefinitely on a broken `Order` query. None of Items, Strains, Transfers, Retail
+Deliveries, Compliance Difference, Waste, or Adjustments exist anywhere in this integration.
+
+**Prove.** `createSales` persists what it sent and what Metrc returned, refuses to double-submit
+the same order, returns a real error (not a hang) on failure, and the license number is looked up
+per store rather than hardcoded.
+
+### 33. Eight dangling/broken Mongoose refs, and the `Tax.taxRate` scale question
+
+**What.** From `POS-Admin/docs/migration/LEGACY-DATA-MODEL-INVENTORY-2026-09-17.md` ("Broken/
+dangling references found in this pass"), re-verified today: `HempBlogs.author._id` and
+`HyperwolfBlogs.author._id` both `ref: "Author"` against a registered `Authors` (plural);
+`stilo-backend:Blog.author._id` — same bug; `OrderManager.order` (hemp/hyperwolf/stilo-backend) —
+bare `ObjectId` array, no `ref` at all; `KitTemplate.regionId`/`subRegionId`
+(distribution-backend) — `ref: "Region"`/`"SubRegion"` against registered `Regions`/`SubRegions`;
+`boxProduct.productId` (distribution-backend) — `ref: "Products"` against registered `Product`;
+`fleetTaskActivityLogs.taskId` (hyperdrive-backend) — `ref: "Fleets"`, almost certainly meant
+`Tasks`; `hyperdrive-backend:Region` — five refs (`companyId`, `taxRuleId`, `drivers`,
+`terminals`, `shopId`) pointing at models absent from every repo's census; `promotion-backend:
+Promotion.rules` — `ref: "Rules"` declared on a `Mixed`-typed field, which Mongoose refs cannot
+resolve regardless. Separately: `stilo-backend:Tax.taxes[].taxRate` (`models/Tax.js:16`) — unclear
+whether values are a percent (`15`), a fraction (`0.15`), or basis points already.
+
+**Why.** These are new to this list (first surfaced in the migration inventory pass, not the
+original codebase audit). A dangling `ref` doesn't break Mongoose at write time, only silently
+fails to `.populate()` — which is exactly the shape of bug that ships quietly and is found months
+later. The tax-rate scale question is higher-stakes: guessing wrong mis-taxes every order.
+
+**Prove.** Each `ref` above resolves via `.populate()` against the correct model name; the dev
+team confirms in writing whether `taxRate` is a percent, a fraction, or basis points, with one
+worked example from a real tax record.
+
+### 34. Fix the misnamed `assetlinks.json` — it's Apple AASA content, not Android Asset Links
+
+**What.** `hyperdrive-backend/public/.well-known/assetlinks.json` contains
+`applinks`/`webcredentials`/`appclips` keys (Apple's `apple-app-site-association` schema,
+Team ID `WKJ7ST229V`, app IDs `WKJ7ST229V.com.hyperdrive.hyperwolf` listed twice identically) —
+not Android's Asset Links schema (`relation`/`target.package_name`/`sha256_cert_fingerprints`).
+No file of either kind exists in `hyperwolf-frontend-nextjs` or any other repo.
+
+**Why.** New finding, independently confirmed today (`cat` of the file). Apple's Universal Links
+require this exact content served at `/.well-known/apple-app-site-association` with **no file
+extension** — a file literally named `assetlinks.json` is not where iOS looks, so universal
+links (`/buy/*`, `/help/*`) and the configured App Clip are very likely non-functional as shipped.
+Whether a correctly-named file exists on the live `hyperwolf.com`/driver-app domain (outside
+source control) is unverified from here — first cited in
+`MOBILE-APP-AUDIT-GROUNDWORK-2026-09-17.md` §1.1.
+
+**Prove.** `curl -I https://<driver-app-domain>/.well-known/apple-app-site-association` returns
+200 with this JSON; a real Android Asset Links file (if one is needed) is added separately under
+its own correct filename.
+
+### 35. HyperDrive iOS: ~39 drivers locked out on expired TestFlight builds — need a build today, and a permanent fix
+
+**What.** Per `BUILD-PROGRAM-TODO.md` item A1 (owner-tracked, not independently re-derivable by
+this audit since it depends on App Store Connect account state we don't have access to): all
+TestFlight builds for HyperDrive expired 2026-09-17, locking out roughly 39 drivers. HyperDrive
+has no public App Store listing at all (confirmed: `MOBILE-APP-AUDIT-GROUNDWORK-2026-09-17.md` §1
+— no iOS listing found under any searched name), so TestFlight has been the only distribution
+channel, and every build on it expires 90 days after its own upload date regardless of app
+version.
+
+**Why.** This is both urgent and structural: today's ask is version 1.0.6 build 3 uploaded and
+assigned to both tester groups (same version number should qualify for expedited beta review);
+the permanent ask is the unlisted-App-Store-distribution plan in
+`docs/HYPERDRIVE-APP-DISTRIBUTION-PLAN-2026-09-17.md` (deliverable 3 of today's set) so this
+90-day cycle stops recurring.
+
+**Prove.** Drivers on the two tester groups can install/update HyperDrive today; six months from
+now no driver is locked out by a silent TestFlight expiry.
+
+---
+
+## What we need FROM the dev team (or whoever holds these), alongside this list
+
+1. **A read-only MongoDB user for the sync tool** — TLS required, `read` role only, scoped to the
+   collections in item 2 above plus whatever this pass's items 26-34 touch for verification.
+2. **Who controls `hyperwolf.com` DNS** — needed to confirm/deploy the correctly-named
+   `apple-app-site-association` file (item 34) and to plan any future subdomain for the console.
+3. **The driver-app (HyperDrive) source repo** — none of the twelve `hyper-tech` repos contain
+   client code; every mobile-app finding in this pass and in `MOBILE-APP-AUDIT-GROUNDWORK-
+   2026-09-17.md` is inferred from the backend APIs the app must call.
+4. **TestFlight and Play internal-testing access** — to close out item 35 and to give this audit
+   real version/rating/data-safety detail instead of public search snippets.
