@@ -9,9 +9,9 @@ Last updated: 2026-09-17 afternoon.
 | # | Item | Notes |
 |---|---|---|
 | A1 | **HyperDrive iOS app locked out (URGENT)** — all TestFlight builds expired 2026-09-17, ~39 drivers | Devs upload 1.0.6 build 3 (same version = fast beta review); check the Xcode Cloud tab for a Start Build button; then assign to both tester groups. Permanent fix = unlisted App Store release (B9). |
-| A2 | 14 owner questions, one at a time, four options | 8 routing (`ROUTING-ENGINE-PLAN` §7) + 6 Metrc (`METRC-PROGRAM-PLAN` §6) |
+| A2 | 19 owner questions, one at a time, four options | 8 routing (`ROUTING-ENGINE-PLAN` §7) + 6 Metrc (`METRC-PROGRAM-PLAN` §6) + 5 loyalty (`LOYALTY-INTEROP-PLAN`) |
 | A3 | Concept picks — eight review rounds live at `/explorations/review/` | rule builder, HR Overview, LP Triage, Nav Rail, Reports, Tax Rates, Regions, Cash Drawer. Unblocks every Phase-1 screen build. |
-| A4 | Tap-target size floor: apply everywhere except Register, or Register too? | Shared tokens are used by the locked Register screen. |
+| A4 | Tap-target sizes — **DECIDED 2026-09-17: include Register, but NO change until JT approves before/after designs.** PM owes before/after mockups (POS incl. Register, Driver, back-office; desktop + phone). | Design only until approved. |
 | A5 | Customer Account: pick variant A/B/C; remove the design-review switcher from the live page | Switcher already hidden on phones. |
 | A6 | Real tax rates per store (five numbers); medical exemption; where rates live today | `wm-demo/docs/TAX.md` |
 | A7 | AWS: confirm `hw-assistant-deploy-dev` has the permissions boundary (IAM → Roles → it → "Permissions boundary"); later sign the connector in as that role when the dev change set is ready | View-only role cannot read role details. |
@@ -33,8 +33,8 @@ Last updated: 2026-09-17 afternoon.
 | B4 | TypeScript port #4: restock, with Python goldens | dispatching |
 | B5 | Metrc phase 1 (read-only): day-ledger, unit→batch→package resolution, Metrc stub server, reconciliation read | dispatching |
 | B6 | Dispatch core phase 1: `RouteSolver` interface, hard-constraint checker, kit stock ledger, insertion quote (< 200 ms), GraphHopper + VROOM adapters behind stubs | dispatching |
-| B7 | Loyalty interop plan: Engage as the engine, ladder matched to today's, balances 1:1, adapters for Alpine and Blaze | dispatching |
-| B8 | Dev-team change list: add today's findings (driver password storage, public ID/selfie folder, unauthenticated order routes, Firebase keys in repos, Metrc integration state, dangling refs, tax-rate scale question) | dispatching |
+| B7 | Loyalty interop plan — DONE (`LOYALTY-INTEROP-PLAN-2026-09-17.md`); 5 owner questions added to A2 | done |
+| B8 | DONE — dev-team change list items 26–35 added. Was: add today's findings (driver password storage, public ID/selfie folder, unauthenticated order routes, Firebase keys in repos, Metrc integration state, dangling refs, tax-rate scale question) | dispatching |
 | B9 | HyperDrive: unlisted App Store distribution plan so builds stop expiring every 90 days | with B8 |
 | B10 | Valkey adapter for the realtime kit; WebSocket consumers (dispatcher map, driver task push) on AWS dev | after B2 |
 | B11 | Nav rail + top bar build, Reports/Tax/Regions/Drawer/HR/LP screens (desktop + phone) | blocked on A3 |
