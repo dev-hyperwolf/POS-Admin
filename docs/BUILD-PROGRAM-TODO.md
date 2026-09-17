@@ -19,7 +19,7 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | # | Item | Notes |
 |---|---|---|
 | A1 | **HyperDrive iOS app locked out (URGENT)** — all TestFlight builds expired 2026-09-17, ~39 drivers | Devs upload 1.0.6 build 3 (same version = fast beta review); check the Xcode Cloud tab for a Start Build button; then assign to both tester groups. Permanent fix = unlisted App Store release (B9). |
-| A2 | Owner questions, one at a time, four options. **Routing 8/8 ANSWERED 2026-09-17** (D17–D19 in memory). **Driver assignment 4/6 ANSWERED** (D21–D23: guard varies by time of day; fairness = keep drivers busy; keep zone promise + logistics flag + team calls customer; NO staging wait). Q5 (hold firmness) folded into the cart specialist plan (B28); Q6 (auto-move) next. Still open after that: 6 Metrc, 5 loyalty, 5 swap recovery, 6 discrepancy/scoreboard, 5 logistics wiring, cart plan questions | in progress |
+| A2 | Owner questions, one at a time, four options. **Routing 8/8 ANSWERED 2026-09-17** (D17–D19 in memory). **Driver assignment 6/6 ANSWERED** (D24: auto-move to prevent a miss and for big gains, receiving driver must hold the items else Swap via support). Earlier note: 4/6 (D21–D23: guard varies by time of day; fairness = keep drivers busy; keep zone promise + logistics flag + team calls customer; NO staging wait). Q5 (hold firmness) folded into the cart specialist plan (B28); Q6 (auto-move) next. Still open after that: 6 Metrc, 5 loyalty, 5 swap recovery, 6 discrepancy/scoreboard, 5 logistics wiring, cart plan questions | in progress |
 | A3 | Concept picks — eight review rounds live at `/explorations/review/` | rule builder, HR Overview, LP Triage, Nav Rail, Reports, Tax Rates, Regions, Cash Drawer. Unblocks every Phase-1 screen build. |
 | A4 | Tap-target sizes — **DECIDED 2026-09-17: include Register, but NO change until JT approves before/after designs.** PM owes before/after mockups (POS incl. Register, Driver, back-office; desktop + phone). | Design only until approved. |
 | A5 | Customer Account: pick variant A/B/C; remove the design-review switcher from the live page | Switcher already hidden on phones. |
@@ -66,6 +66,8 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | B25 | `GET /api/session/me` flagged by the gate probe as echoing the presented credential (pre-existing) — verify and fix | queue |
 | B27 | DONE — `LOGISTICS-WIRING-PLAN-2026-09-17.md`: dispatch signals mapped onto the EXISTING Hyperdrive Logistics designs; call-the-customer loop; customer phone must be masked (mock shows it unmasked in `lorder.jsx`); six design gaps need four concepts; 5 owner questions | questions to A2 |
 | B28 | Elite cart + checkout specialist (cart holds, stale-cart release settings, swap design verdict) → `CART-AND-CHECKOUT-PLAN-2026-09-17.md` | agent running |
+| B29 | Elite purchase-limits researcher (CA adult-use + medical law, how products count, existing code search across hyper-tech, engine design for cart/checkout/admin/register/swap/transfer) → `PURCHASE-LIMITS-PLAN-2026-09-17.md` | agent running |
+| B30 | Dispatch core follow-up from D24: transfer candidate check = receiving kit holds every line, else raise a swap-recovery case; auto-move for gains with once-per-order + cool-down | queue (lead-only module) |
 | B26 | Metrc recon: rerun creates duplicate exception rows; per-store wall-clock cap on package pulls | queue (with B15) |
 
 ## C. Landed today (2026-09-17) — detail in the master plan §9
