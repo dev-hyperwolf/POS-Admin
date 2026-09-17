@@ -1,0 +1,16 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblIncidents",
+    "record_id": "recINC005"
+  },
+  "entity_id": "ent456",
+  "employee_person_id": "emp005",
+  "type": "over_under_charged",
+  "severity": "low",
+  "description": "Customer was overcharged by error",
+  "status": "closed",
+  "dismissed": true,
+  "dismissed_at": "2026-09-15T10:00:00Z",
+  "dismissed_by": "hr001"
+}

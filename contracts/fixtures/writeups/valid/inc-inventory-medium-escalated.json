@@ -1,0 +1,15 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblIncidents",
+    "record_id": "recINC002"
+  },
+  "entity_id": "ent456",
+  "employee_person_id": "emp002",
+  "type": "inventory_confirmation_failure",
+  "severity": "medium",
+  "description": "Inventory count mismatch discovered",
+  "status": "escalated",
+  "issue_category": "accuracy",
+  "store_id": "store001"
+}

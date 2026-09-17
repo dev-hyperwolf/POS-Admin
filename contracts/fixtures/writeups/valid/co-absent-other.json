@@ -1,0 +1,14 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblCallOffs",
+    "record_id": "recCO008"
+  },
+  "entity_id": "ent456",
+  "employee_person_id": "emp008",
+  "type": "absent",
+  "reason": "other",
+  "date": "2026-09-12T08:00:00Z",
+  "status": "unexcused",
+  "notes": "Personal matter - no details provided"
+}

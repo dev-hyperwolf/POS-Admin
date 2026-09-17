@@ -1,0 +1,13 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblCallOffs",
+    "record_id": "recCO001"
+  },
+  "entity_id": "ent123",
+  "employee_person_id": "emp001",
+  "type": "absent",
+  "date": "2026-09-17T08:00:00Z",
+  "status": "pending_review",
+  "extra_field": "should not be here"
+}

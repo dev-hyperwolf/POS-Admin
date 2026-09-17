@@ -1,0 +1,16 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblCallOffs",
+    "record_id": "recCO007"
+  },
+  "entity_id": "ent123",
+  "employee_person_id": "emp007",
+  "type": "sick",
+  "reason": "appointment",
+  "date": "2026-09-13T06:00:00Z",
+  "status": "excused",
+  "dismissed": true,
+  "dismissed_at": "2026-09-13T12:00:00Z",
+  "dismissed_by": "hr001"
+}

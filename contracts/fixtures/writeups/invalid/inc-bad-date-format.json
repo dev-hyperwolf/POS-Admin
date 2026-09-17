@@ -1,0 +1,14 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblIncidents",
+    "record_id": "recINC001"
+  },
+  "entity_id": "ent123",
+  "employee_person_id": "emp001",
+  "type": "customer_complaint",
+  "severity": "low",
+  "description": "Customer reported something",
+  "status": "open",
+  "date_of_incident": "09-17-2026 14:00:00"
+}

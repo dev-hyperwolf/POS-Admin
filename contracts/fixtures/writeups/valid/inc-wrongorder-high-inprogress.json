@@ -1,0 +1,16 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblIncidents",
+    "record_id": "recINC003"
+  },
+  "entity_id": "ent789",
+  "employee_person_id": "emp003",
+  "type": "wrong_order_items",
+  "severity": "high",
+  "description": "Wrong items shipped to customer",
+  "status": "in_progress",
+  "issue_category": "accuracy",
+  "customer_name": "John Doe",
+  "order_number": "ORD123456"
+}

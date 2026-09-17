@@ -1,0 +1,14 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblCallOffs",
+    "record_id": "recCO002"
+  },
+  "entity_id": "ent456",
+  "employee_person_id": "emp002",
+  "type": "late",
+  "reason": "sick",
+  "date": "2026-09-17T09:00:00Z",
+  "status": "unexcused",
+  "minutes_late": 45
+}

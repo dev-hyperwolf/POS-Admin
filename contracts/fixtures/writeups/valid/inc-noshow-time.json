@@ -1,0 +1,14 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblIncidents",
+    "record_id": "recINC007"
+  },
+  "entity_id": "ent123",
+  "employee_person_id": "emp007",
+  "type": "late_or_no_show",
+  "severity": "high",
+  "description": "Employee did not show up for shift",
+  "status": "resolved",
+  "issue_category": "timeliness"
+}

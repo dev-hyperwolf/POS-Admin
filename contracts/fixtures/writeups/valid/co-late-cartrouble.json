@@ -1,0 +1,15 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblCallOffs",
+    "record_id": "recCO005"
+  },
+  "entity_id": "ent456",
+  "employee_person_id": "emp005",
+  "type": "late",
+  "reason": "car_trouble",
+  "date": "2026-09-15T10:00:00Z",
+  "status": "covered",
+  "shift_start_time": "10:00",
+  "expected_arrival_time": "10:45"
+}

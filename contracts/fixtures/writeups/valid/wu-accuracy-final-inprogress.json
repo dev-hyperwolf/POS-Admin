@@ -1,0 +1,19 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblWriteUps",
+    "record_id": "recWU003"
+  },
+  "entity_id": "ent456",
+  "employee_person_id": "emp003",
+  "ladder": "accuracy",
+  "level": "final_warning",
+  "status": "in_progress",
+  "window_days": 90,
+  "dismissed": false,
+  "counts_toward_ladder": true,
+  "ai_draft_status": "drafted",
+  "approved_by": "mgr001",
+  "approved_at": "2026-09-17T10:00:00Z",
+  "linked_calloff_ids": []
+}

@@ -1,0 +1,16 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblWriteUps",
+    "record_id": "recWU001"
+  },
+  "entity_id": "ent123",
+  "employee_person_id": "emp001",
+  "ladder": "attendance",
+  "level": "first_warning",
+  "status": "invalid_status",
+  "window_days": 90,
+  "dismissed": false,
+  "counts_toward_ladder": true,
+  "linked_calloff_ids": []
+}

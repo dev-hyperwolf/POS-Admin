@@ -1,0 +1,15 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblIncidents",
+    "record_id": "recINC006"
+  },
+  "entity_id": "ent789",
+  "employee_person_id": "emp006",
+  "type": "late_delivery",
+  "severity": "medium",
+  "description": "Delivery arrived 2 hours late",
+  "status": "response_received",
+  "issue_category": "timeliness",
+  "is_driver_involved": true
+}

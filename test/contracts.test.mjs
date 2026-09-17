@@ -187,6 +187,86 @@ test('PlanLine: batch identity fields (batch_no/thc_pct/packaged_at/received_at/
   ]);
 });
 
+// ── 2a. Cash drawers (Team 6a, ADMIN-GAP-LIST-2026-09-17.md §B "Drawers") ───
+
+test('RegisterSession: an open session and a fully-closed one both validate; a mutated one names every defect', () => {
+  const open = { id: '1', store_id: 'corona', register_id: '1', opened_by: 'devon-ruiz',
+    opened_at: '2026-09-17T14:00:00Z', opening_float_cents: 30000,
+    expected_cash_cents: null, counted_cash_cents: null, variance_cents: null,
+    needs_review: false, status: 'open', closed_by: null, closed_at: null,
+    voided_by: null, voided_at: null, void_reason: null, notes: null,
+    drops: [], counts: [] };
+  assert.deepEqual(C.validate('RegisterSession', open), { ok: true, errors: [] });
+
+  const closed = { ...open, status: 'closed', closed_by: 'manisha-saini',
+    closed_at: '2026-09-17T22:05:00Z', expected_cash_cents: 84500,
+    counted_cash_cents: 84200, variance_cents: -300, needs_review: false,
+    drops: [{ id: '1', session_id: '1', amount_cents: 20000, reason: 'drop', by: 'manisha-saini',
+              at: '2026-09-17T20:00:00Z', bag_ref: 'BAG-4471' }],
+    counts: [{ id: '1', session_id: '1', kind: 'closing',
+               denominations: { '10000': 5, '2000': 3, '100': 20 }, total_cents: 58600,
+               by: 'manisha-saini', at: '2026-09-17T22:00:00Z' }] };
+  assert.deepEqual(C.validate('RegisterSession', closed), { ok: true, errors: [] });
+
+  const bad = JSON.parse(JSON.stringify(closed));
+  bad.status = 'shredded'; delete bad.opened_by; bad.opening_float_cents = -5;
+  bad.drops[0].reason = 'skim'; bad.counts[0].total_cents = -1;
+  const r = C.validate('RegisterSession', bad);
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.errors, [
+    '$: missing required opened_by',
+    '$.opening_float_cents: below minimum 0',
+    '$.status: "shredded" is not a RegisterSessionStatus',
+    '$.drops[0].reason: "skim" is not a CashDropReason',
+    '$.counts[0].total_cents: below minimum 0',
+  ]);
+});
+
+test('CashDrop and CashCount reject over-posting (additionalProperties:false)', () => {
+  const drop = { id: '1', session_id: '1', amount_cents: 5000, reason: 'paid_out',
+    by: 'devon-ruiz', at: '2026-09-17T18:00:00Z', bag_ref: null };
+  assert.deepEqual(C.validate('CashDrop', drop), { ok: true, errors: [] });
+  assert.equal(C.validate('CashDrop', { ...drop, total_cents: 5000 }).ok, false,
+    'a client-supplied total on a drop must be rejected, never silently accepted');
+
+  const count = { id: '1', session_id: '1', kind: 'opening', denominations: { '10000': 3 },
+    total_cents: 30000, by: 'devon-ruiz', at: '2026-09-17T14:00:00Z' };
+  assert.deepEqual(C.validate('CashCount', count), { ok: true, errors: [] });
+  assert.equal(C.validate('CashCount', { ...count, verified_total_cents: 30000 }).ok, false);
+});
+
+// ── 2b. Tax (Team 6b, ADMIN-GAP-LIST-2026-09-17.md §B "Tax") ────────────────
+test('TaxRate: a valid EXAMPLE row passes; bad rate_bps, unknown enum and over-posting are all named', () => {
+  const rate = { id: 'TR-1', store_id: null, jurisdiction_kind: 'state', jurisdiction_name: 'California',
+    kind: 'excise', basis: 'pre_tax', rate_bps: 1500, applies_to: 'cannabis', member_type: 'all',
+    effective_from: '2026-09-17', effective_to: null, note: 'EXAMPLE -- confirm with JT' };
+  assert.deepEqual(C.validate('TaxRate', rate), { ok: true, errors: [] });
+  const bad = JSON.parse(JSON.stringify(rate));
+  bad.rate_bps = 10001; bad.kind = 'federal'; bad.extra_field = 'nope';
+  const r = C.validate('TaxRate', bad);
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.errors, [
+    '$.kind: "federal" is not a TaxKind',
+    '$.rate_bps: above maximum 10000',
+    '$: unexpected property extra_field',
+  ]);
+  assert.equal(C.validate('TaxRate', { ...rate, rate_bps: -1 }).ok, false, 'negative rate_bps rejected');
+  assert.equal(C.validate('TaxRate', { ...rate, effective_from: '2026-9-17' }).ok, false, 'non-padded date rejected');
+});
+
+test('TaxLine and TaxBreakdown: valid shapes pass, a bad nested TaxLine fails the whole breakdown', () => {
+  const line = { rate_id: 'TR-1', kind: 'excise', jurisdiction: 'California', rate_bps: 1500, basis: 'pre_tax', tax_cents: 450 };
+  assert.deepEqual(C.validate('TaxLine', line), { ok: true, errors: [] });
+  const breakdown = { lines: [{ line_idx: 0, taxable_cents: 3000, taxes: [line] }], totals: { excise: 450 }, total_tax_cents: 450 };
+  assert.deepEqual(C.validate('TaxBreakdown', breakdown), { ok: true, errors: [] });
+  const badLine = { ...line, tax_cents: -1 };
+  const badBreakdown = { ...breakdown, lines: [{ line_idx: 0, taxable_cents: 3000, taxes: [badLine] }] };
+  const r = C.validate('TaxBreakdown', badBreakdown);
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.errors, ['$.lines[0].taxes[0].tax_cents: below minimum 0']);
+  assert.equal(C.validate('TaxBreakdown', { lines: [], totals: {}, total_tax_cents: 0 }).ok, true, 'no taxes fired is valid');
+});
+
 test('the refuter inputs: both runtimes now agree and both fail closed', () => {
   assert.equal(C.roleAtLeast('viewer', 'Manager'), false, 'an unknown need denies, never grants');
   assert.equal(C.roleAtLeast('Admin', 'manager'), true);
@@ -228,6 +308,24 @@ print(json.dumps({'errors': C.validate('Order', cases['bad'])['errors'], 'preima
   assert.equal(r.status, 0, 'python failed: ' + r.stderr);
   const pyOut = JSON.parse(r.stdout);
   assert.deepEqual(pyOut, JSON.parse(JSON.stringify(jsOut)), 'JS and Python disagree');
+});
+
+test('Tax: Python twin (wmdemo/contracts.py validate()) agrees on TaxRate/TaxBreakdown verdicts',
+  { skip: !canPy && 'python3 or wm-demo not available' }, () => {
+  const goodRate = { id: 'TR-1', store_id: null, jurisdiction_kind: 'state', jurisdiction_name: 'California',
+    kind: 'sales', basis: 'post_excise', rate_bps: 600, applies_to: 'cannabis', member_type: 'recreational',
+    effective_from: '2026-09-17', effective_to: null };
+  const badRate = { ...goodRate, rate_bps: 99999 };
+  const jsOut = { good: C.validate('TaxRate', goodRate), bad: C.validate('TaxRate', badRate) };
+  const script = `
+import json, sys; sys.path.insert(0, ${JSON.stringify(WM)})
+import os; os.environ['HW_CONTRACTS_DIR'] = ${JSON.stringify(path.join(ROOT, 'contracts'))}
+from wmdemo import contracts as C
+cases = json.loads(sys.stdin.read())
+print(json.dumps({'good': C.validate('TaxRate', cases['good']), 'bad': C.validate('TaxRate', cases['bad'])}))`;
+  const r = spawnSync('python3', ['-c', script], { input: JSON.stringify({ good: goodRate, bad: badRate }), encoding: 'utf8' });
+  assert.equal(r.status, 0, 'python failed: ' + r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout), JSON.parse(JSON.stringify(jsOut)), 'JS and Python disagree on TaxRate');
 });
 
 // ── 2c. PromotionRule fixtures: the one file list both runtimes must agree on ─
@@ -397,6 +495,11 @@ function checkFixtureDomain(domain, minValid, minInvalid) {
 }
 checkFixtureDomain('hr', 10, 15); // 5 shapes x (2 valid + 3 invalid)
 checkFixtureDomain('lp', 4, 6);   // 2 shapes x (2 valid + 3 invalid)
+// Team 6c: Region (ADMIN-GAP-LIST-2026-09-17.md §B Regions; ADMIN-LIVE-AUDIT-2026-09-17.md
+// /regions). 3 valid (minimal, full incl. nested RegionHours + KML, a sub-region) + 3 invalid
+// (missing required `name`, `active` wrong type, RegionHours' own additionalProperties:false
+// catching an unknown weekday key nested under opening_hours).
+checkFixtureDomain('region', 3, 3);
 
 test('HrEmployee is the over-posting guard for HrEmployeeRestricted: restricted PII on an HrEmployee record is rejected', () => {
   const withSsn = { source_ref: { base: 'app8mI9K1lS1D3Uhk', table: 'tblDtY9WsQGQOgHgw', record_id: 'recX' },
@@ -522,4 +625,77 @@ test('production repos: report (or, with HW_CONTRACTS_STRICT_PROD=1, fail) where
   assert.ok(!drift.some((d) => d.startsWith('promotion-engine rule-types/')), 'the six evaluator directories are the RuleType source');
   assert.ok(!drift.some((d) => d.startsWith('hyperdrive-backend Fleets')), 'FleetStatus source');
   assert.ok(!drift.some((d) => d.startsWith('promotion-backend Promotion.status')), 'PromotionStatus source');
+});
+
+test('writeup-pipeline fixtures: all valid fixtures pass, all invalid fixtures fail', () => {
+  const fixturesDir = path.join(ROOT, 'contracts', 'fixtures', 'writeups');
+  const validDir = path.join(fixturesDir, 'valid');
+  const invalidDir = path.join(fixturesDir, 'invalid');
+
+  // Test valid fixtures
+  const validFiles = fs.readdirSync(validDir).filter((f) => f.endsWith('.json'));
+  const shapeNames = new Set();
+  for (const file of validFiles) {
+    const fixture = JSON.parse(fs.readFileSync(path.join(validDir, file), 'utf8'));
+    let shapeName;
+    if (file.startsWith('wu-')) {
+      shapeName = 'WriteUp';
+    } else if (file.startsWith('inc-')) {
+      shapeName = 'Incident';
+    } else if (file.startsWith('co-')) {
+      shapeName = 'CallOff';
+    }
+    shapeNames.add(shapeName);
+    const result = C.validate(shapeName, fixture);
+    assert.equal(result.ok, true, `Valid fixture ${file} (${shapeName}) failed: ${JSON.stringify(result.errors)}`);
+  }
+
+  // Test invalid fixtures
+  const invalidFiles = fs.readdirSync(invalidDir).filter((f) => f.endsWith('.json'));
+  for (const file of invalidFiles) {
+    const fixture = JSON.parse(fs.readFileSync(path.join(invalidDir, file), 'utf8'));
+    let shapeName;
+    if (file.startsWith('wu-')) {
+      shapeName = 'WriteUp';
+    } else if (file.startsWith('inc-')) {
+      shapeName = 'Incident';
+    } else if (file.startsWith('co-')) {
+      shapeName = 'CallOff';
+    }
+    shapeNames.add(shapeName);
+    const result = C.validate(shapeName, fixture);
+    assert.equal(result.ok, false, `Invalid fixture ${file} (${shapeName}) passed but should have failed. Path: ${path.join(invalidDir, file)}`);
+    assert.ok(result.errors.length > 0, `Invalid fixture ${file} (${shapeName}) has no errors. Path: ${path.join(invalidDir, file)}`);
+  }
+
+  // Verify we have fixtures for all three shapes
+  assert.deepEqual([...shapeNames].sort(), ['CallOff', 'Incident', 'WriteUp'].sort(), 'should have fixtures for WriteUp, Incident, and CallOff');
+
+  // Count fixtures per shape
+  const validCounts = {};
+  const invalidCounts = {};
+  for (const file of validFiles) {
+    let shape;
+    if (file.startsWith('wu-')) shape = 'WriteUp';
+    else if (file.startsWith('inc-')) shape = 'Incident';
+    else if (file.startsWith('co-')) shape = 'CallOff';
+    validCounts[shape] = (validCounts[shape] || 0) + 1;
+  }
+  for (const file of invalidFiles) {
+    let shape;
+    if (file.startsWith('wu-')) shape = 'WriteUp';
+    else if (file.startsWith('inc-')) shape = 'Incident';
+    else if (file.startsWith('co-')) shape = 'CallOff';
+    invalidCounts[shape] = (invalidCounts[shape] || 0) + 1;
+  }
+
+  console.log(`\n  WriteUp: ${validCounts.WriteUp} valid, ${invalidCounts.WriteUp} invalid`);
+  console.log(`  Incident: ${validCounts.Incident} valid, ${invalidCounts.Incident} invalid`);
+  console.log(`  CallOff: ${validCounts.CallOff} valid, ${invalidCounts.CallOff} invalid`);
+
+  // Assert minimum counts
+  for (const shape of ['WriteUp', 'Incident', 'CallOff']) {
+    assert.ok((validCounts[shape] || 0) >= 8, `${shape}: need >= 8 valid fixtures, got ${validCounts[shape] || 0}`);
+    assert.ok((invalidCounts[shape] || 0) >= 6, `${shape}: need >= 6 invalid fixtures, got ${invalidCounts[shape] || 0}`);
+  }
 });

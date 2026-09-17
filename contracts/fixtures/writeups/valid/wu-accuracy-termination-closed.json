@@ -1,0 +1,18 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblWriteUps",
+    "record_id": "recWU004"
+  },
+  "entity_id": "ent456",
+  "employee_person_id": "emp004",
+  "ladder": "accuracy",
+  "level": "termination",
+  "status": "closed",
+  "window_days": 90,
+  "dismissed": false,
+  "counts_toward_ladder": true,
+  "sent_at": "2026-09-16T14:30:00Z",
+  "issued_at": "2026-09-15T09:00:00Z",
+  "linked_calloff_ids": []
+}

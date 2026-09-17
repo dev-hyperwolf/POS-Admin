@@ -1,0 +1,19 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblWriteUps",
+    "record_id": "recWU007"
+  },
+  "entity_id": "ent123",
+  "employee_person_id": "emp007",
+  "ladder": "attendance",
+  "level": "first_warning",
+  "status": "archived",
+  "window_days": 90,
+  "dismissed": false,
+  "counts_toward_ladder": true,
+  "ai_draft_status": "not_drafted",
+  "emp_acknowledged": true,
+  "ack_at": "2026-09-12T13:45:00Z",
+  "linked_calloff_ids": []
+}

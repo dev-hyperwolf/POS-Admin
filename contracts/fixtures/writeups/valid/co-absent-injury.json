@@ -1,0 +1,13 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblCallOffs",
+    "record_id": "recCO006"
+  },
+  "entity_id": "ent789",
+  "employee_person_id": "emp006",
+  "type": "absent",
+  "reason": "injury",
+  "date": "2026-09-14T08:00:00Z",
+  "status": "pending"
+}

@@ -1,0 +1,19 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblWriteUps",
+    "record_id": "recWU008"
+  },
+  "entity_id": "ent456",
+  "employee_person_id": "emp008",
+  "ladder": "accuracy",
+  "level": "first_warning",
+  "status": "pending",
+  "window_days": 90,
+  "dismissed": false,
+  "counts_toward_ladder": true,
+  "ai_draft_status": "failed",
+  "date_of_incident": "2026-09-17T08:00:00Z",
+  "policy_violated": "Attendance Policy",
+  "linked_calloff_ids": []
+}

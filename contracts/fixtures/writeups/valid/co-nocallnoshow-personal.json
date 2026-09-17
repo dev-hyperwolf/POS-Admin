@@ -1,0 +1,14 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblCallOffs",
+    "record_id": "recCO003"
+  },
+  "entity_id": "ent789",
+  "employee_person_id": "emp003",
+  "type": "no_call_no_show",
+  "reason": "personal",
+  "date": "2026-09-17T07:00:00Z",
+  "status": "doctors_note_received",
+  "doctors_note_attachment_present": true
+}

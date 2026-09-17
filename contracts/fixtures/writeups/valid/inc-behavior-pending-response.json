@@ -1,0 +1,15 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblIncidents",
+    "record_id": "recINC004"
+  },
+  "entity_id": "ent123",
+  "employee_person_id": "emp004",
+  "type": "inappropriate_behavior",
+  "severity": "medium",
+  "description": "Employee was rude to customer",
+  "status": "pending",
+  "issue_category": "professionalism",
+  "date_of_incident": "2026-09-16T14:00:00Z"
+}

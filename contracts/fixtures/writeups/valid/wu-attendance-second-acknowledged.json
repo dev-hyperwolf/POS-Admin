@@ -1,0 +1,17 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblWriteUps",
+    "record_id": "recWU002"
+  },
+  "entity_id": "ent123",
+  "employee_person_id": "emp002",
+  "ladder": "attendance",
+  "level": "second_warning",
+  "status": "acknowledged",
+  "window_days": 90,
+  "dismissed": false,
+  "counts_toward_ladder": true,
+  "severity_recommendation": "final_warning",
+  "linked_calloff_ids": ["recCO001"]
+}

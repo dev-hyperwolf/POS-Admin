@@ -1,0 +1,17 @@
+{
+  "source_ref": {
+    "base": "appHR123",
+    "table": "tblWriteUps",
+    "record_id": "recWU006"
+  },
+  "entity_id": "ent789",
+  "employee_person_id": "emp006",
+  "ladder": "accuracy",
+  "level": "second_warning",
+  "status": "rescinded",
+  "window_days": 90,
+  "dismissed": false,
+  "counts_toward_ladder": false,
+  "issued_at": "2026-09-01T11:00:00Z",
+  "linked_calloff_ids": []
+}
