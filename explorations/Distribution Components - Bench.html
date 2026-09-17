@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Distribution Components — Bench</title>
+<!--
+  Team 2c review artifact — NOT a console page. BUILD-PROGRAM-MASTER-PLAN-
+  2026-09-16.md §3.2: no Refill console page is built until JT names the
+  winning concept (REFILL-CONCEPTS.md). This bench renders the six shared,
+  data-bound components (shared/hw-dist-ui.jsx) twice each:
+    1. STATIC  — hand-written example data, so this page opens and renders
+       fully from disk (file://), no server required.
+    2. LIVE    — bound through shared/hw-dist-data.js. If a wm-demo server
+       answers at this page's own origin, real data replaces the example
+       data; if not (the common case — this is a static file), each live
+       panel shows a plain "no server reachable" state instead of an error
+       wall. Nothing here is faked as live when it isn't.
+  "Send today" is intentionally left UNWIRED in both panels (no onSendToday
+  passed) even though the census confirms a real route
+  (POST /api/inventory/restock/apply) — this is a review bench with
+  synthetic IDs, not an operator screen, and a stray click here must never
+  be able to reach a real inventory system. The button therefore always
+  renders in its disabled "no handler wired" state; wiring it is the
+  winning console page's job, not this bench's.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body { font-family:"Inter",-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; background:#F4F2EC; }
+  #root { min-height:100vh; }
+  .bench-section { border-bottom:1px solid rgba(15,15,12,.14); padding:24px 28px; }
+  .bench-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  @media (max-width: 900px) { .bench-grid { grid-template-columns:1fr; } }
+  .bench-pane { border:1px solid rgba(15,15,12,.14); border-radius:12px; padding:14px; background:#FFFFFF; min-height:60px; }
+  .bench-pane h4 { margin:0 0 10px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:rgba(15,15,12,.42); font-weight:600; }
+  .bench-h2 { font-size:19px; font-weight:600; margin:0 0 4px; color:#0F0F0C; }
+  .bench-sub { font-size:12.5px; color:rgba(15,15,12,.6); margin:0 0 16px; }
+  .bench-route { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:11.5px; color:rgba(15,15,12,.6); background:#F1EFE9; padding:2px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+<div id="root"><div style="padding:28px;font:13px/1.5 -apple-system,sans-serif;color:#6E6E66;">Loading…</div></div>
+
+<!-- Stacking scale first, as every other entry page does it. -->
+<script src="../shared/hw-z.js"></script>
+
+<!-- Live seam, LOADED BEFORE REACT, lite mode: this bench carries no
+     pos/data.jsx catalog for hw-live.js to update, same reasoning as
+     Hyperwolf Bounty.html. Arms base resolution + get()/post() only. -->
+<script src="../shared/hw-live.js" data-hw-live-lite="1"></script>
+
+<!-- The Team 2c data layer under review. Plain JS, no JSX. -->
+<script src="../shared/hw-dist-data.js"></script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- House tokens/components this bench renders through, unmodified. -->
+<script type="text/babel" src="../pos/tokens.jsx"></script>
+<script type="text/babel" src="../pos/icons.jsx"></script>
+<script type="text/babel" src="../shared/hd-format.jsx"></script>
+<script type="text/babel" src="../shared/hd-ui.jsx"></script>
+
+<!-- The Team 2c component layer under review. -->
+<script type="text/babel" src="../shared/hw-dist-ui.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ── static example data — every number is example data, same rule as the
+// four Refill concept mockups themselves ─────────────────────────────────
+const EXAMPLE_TREE = [
+  { id: 'R1', kind: 'region', name: 'North County', children: [
+    { id: 'K1', kind: 'kit', name: 'Kit 1 — Alex R.', children: [
+      { id: 'B1', kind: 'box', name: 'Flower Box 1', capacity_units: 40 },
+      { id: 'B2', kind: 'box', name: 'Pre-Roll Box 2', capacity_units: 60 },
+      { id: 'B3', kind: 'box', name: 'Cooler', capacity_units: 20 }
+    ] }
+  ] },
+  { id: 'R2', kind: 'region', name: 'South County', children: [
+    { id: 'K2', kind: 'kit', name: 'Kit 2 — Jamie T.', children: [
+      { id: 'B4', kind: 'box', name: 'Concentrate Bin 1', capacity_units: 15 },
+      { id: 'B5', kind: 'box', name: 'Edible Bin', capacity_units: 25 }
+    ] }
+  ] }
+];
+
+const EXAMPLE_LINES = [
+  { product_id: 'SKU-1001', product_name: 'Sluggers 5g Jarred Flower — NYC Diesel', sold: 18, need: 20, cap: 20, give: 20, reasons: [] },
+  { product_id: 'SKU-1002', product_name: 'Highest Craft Pre-Roll 5-pack', sold: 9, need: 12, cap: 8, give: 8, reasons: ['capped at box capacity'] },
+  { product_id: 'SKU-1003', product_name: 'Circle City Live Resin Cart 1g', sold: 4, need: 6, cap: 6, give: 6, reasons: [] }
+];
+const EXAMPLE_BATCHES_BY_SKU = {
+  'SKU-1001': { mixed: false, batches: [{ batch_no: 'BT-2249', thc_pct: 22.4, packaged_date: '2026-08-20', qty: 20 }] },
+  'SKU-1002': { mixed: true, batches: [
+    { batch_no: 'BT-2201', thc_pct: 19.8, packaged_date: '2026-08-05', qty: 3 },
+    { batch_no: 'BT-2255', thc_pct: 20.6, packaged_date: '2026-08-22', qty: 5 }
+  ] }
+};
+
+function exampleReceivedDays() {
+  const out = [];
+  const end = new Date('2026-09-16T00:00:00Z');
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(end.getTime());
+    d.setUTCDate(d.getUTCDate() - i);
+    const day = HWDistData._isoDay(d);
+    if (i === 3) { out.push({ day, ok: false, received: [], error: 'timeout' }); continue; }
+    out.push({ day, ok: true, received: i % 2 === 0 ? [{ product_id: 'SKU-1001', quantity: 12, batch_id: 'BT-2249', location_id: 'K1', kind: 'received' }] : [] });
+  }
+  return out;
+}
+const EXAMPLE_DAYS = exampleReceivedDays();
+
+const EXAMPLE_SKIPPED = [
+  { product_id: 'SKU-2001', product_name: 'Alternate Health Gummies 10-pack', to_location_id: 'B4', cap: 0, need: 6, reasons: ['no stock at source'] },
+  { product_id: 'SKU-2002', product_name: 'Pleasure Med Vape Cart 0.5g', to_location_id: 'B1', cap: 2, need: 10, reasons: ['capacity reached', 'mixed batch held for review'] }
+];
+const EXAMPLE_WARNINGS = ['Kit 2 has two open batches on SKU-1002 — confirm before commit.'];
+
+const EXAMPLE_EVENTS = [
+  { kind: 'built', actor: 'system', at: '06:02', detail: "Today's plan built from overnight sales" },
+  { kind: 'pack', actor: 'alex.r@hyperwolf.com', at: '07:15', detail: 'Kit 1 packed' },
+  { kind: 'dispatch', actor: 'alex.r@hyperwolf.com', at: '07:40', detail: 'Kit 1 left for North County' }
+];
+
+const EXAMPLE_BOX_TYPES = [
+  { id: 'BT1', name: 'Flower Box 1', category: 'Flower', capacity_units: 40, active: true },
+  { id: 'BT2', name: 'Pre-Roll Box 2', category: 'Pre-Roll', capacity_units: 60, active: true },
+  { id: 'BT3', name: 'Cooler', category: 'Cold chain', capacity_units: 20, active: true },
+  { id: 'BT4', name: 'Concentrate Bin 1', category: 'Concentrate', capacity_units: 15, active: false },
+  { id: 'BT5', name: 'Edible Bin', category: 'Edible', capacity_units: 25, active: true }
+];
+
+// Synthetic IDs for the live probe — this bench does not know a real store's
+// IDs, so a live server will very likely 400/404 these; that response is
+// still shown (honestly, as an error) rather than papered over.
+const LIVE_PARAMS = { store_id: 'S1', shelf_location_id: 'B1', sku: 'SKU-1001' };
+
+function useLiveProbe() {
+  const [state, setState] = useState({ checked: false, reachable: false });
+  useEffect(() => {
+    let alive = true;
+    HWDistData.fetchLocations().then((r) => {
+      if (!alive) return;
+      // status 0 = transport/network failure (no HW_LIVE, fetch threw, wrong
+      // origin) -- that's "no server". Any other status means something
+      // answered, even a 4xx/5xx for these synthetic IDs.
+      const reachable = !('status' in r) || r.status !== 0;
+      setState({ checked: true, reachable });
+    });
+    return () => { alive = false; };
+  }, []);
+  return state;
+}
+
+function NoServer({ label }) {
+  return <div style={{ fontSize: 12.5, color: '#8A8578', fontStyle: 'italic' }}>No server reachable at this page's origin — {label} not fetched.</div>;
+}
+
+function LiveLocations({ reachable }) {
+  const [r, setR] = useState(null);
+  useEffect(() => { if (reachable) HWDistData.fetchKitBoxTree().then(setR); }, [reachable]);
+  if (!reachable) return <NoServer label="GET /api/inventory/locations" />;
+  if (!r) return <div style={{ fontSize: 12.5, color: '#8A8578' }}>Loading…</div>;
+  if (r.error) return <div style={{ fontSize: 12.5, color: '#C0392B' }}>{r.status}: {r.error}</div>;
+  return <window.HWDistUI.KitBoxTree tree={r.tree} />;
+}
+
+function LivePreviewAndSkips() {
+  const [preview, setPreview] = useState(null);
+  const [batches, setBatches] = useState({});
+  useEffect(() => {
+    HWDistData.fetchRestockPreview(LIVE_PARAMS).then(setPreview);
+    HWDistData.fetchBatches({ sku: LIVE_PARAMS.sku }).then((r) => {
+      if (!r.error) setBatches({ [LIVE_PARAMS.sku]: r });
+    });
+  }, []);
+  if (!preview) return <div style={{ fontSize: 12.5, color: '#8A8578' }}>Loading…</div>;
+  if (preview.error) return (
+    <div>
+      <div style={{ fontSize: 12.5, color: '#C0392B', marginBottom: 8 }}>{preview.status}: {preview.error}</div>
+      <window.HWDistUI.PlanPreviewTable lines={[]} />
+    </div>
+  );
+  return (
+    <div>
+      <window.HWDistUI.PlanPreviewTable lines={preview.plan.lines} batchesBySku={batches} />
+      <div style={{ marginTop: 14 }}>
+        <window.HWDistUI.SkipsPanel skipped={preview.plan.skipped} warnings={preview.plan.warnings} />
+      </div>
+    </div>
+  );
+}
+
+function LiveReceived({ reachable }) {
+  const [r, setR] = useState(null);
+  useEffect(() => { if (reachable) HWDistData.fetchReceivedLast7Days({ endDay: HWDistData._isoDay(new Date()) }).then(setR); }, [reachable]);
+  if (!reachable) return <NoServer label="GET /api/inventory/received (7-day loop)" />;
+  if (!r) return <div style={{ fontSize: 12.5, color: '#8A8578' }}>Loading…</div>;
+  return <window.HWDistUI.ReceivedLane days={r.days} />;
+}
+
+function Bench() {
+  const { checked, reachable } = useLiveProbe();
+  const P = window.useTheme ? window.useTheme().P : null;
+
+  const Section = ({ title, route, StaticEl, LiveEl }) => (
+    <div className="bench-section">
+      <h2 className="bench-h2">{title}</h2>
+      <p className="bench-sub"><span className="bench-route">{route}</span></p>
+      <div className="bench-grid">
+        <div className="bench-pane"><h4>Static example data</h4>{StaticEl}</div>
+        <div className="bench-pane"><h4>Live (HWDistData){checked ? (reachable ? ' — server reachable' : ' — no server') : ' — probing…'}</h4>{LiveEl}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ padding: '24px 28px 8px' }}>
+        <h1 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: '#0F0F0C' }}>Distribution Components — Bench</h1>
+        <p style={{ margin: 0, fontSize: 13, color: 'rgba(15,15,12,.6)', maxWidth: 760 }}>
+          Team 2c review artifact. Renders the shared/hw-dist-ui.jsx components against
+          shared/hw-dist-data.js. Not a console page — no page layout, no owner-approved
+          concept composes these yet (BUILD-PROGRAM-MASTER-PLAN-2026-09-16.md §3.2).
+        </p>
+      </div>
+
+      <Section title="KitBoxTree" route="GET /api/inventory/locations"
+        StaticEl={<window.HWDistUI.KitBoxTree tree={EXAMPLE_TREE} />}
+        LiveEl={<LiveLocations reachable={reachable} />} />
+
+      <Section title="PlanPreviewTable + SkipsPanel" route="GET /api/inventory/restock/preview · GET /api/inventory/batches"
+        StaticEl={
+          <div>
+            <window.HWDistUI.PlanPreviewTable lines={EXAMPLE_LINES} batchesBySku={EXAMPLE_BATCHES_BY_SKU} />
+            <div style={{ marginTop: 14 }}>
+              <window.HWDistUI.SkipsPanel skipped={EXAMPLE_SKIPPED} warnings={EXAMPLE_WARNINGS} />
+            </div>
+          </div>
+        }
+        LiveEl={reachable === false && checked ? <NoServer label="GET /api/inventory/restock/preview" /> : <LivePreviewAndSkips />} />
+
+      <Section title="ReceivedLane" route="GET /api/inventory/received?day= (looped 7x) · Send today -> POST /api/inventory/restock/apply (unwired here, see note above)"
+        StaticEl={<window.HWDistUI.ReceivedLane days={EXAMPLE_DAYS} />}
+        LiveEl={<LiveReceived reachable={reachable} />} />
+
+      <Section title="StatusTimeline" route="NO ROUTE — census item 21 (GET /api/inventory/restock/events)"
+        StaticEl={<window.HWDistUI.StatusTimeline events={EXAMPLE_EVENTS} />}
+        LiveEl={<window.HWDistUI.StatusTimeline events={[]} />} />
+
+      <Section title="BoxTypesManager" route="NO ROUTE — census item 22 (box-types CRUD)"
+        StaticEl={<window.HWDistUI.BoxTypesManager boxTypes={EXAMPLE_BOX_TYPES} />}
+        LiveEl={<window.HWDistUI.BoxTypesManager boxTypes={[]} />} />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <window.ThemeProvider>
+      <Bench />
+    </window.ThemeProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
