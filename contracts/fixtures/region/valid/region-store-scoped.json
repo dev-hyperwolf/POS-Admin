@@ -1,0 +1,9 @@
+{
+  "shape": "Region",
+  "record": {
+    "id": "rg-store-a-zone",
+    "name": "Store A Zone",
+    "store_id": "store-a",
+    "active": true
+  }
+}

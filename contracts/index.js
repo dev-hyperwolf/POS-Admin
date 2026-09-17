@@ -36,6 +36,8 @@
   // TaxKind/TaxBasis/TaxAppliesTo/TaxMemberType (ADMIN-GAP-LIST-2026-09-17.md §B Tax, §C items 2/6/7).
   // Rates are DATA (rows with jurisdiction/kind/basis/effective dates), never hardcoded constants --
   // replaces pos/data.jsx:428-438's three fixed percentages. No prior shape changed.
+  // 0.5.1 (additive, fix pass on refute-modules-2.md finding #8): Region.store_id (nullable --
+  // NULL means estate-wide). No prior shape changed.
   // 0.5.0 (additive, Team 6c): Region (ADMIN-GAP-LIST-2026-09-17.md §B Regions, §C items 4/8/10/14;
   // ADMIN-LIVE-AUDIT-2026-09-17.md /regions Region CRUD). Fields chosen from the three divergent
   // vendor Region shapes (hemp-backend/models/Region.js: kml/openingHours/closingHours;
@@ -610,6 +612,11 @@
         opening_hours: { $ref: 'RegionHours', nullable: true }, closing_hours: { $ref: 'RegionHours', nullable: true },
         timezone: { type: 'string', nullable: true }, parent_region_id: { type: 'string', nullable: true },
         blaze_region_id: { type: 'string', nullable: true }, active: { type: 'boolean', nullable: true },
+        // 0.5.1 (additive, fix pass on refute-modules-2.md finding #8): nullable -- NULL means
+        // the region is estate-wide (every region before this field existed, and every region an
+        // unrestricted principal creates without naming one). Non-null is the store this region
+        // is scoped to; wmdemo/server.py's region routes call authz.require_store() against it.
+        store_id: { type: 'string', nullable: true },
         updated_by: { type: 'string', nullable: true },
         updated_at: { type: 'string', pattern: ISO_UTC.source, nullable: true } } },
     Person: { type: 'object', required: ['id', 'kind', 'display_name'], additionalProperties: true,
@@ -883,6 +890,30 @@
         dismissed_at: { type: 'string', pattern: ISO_UTC.source, nullable: true }, dismissed_by: { type: 'string', nullable: true },
         created_at: { type: 'string', pattern: ISO_UTC.source, nullable: true } } },
 
+    // POST /api/writeups/{id}/sign request body (wm-demo wmdemo/writeups/sign.py, added
+    // alongside this schema): the employee e-signature this port's `signature` signed-link
+    // purpose (writeups/send.py, docs/SIGNED-LINKS.md) was minted for but had nothing to
+    // consume it until this build. `acknowledged` is `enum:[true]` on purpose, not merely
+    // `type:'boolean'` -- `acknowledged:false` must fail SCHEMA validation, not only a
+    // hand-written follow-up check, the same reasoning `WriteUpLevel`'s $enum gets over a bare
+    // string type. This subset has no byte-size/maxLength keyword (see RULE_LIMITS' own
+    // comment for the identical gap on PromotionRule) -- the PNG-magic-number and
+    // 200KB-ceiling checks on `signature_png_b64` are business rules `wmdemo/writeups/sign.py`
+    // enforces itself, same "schema proves the shape, code proves the business rule" split
+    // `validatePromotionRule` uses on top of `validate('PromotionRule', ...)`. `typed_name` has
+    // the same gap: a 120-character cap (`sign.py::TYPED_NAME_MAX_LEN`) is enforced there, not
+    // here -- adding an unsupported `maxLength` keyword to this object would validate against
+    // NEITHER this file's own `walk()` nor `wmdemo/contracts.py::_walk` (neither implements it;
+    // a schema keyword no validator checks is worse than no keyword, since it reads as enforced
+    // when it silently is not), so the cap stays business-rule-only on both ends of this
+    // contract until this subset's validator itself grows the keyword.
+    WriteupSignature: { type: 'object', required: ['signature_png_b64', 'acknowledged', 'typed_name'],
+      additionalProperties: false,
+      properties: {
+        signature_png_b64: { type: 'string', minLength: 1 },
+        acknowledged: { type: 'boolean', enum: [true] },
+        typed_name: { type: 'string', minLength: 1 } } },
+
     // fields_map (writeup-pipeline/CalloffPortal.js:31-44,74-77 unless noted): employee_person_id<-
     // EMPLOYEE fldcebdbqZpboisj3, type=TYPE fldzO2rlAs3kAo1L4, date=DATE_OF_OCCURRENCE fldKnEyIZZdy2Cn1x,
     // reason=REASON fldHaUqf7aCeiWIE0, entity_id<-ENTITY fldVzZS1MZiiYy9st ("DIRTY -- junk recID option +
@@ -1053,12 +1084,22 @@
       properties: { id: ID, session_id: ID, amount_cents: { type: 'integer', minimum: 0 },
         reason: { type: 'string', $enum: 'CashDropReason' }, by: { type: 'string', minLength: 1 }, at: ISO,
         bag_ref: { type: 'string', nullable: true } } },
-    // denominations is {denom_cents: qty} on the wire (JSON object keys are always strings);
-    // wmdemo/register.py validates every key against its own DENOMINATIONS_CENTS set and every
-    // value as an integer >= 0, and ALWAYS computes total_cents itself from this object -- a
-    // client-supplied total_cents is refused at the route layer (over-posting guard), never
-    // silently accepted, per CASH-DROPPED-COUNTED-VERDICT-2026-08-17.md's core finding: a
-    // number the screen computes and asks the operator to retype is not a control.
+    // denominations is {denomination_key: qty} on the wire (JSON object keys are always
+    // strings). This keyword subset has no patternProperties/map-of keyword to express a key
+    // shape here, so the real enforcement is server-side, in wmdemo/register.py's own
+    // face_cents()/DENOMINATION_KEYS -- a key is EITHER a numeric-string cents value
+    // (`^[0-9]+$`, e.g. "500") OR one of five roll codes
+    // (`^roll_(dollar|quarter|dime|nickel|penny)$`), i.e. the pattern
+    // `^([0-9]+|roll_(dollar|quarter|dime|nickel|penny))$` as a whole, and every value an
+    // integer >= 0 (2026-09-17: rolls were previously keyed as the NEGATIVE of their own face
+    // value, e.g. "-1000" for a quarter roll -- retired because a second reader, wmdemo/
+    // forms.py's subset-sum float validator, read that raw key with a plain int(value) and
+    // silently dropped every roll from its solve; see docs/REGISTER.md and wmdemo/register.py's
+    // own ROLL_FACE_CENTS docstring for the full history). register.py ALWAYS computes
+    // total_cents itself from this object -- a client-supplied total_cents is refused at the
+    // route layer (over-posting guard), never silently accepted, per CASH-DROPPED-COUNTED-
+    // VERDICT-2026-08-17.md's core finding: a number the screen computes and asks the operator
+    // to retype is not a control.
     CashCount: { type: 'object', required: ['id', 'session_id', 'kind', 'denominations', 'total_cents', 'by', 'at'], additionalProperties: false,
       properties: { id: ID, session_id: ID, kind: { type: 'string', $enum: 'CashCountKind' },
         denominations: { type: 'object' },

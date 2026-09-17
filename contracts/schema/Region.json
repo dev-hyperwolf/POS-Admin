@@ -43,6 +43,10 @@
       "type": "boolean",
       "nullable": true
     },
+    "store_id": {
+      "type": "string",
+      "nullable": true
+    },
     "updated_by": {
       "type": "string",
       "nullable": true

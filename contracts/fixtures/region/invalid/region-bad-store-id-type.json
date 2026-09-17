@@ -1,0 +1,8 @@
+{
+  "shape": "Region",
+  "record": {
+    "id": "rg-bad-store-id",
+    "name": "Bad Store Id",
+    "store_id": 123
+  }
+}

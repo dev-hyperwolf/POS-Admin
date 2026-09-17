@@ -499,7 +499,9 @@ checkFixtureDomain('lp', 4, 6);   // 2 shapes x (2 valid + 3 invalid)
 // /regions). 3 valid (minimal, full incl. nested RegionHours + KML, a sub-region) + 3 invalid
 // (missing required `name`, `active` wrong type, RegionHours' own additionalProperties:false
 // catching an unknown weekday key nested under opening_hours).
-checkFixtureDomain('region', 3, 3);
+// Fix pass on refute-modules-2.md finding #8: +1 valid (store_id set) + 1 invalid
+// (store_id wrong type) proving the new nullable field is enforced.
+checkFixtureDomain('region', 4, 4);
 
 test('HrEmployee is the over-posting guard for HrEmployeeRestricted: restricted PII on an HrEmployee record is rejected', () => {
   const withSsn = { source_ref: { base: 'app8mI9K1lS1D3Uhk', table: 'tblDtY9WsQGQOgHgw', record_id: 'recX' },
