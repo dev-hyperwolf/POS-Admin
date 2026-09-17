@@ -1,0 +1,301 @@
+{
+  "shape": "hw.rule.v1",
+  "id": "rule_01J0000000000000000000w2",
+  "name": "Fix task fixture",
+  "status": "draft",
+  "priority": 100,
+  "stackable": false,
+  "window": {
+    "starts_at": "2026-09-16T00:00:00Z",
+    "ends_at": null
+  },
+  "scope": {
+    "store_ids": [
+      "store_wh"
+    ],
+    "channels": [
+      "in_store",
+      "delivery"
+    ]
+  },
+  "if": {
+    "all": [],
+    "any": [],
+    "not": [
+      {
+        "all": [
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 0
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 2
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 3
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 4
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 5
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 6
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 7
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 8
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 9
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 10
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 11
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 12
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 13
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 14
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 15
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 16
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 17
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 18
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 19
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 20
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 21
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 22
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 23
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 24
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 25
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 26
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 27
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 28
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 29
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 30
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 31
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 32
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 33
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 34
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 35
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 36
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 37
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 38
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 39
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 40
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 41
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 42
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 43
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 44
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 45
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 46
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 47
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 48
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 49
+          },
+          {
+            "field": "batch.thc_pct",
+            "op": "eq",
+            "value": 50
+          }
+        ],
+        "any": [],
+        "not": []
+      }
+    ]
+  },
+  "then": {
+    "kind": "percent",
+    "value": 15,
+    "applies_to": "matched_lines",
+    "cap_cents": null,
+    "max_per_order": null
+  },
+  "meta": {
+    "author": "owner",
+    "source": "ui",
+    "prompt": null,
+    "version": 1
+  }
+}

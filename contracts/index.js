@@ -435,12 +435,24 @@
     'time.dow': 'number', 'time.hour': 'number',
   };
   // DoS guard on the rule tree. The JSON-Schema subset here has no maxItems/maxLength, so these
-  // four cannot live in PromotionRule's schema itself -- validatePromotionRule enforces them.
+  // six cannot live in PromotionRule's schema itself -- validatePromotionRule enforces them.
+  // max_bytes is checked FIRST, on JSON.stringify(rule).length, before validate() or any
+  // recursive walk runs at all -- 2026-09-16 refuter finding: max_nodes used to only count
+  // condition LEAVES (nodeCount++ lived inside the `if (hasCond)` branch), so a tree of nothing
+  // but empty `{all:[],any:[],not:[]}` groups had no cap at all -- 1,000,000 of them at depth 2
+  // (well under max_depth) produced a 29 MB payload that validatePromotionRule accepted in
+  // 460ms. max_nodes now counts every node (group or condition); max_group_items additionally
+  // caps each all/any/not array so a wide group can't even be recursed into; max_bytes is the
+  // backstop that rejects an oversized body in O(n) without walking it at all.
   // Exported to enums.json as rule_limits so Python reads the same numbers.
-  var RULE_LIMITS = { max_depth: 4, max_nodes: 50, max_list: 200, max_string: 200 };
+  var RULE_LIMITS = { max_depth: 4, max_nodes: 50, max_group_items: 50, max_bytes: 16384, max_list: 200, max_string: 200 };
   // Ops each field type accepts (union across all four types == ENUMS.RuleOp.values, 13 ops).
   // A compatibility TABLE, not a schema keyword -- lives here and in validatePromotionRule only.
-  // NOT exported to enums.json: team 1b (Python engine) re-implements this check in code.
+  // Exported to enums.json as rule_ops_by_type (tools/contracts-export.mjs) -- this WAS JS-only
+  // (team 1b's Python engine re-implemented it by hand) until 0.5.0's Team 3b export; Python
+  // must now read enums.json['rule_ops_by_type'] instead of carrying its own copy. (Corrected
+  // 2026-09-16: this comment previously claimed the opposite, and so did wmdemo/contracts.py's
+  // own mirrored comment -- see RULE-SHAPE.md §3.)
   var RULE_OPS_BY_TYPE = {
     number: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between', 'in', 'not_in'],
     string: ['eq', 'neq', 'in', 'not_in'],
@@ -605,9 +617,13 @@
         scope: { type: 'object', required: ['store_ids', 'channels'], additionalProperties: false,
           properties: { store_ids: { type: 'array', items: ID }, channels: { type: 'array', items: { type: 'string', $enum: 'RuleChannel' } } } },
         if: { $ref: 'RuleGroup' },
+        // cap_cents/max_per_order have a fixed shape regardless of then.kind, so `minimum` lives
+        // here; then.value's shape DEPENDS on then.kind (percent vs price vs gift, ...) and the
+        // subset has no oneOf/if-then to express that, so per-kind value rules live only in
+        // validatePromotionRule's _checkThenValue (RULE-SHAPE.md §1).
         then: { type: 'object', required: ['kind', 'value', 'applies_to', 'cap_cents', 'max_per_order'], additionalProperties: false,
           properties: { kind: { type: 'string', $enum: 'RuleThenKind' }, value: {}, applies_to: { type: 'string', enum: ['matched_lines', 'cart'] },
-            cap_cents: { type: 'integer', nullable: true }, max_per_order: { type: 'integer', nullable: true } } },
+            cap_cents: { type: 'integer', nullable: true, minimum: 0 }, max_per_order: { type: 'integer', nullable: true, minimum: 1 } } },
         meta: { type: 'object', required: ['author', 'source', 'prompt', 'version'], additionalProperties: false,
           properties: { author: { type: 'string' }, source: { type: 'string', $enum: 'RuleSource' }, prompt: { type: 'string', nullable: true }, version: { type: 'integer' } } },
       } },
@@ -942,11 +958,15 @@
   }
 
   // ── validatePromotionRule ────────────────────────────────────────────────
-  // 1) validate('PromotionRule', rule) -- shape, enums, additionalProperties:false.
-  // 2) walk rule.if enforcing what the schema subset cannot express: exactly one of
+  // 1) $: JSON.stringify(rule).length <= RULE_LIMITS.max_bytes, checked before validate() or
+  //    any recursion -- see the RULE_LIMITS comment above for why.
+  // 2) validate('PromotionRule', rule) -- shape, enums, additionalProperties:false.
+  // 3) walk rule.if enforcing what the schema subset cannot express: exactly one of
   //    {field,op,value} / {all,any,not} per node, nesting depth <= RULE_LIMITS.max_depth,
-  //    total condition nodes <= max_nodes, op allowed for the field's RULE_FIELD_TYPE, the
-  //    value's JS type matches that type, in/not_in/between array and string-length limits.
+  //    total NODES (groups and conditions both) <= max_nodes, each all/any/not array
+  //    <= max_group_items, op allowed for the field's RULE_FIELD_TYPE, the value's JS type
+  //    matches that type, in/not_in/between array and string-length limits.
+  // 4) then.value against then.kind's business rule (RULE-SHAPE.md §1).
   function _valueMatchesFieldType(fieldType, v) {
     if (fieldType === 'number') return typeof v === 'number' && isFinite(v);
     if (fieldType === 'string' || fieldType === 'enum') return typeof v === 'string';
@@ -980,20 +1000,67 @@
     if (!_valueMatchesFieldType(fieldType, value)) { errors.push(path + '.value: does not match type ' + fieldType); return; }
     _checkStringLen(value, path + '.value', errors);
   }
+  // Digits after the decimal point, read off the number's decimal STRING form (not inferred from
+  // floating-point error) -- 12.345 is 3 places, 12.3 is 1, 12 is 0. A number so large or small
+  // that String() switches to exponential notation can never be a clean <=2dp percent, so that's
+  // treated as "too many" rather than parsed.
+  function _decimalPlaces(n) {
+    var s = String(n);
+    if (s.indexOf('e') !== -1 || s.indexOf('E') !== -1) return Infinity;
+    var i = s.indexOf('.');
+    return i === -1 ? 0 : s.length - i - 1;
+  }
+  function _isIntegerAtLeast(v, min) { return typeof v === 'number' && isFinite(v) && Math.floor(v) === v && v >= min; }
+  // then.value's shape depends on then.kind, and the schema's `value: {}` is deliberately
+  // typeless (RULE-SHAPE.md §1/§3 -- no oneOf in the subset), so the per-kind business rule lives
+  // only here. cap_cents/max_per_order don't depend on kind, so they're `minimum` in the schema
+  // itself (SCHEMAS.PromotionRule.then) and are not re-checked below.
+  function _checkThenValue(then, errors) {
+    if (!then || typeof then !== 'object') return;
+    var kind = then.kind, value = then.value, path = '$.then.value';
+    if (kind === 'percent') {
+      if (typeof value !== 'number' || !isFinite(value) || !(value > 0) || value > 100) {
+        errors.push(path + ': percent must be a number > 0 and <= 100, got ' + JSON.stringify(value));
+      } else if (_decimalPlaces(value) > 2) {
+        errors.push(path + ': percent must have at most 2 decimal places, got ' + JSON.stringify(value));
+      }
+    } else if (kind === 'amount' || kind === 'price') {
+      if (!_isIntegerAtLeast(value, 1)) errors.push(path + ': ' + kind + ' must be an integer number of cents >= 1, got ' + JSON.stringify(value));
+    } else if (kind === 'points') {
+      if (!_isIntegerAtLeast(value, 1)) errors.push(path + ': points must be an integer >= 1, got ' + JSON.stringify(value));
+    } else if (kind === 'bogo') {
+      if (!_isIntegerAtLeast(value, 1)) errors.push(path + ': bogo free quantity must be an integer >= 1, got ' + JSON.stringify(value));
+    } else if (kind === 'gift') {
+      if (typeof value !== 'string' || value.length < 1 || value.length > RULE_LIMITS.max_string) {
+        errors.push(path + ': gift must be a non-empty sku string <= ' + RULE_LIMITS.max_string + ' chars, got ' + JSON.stringify(value));
+      }
+    }
+  }
   function validatePromotionRule(rule) {
+    // Checked FIRST, before validate() or any recursion: JSON.stringify's length is O(n) and
+    // not recursive the way the tree walk below is -- a rule this big is rejected without ever
+    // walking it. See the RULE_LIMITS comment for the 29 MB payload this closes.
+    var size;
+    try { size = JSON.stringify(rule).length; } catch (e) { size = Infinity; }
+    if (size > RULE_LIMITS.max_bytes) return { ok: false, errors: ['$: serialized rule is ' + size + ' bytes, exceeds RULE_LIMITS.max_bytes ' + RULE_LIMITS.max_bytes] };
     var base = validate('PromotionRule', rule);
     if (!base.ok) return base;
     var errors = [];
     var nodeCount = 0;
+    var nodeLimitHit = false;
     function walkNode(node, path, depth) {
+      if (nodeLimitHit) return;
+      // Every node counts toward max_nodes -- groups AND conditions. Previously this only
+      // incremented inside the condition branch below, so a tree of nothing but groups (no
+      // leaf conditions at all) was uncounted no matter how many siblings it had.
+      nodeCount++;
+      if (nodeCount > RULE_LIMITS.max_nodes) { errors.push('$.if: more than ' + RULE_LIMITS.max_nodes + ' nodes (groups and conditions counted together)'); nodeLimitHit = true; return; }
       if (depth > RULE_LIMITS.max_depth) { errors.push(path + ': nesting depth ' + depth + ' exceeds ' + RULE_LIMITS.max_depth); return; }
       var hasCond = node && (node.field !== undefined || node.op !== undefined || node.value !== undefined);
       var hasGroup = node && (node.all !== undefined || node.any !== undefined || node.not !== undefined);
       if (hasCond && hasGroup) { errors.push(path + ': node has both the condition form and the group form'); return; }
       if (!hasCond && !hasGroup) { errors.push(path + ': node has neither the condition form nor the group form'); return; }
       if (hasCond) {
-        nodeCount++;
-        if (nodeCount > RULE_LIMITS.max_nodes) { errors.push('$.if: more than ' + RULE_LIMITS.max_nodes + ' condition nodes'); return; }
         if (node.field === undefined || node.op === undefined || node.value === undefined) { errors.push(path + ': condition missing field, op or value'); return; }
         var fieldType = RULE_FIELD_TYPE[node.field];
         var allowedOps = RULE_OPS_BY_TYPE[fieldType] || [];
@@ -1002,14 +1069,19 @@
         return;
       }
       ['all', 'any', 'not'].forEach(function (k) {
+        if (nodeLimitHit) return;
         var arr = node[k] || [];
         if (!Array.isArray(arr)) return;
+        // Capped BEFORE recursing: an oversized array is rejected as one check, never by
+        // walking however many siblings an attacker put there.
+        if (arr.length > RULE_LIMITS.max_group_items) { errors.push(path + '.' + k + ': ' + arr.length + ' items exceeds RULE_LIMITS.max_group_items ' + RULE_LIMITS.max_group_items); return; }
         for (var i = 0; i < arr.length; i++) walkNode(arr[i], path + '.' + k + '[' + i + ']', depth + 1);
       });
     }
     walkNode(rule['if'], '$.if', 1);
     _checkStringLen(rule.name, '$.name', errors);
     if (rule.meta) _checkStringLen(rule.meta.prompt, '$.meta.prompt', errors);
+    _checkThenValue(rule.then, errors);
     return { ok: errors.length === 0, errors: errors };
   }
 

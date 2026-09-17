@@ -1,7 +1,7 @@
 {
   "shape": "hw.rule.v1",
-  "id": "rule_01J000000000000000000020",
-  "name": "Aged 30%+ flower, 15% off",
+  "id": "rule_01J0000000000000000000w2",
+  "name": "Fix task fixture",
   "status": "draft",
   "priority": 100,
   "stackable": false,
@@ -21,9 +21,9 @@
   "if": {
     "all": [
       {
-        "field": "batch.received_at",
-        "op": "after",
-        "value": "2026-01-01T00:00:00Z"
+        "field": "product.sku",
+        "op": "eq",
+        "value": "GG4-1G"
       }
     ],
     "any": [],
@@ -31,7 +31,7 @@
   },
   "then": {
     "kind": "gift",
-    "value": "SKU-GIFT-1",
+    "value": "SKU-1",
     "applies_to": "matched_lines",
     "cap_cents": null,
     "max_per_order": null

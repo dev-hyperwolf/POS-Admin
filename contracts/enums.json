@@ -35,6 +35,8 @@
   "rule_limits": {
     "max_depth": 4,
     "max_nodes": 50,
+    "max_group_items": 50,
+    "max_bytes": 16384,
     "max_list": 200,
     "max_string": 200
   },

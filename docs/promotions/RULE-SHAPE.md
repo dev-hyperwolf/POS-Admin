@@ -32,10 +32,50 @@ RuleNode     { field?, op?, value?, all?, any?, not? }               // exactly 
 ```
 
 An `if` of `{"all":[],"any":[],"not":[]}` is a valid, unconditional rule (matches everything) —
-used for storewide promotions with no targeting.
+used for storewide promotions with no targeting. This holds at **any** group in the tree, not
+just the root: a nested group with all three arrays empty is unconditional at that point too (in
+practice this only matters for `not`, since an empty `all`/`any` at the root already means the
+same thing — see the semantics list below).
 
 `window.ends_at` before `window.starts_at` is a modeling smell but is **not** rejected by the
 contract — that ordering call belongs to whoever schedules the rule, not to the shape.
+
+**Semantics not obvious from the shape alone** (2026-09-16 refuter review, item 6 — these were
+previously undocumented and schema-valid either way, which is exactly what made them worth
+writing down):
+
+- **`scope.store_ids: []` and `scope.channels: []` mean "no restriction"** — the same as the
+  property being omitted would mean if it were optional. They are **not** "matches no stores" /
+  "matches no channels". A rule scoped to every store therefore writes `store_ids: []`, not an
+  enumeration of every store id.
+- **`not: [...]` is NOR, not "not all of"** — a group's `not` array matches when **none** of the
+  listed nodes match (i.e. `not: [A, B]` means `!A && !B`), the same reading as if `not` were
+  `!(A || B)`. It is not "not (A and B)".
+- **A group with `all`, `any`, and `not` all empty is unconditional** at that point in the tree —
+  see above. A group that mixes an empty `not` with non-empty `all`/`any` just means "no NOR
+  clause"; it does not affect the `all`/`any` evaluation.
+
+### `then.value` by `then.kind`
+
+`then.value` is typeless in the schema (`value: {}` — the subset has no `oneOf` to make it depend
+on `then.kind`), so its shape is a business rule enforced only by `validatePromotionRule`
+(`_checkThenValue`, `contracts/index.js`). 2026-09-16 refuter review, item 2: before this, `then`
+had **zero** validation beyond the schema's own type/enum/required checks — `percent: 101`,
+`percent: -50`, `price: 0`, `cap_cents: -100` all validated.
+
+| `then.kind` | `then.value` must be | enforced where |
+|---|---|---|
+| `percent` | number, `> 0` and `<= 100`, at most 2 decimal places | `validatePromotionRule` only (schema can't express range + decimal-place on a typeless field) |
+| `amount` | integer cents, `>= 1` | `validatePromotionRule` only |
+| `price` | integer cents, `>= 1` | `validatePromotionRule` only |
+| `points` | integer, `>= 1` | `validatePromotionRule` only |
+| `bogo` | integer free quantity, `>= 1` | `validatePromotionRule` only |
+| `gift` | non-empty string (a sku), `<= 200` chars (`RULE_LIMITS.max_string`) | `validatePromotionRule` only |
+| `then.cap_cents` (any kind) | integer `>= 0`, or `null` | **schema** (`SCHEMAS.PromotionRule.then.properties.cap_cents.minimum`) — doesn't depend on `kind` |
+| `then.max_per_order` (any kind) | integer `>= 1`, or `null` | **schema** (`...max_per_order.minimum`) — doesn't depend on `kind` |
+
+`cap_cents`/`max_per_order` live in the schema (as `minimum`) because their legal range doesn't
+change with `kind`; `value`'s does, so it can only be checked in code.
 
 ## 2. RuleField vocabulary and type
 
@@ -74,20 +114,31 @@ inputs. `validatePromotionRule` rejects them the same way it rejects any unliste
 enum/$enum, pattern, minLength, minimum, maximum, nullable, $ref` — the same subset
 `wmdemo/contracts.py` ports (its docstring lists the identical set; `_walk` in both files is
 line-for-line equivalent logic). It has **no `oneOf`, no `maxLength`, no `maxItems`**, and no way
-to say "at least one of these two shapes." Four structural rules in the plan therefore cannot live
-in `SCHEMAS.PromotionRule` itself and are enforced by `validatePromotionRule(rule)` after the base
-`validate('PromotionRule', rule)` passes:
+to say "at least one of these two shapes." Six structural rules in the plan therefore cannot live
+in `SCHEMAS.PromotionRule` itself and are enforced by `validatePromotionRule(rule)`, the first one
+*before* the base `validate('PromotionRule', rule)` even runs:
 
+0. **Serialized size ≤ `RULE_LIMITS.max_bytes` (16384)**, on `JSON.stringify(rule).length`.
+   Checked FIRST, before `validate()` or any recursive walk — this is what actually bounds a huge
+   payload to O(n) with no recursion at all (added 2026-09-16; see item 2 below for why the other
+   two DoS limits alone weren't enough).
 1. **Nesting depth ≤ `RULE_LIMITS.max_depth` (4).** The top `if` counts as depth 1; each nested
    `all`/`any`/`not` group adds one. A condition leaf does not add depth.
-2. **Condition-node count ≤ `RULE_LIMITS.max_nodes` (50).** Counted across the whole tree, not
-   per branch.
+2. **Node count ≤ `RULE_LIMITS.max_nodes` (50).** Counted across the whole tree — **every node,
+   groups and conditions alike**, not conditions only. Before 2026-09-16 this only counted
+   condition leaves, so a tree of nothing but empty `{all:[],any:[],not:[]}` groups had no cap at
+   all: a refuter attack built 1,000,000 such groups at depth 2 (well under `max_depth`) into a
+   29 MB payload that `validatePromotionRule` accepted in 460ms.
+2a. **Each `all`/`any`/`not` array ≤ `RULE_LIMITS.max_group_items` (50)**, checked before
+   recursing into it — an oversized array is rejected as one check, not by walking however many
+   siblings it holds. Added alongside the node-count fix for the same reason: a wide array is
+   itself a blast radius independent of whether its total would ever reach `max_nodes`.
 3. **`in`/`not_in` array length ≤ `RULE_LIMITS.max_list` (200)**, and **`between` must be an
    exactly-2-item array.** (No `maxItems` in the subset.)
 4. **String length ≤ `RULE_LIMITS.max_string` (200)** on `name`, `meta.prompt`, and any string
    inside a condition `value`. (No `maxLength` in the subset — only `minLength` exists.)
 
-A fifth thing the subset cannot express at all, `oneOf`, is why `RuleNode` is modeled as one flat
+A further thing the subset cannot express at all, `oneOf`, is why `RuleNode` is modeled as one flat
 object with six *optional* properties (`field`, `op`, `value`, `all`, `any`, `not`) instead of two
 real alternatives. `validatePromotionRule` walks the tree and rejects a node that has **both**
 forms or **neither**:
@@ -97,14 +148,16 @@ forms or **neither**:
 { }                                                          // neither form — rejected
 ```
 
-Two more checks live only in `validatePromotionRule`, because they cross a field and its value and
-the subset's `value: {}` (deliberately typeless, since a value can be a number, string, array-of-2,
-or array-of-N depending on `op` and field type) has nothing to check against on its own:
+Three more checks live only in `validatePromotionRule`, because they cross a field (or `then.kind`)
+and its value, and the subset's `value: {}` (deliberately typeless, since a value can be a number,
+string, array-of-2, or array-of-N depending on `op` and field type — or on `then.kind` for
+`then.value`) has nothing to check against on its own:
 
-5. **Op allowed for the field's type** (`RULE_OPS_BY_TYPE`, JS-only — see below).
+5. **Op allowed for the field's type** (`RULE_OPS_BY_TYPE` — see below).
 6. **Value's JS type matches the field's type** (`in`/`not_in` want an array of the base type;
    `between` wants a 2-item array; `older_than_days`/`newer_than_days` want a non-negative number;
    everything else wants one value of the base type).
+7. **`then.value` matches `then.kind`'s business rule** — see §1's `then.value` table.
 
 | type | allowed ops |
 |---|---|
@@ -113,16 +166,24 @@ or array-of-N depending on `op` and field type) has nothing to check against on 
 | `date` | `eq neq gt gte lt lte between before after older_than_days newer_than_days` |
 | `enum` | `eq neq in not_in` |
 
-**`RULE_FIELD_TYPE` and `RULE_LIMITS` are exported to `enums.json`** (`rule_field_type`,
-`rule_limits` keys — `tools/contracts-export.mjs`), so Python can build the same table. The
-**op-per-type compatibility table (`RULE_OPS_BY_TYPE`) is not exported** — it is a JS-only
-constant, and the whole depth/node-count/list-length/both-or-neither-form walk in
-`validatePromotionRule` has no Python port yet. That is engine-team (1b) work: `wmdemo/contracts.py`
-today only gives Python the schema-level `validate('PromotionRule', rule)` check. A record can be
-schema-valid and still fail `validatePromotionRule` in JS (wrong op for a field's type, 51
-condition nodes, a node with both forms, a 201-char string, an `in` value that isn't an array).
-Team 1b must port `validatePromotionRule`'s logic into `wmdemo/contracts.py` (or a sibling module)
-reading `rule_field_type` / `rule_limits` from the same `enums.json`, before
+**`RULE_FIELD_TYPE`, `RULE_LIMITS`, and `RULE_OPS_BY_TYPE` are all exported to `enums.json`**
+(`rule_field_type`, `rule_limits`, `rule_ops_by_type` keys — `tools/contracts-export.mjs`), so
+Python can build the same tables. **Corrected 2026-09-16**: this section and the comment above
+`RULE_OPS_BY_TYPE` in `contracts/index.js` previously both claimed the op-per-type table was
+JS-only and re-implemented by hand in Python — that stopped being true the moment 0.5.0's Team 3b
+export landed it (`enums.json` key `rule_ops_by_type`), and `wmdemo/contracts.py` had its own
+hand-copied `RULE_OPS_BY_TYPE` dict carrying the identical stale "not exported yet" comment,
+byte-identical to the JS table today but now two hand-synced copies instead of one. **Python must
+read `enums.json['rule_ops_by_type']`, not carry its own copy.**
+
+The whole depth/node-count/group-item/byte-size/both-or-neither-form/then-value walk in
+`validatePromotionRule` still has no Python port: `wmdemo/contracts.py` today only gives Python the
+schema-level `validate('PromotionRule', rule)` check. A record can be schema-valid and still fail
+`validatePromotionRule` in JS (wrong op for a field's type, 51 nodes, a node with both forms, a
+201-char string, an `in` value that isn't an array, an out-of-range `then.value`, an oversized
+serialized body). That is engine-team (1b) work: port `validatePromotionRule`'s logic into
+`wmdemo/contracts.py` (or a sibling module) reading `rule_field_type` / `rule_limits` /
+`rule_ops_by_type` from the same `enums.json`, before
 `qa/promo_rules_probe.py` (§2.1's Python-side parity runner) can give a fixture the same verdict
 as JS.
 
@@ -159,7 +220,7 @@ as JS.
 
 ## 5. Fixtures
 
-`contracts/fixtures/promotion-rule/valid/*.json` (16) and `.../invalid/*.json` (16), run by
+`contracts/fixtures/promotion-rule/valid/*.json` (21) and `.../invalid/*.json` (29), run by
 `test/contracts.test.mjs`. Every `RuleOp` and every `RuleThenKind` appears at least once across the
 valid set (asserted in the test, not just claimed here). Every invalid fixture's filename names its
 defect and its `validatePromotionRule` error names the offending path (e.g.

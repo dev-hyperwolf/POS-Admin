@@ -267,19 +267,86 @@ print(json.dumps(out))`;
   const r = spawnSync('python3', ['-c', script], { input: JSON.stringify(payload), encoding: 'utf8' });
   assert.equal(r.status, 0, 'python failed: ' + r.stderr);
   const pyOut = JSON.parse(r.stdout);
-  // Python's validate() is the JSON-Schema layer only (no validatePromotionRule port here yet --
-  // that structural walk is JS-only per BUILD-PROGRAM-MASTER-PLAN §2.1 D4, engine team 1b's to build).
+  // This checks Python's plain schema-level validate() ONLY, not the structural walk (that's the
+  // separate test below, now that wmdemo/contracts.py has its own validate_promotion_rule).
   // So: every valid JS fixture must also pass Python's schema validate(); an invalid fixture whose
   // defect is schema-shaped (bad enum, missing/extra key) must also fail Python's validate() --
   // invalid fixtures whose defect is a structural-only rule (depth/nodes/list/string, both/neither
   // form, op-type/value-type) are schema-valid and are EXPECTED to pass Python's plain validate().
   const structuralOnly = new Set(['op-type-mismatch.json', 'depth-5-exceeds-limit.json', '51-condition-nodes.json',
     '201-item-list.json', 'both-forms-one-node.json', 'neither-form.json', 'value-type-wrong.json', 'string-too-long.json',
-    'in-op-value-not-array.json']);
+    'in-op-value-not-array.json',
+    // 2026-09-16 tree-size-cap + then.value fixtures: all schema-valid (the subset has no
+    // maxItems and then.value is deliberately typeless), rejected only by validatePromotionRule.
+    '51-empty-groups-no-conditions.json', '1000-empty-groups-exceeds-max-bytes.json',
+    'nested-group-51-items-exceeds-max-group-items.json', 'rule-exceeds-max-bytes-with-legal-lists.json',
+    'then-value-percent-101-exceeds-max.json', 'then-value-percent-zero-not-positive.json',
+    'then-value-percent-too-many-decimals.json', 'then-value-price-negative.json', 'then-value-amount-zero.json',
+    'then-value-points-fractional.json', 'then-value-gift-empty-string.json']);
+  // then-cap-cents-negative.json and then-max-per-order-zero.json are NOT structural-only:
+  // cap_cents/max_per_order don't depend on then.kind, so their `minimum` lives in the schema
+  // itself (SCHEMAS.PromotionRule.then) and Python's plain validate() already rejects them.
   for (const f of validFiles) assert.equal(pyOut.valid[f], true, 'python validate() rejected valid fixture ' + f);
   for (const f of invalidFiles) {
     const expected = !structuralOnly.has(f);
     assert.equal(pyOut.invalid[f], !expected, 'python validate() disagreed with JS schema verdict on ' + f);
+  }
+});
+
+// wmdemo/contracts.py now carries its own validate_promotion_rule (2026-09-16, mirroring
+// validatePromotionRule line-for-line -- byte-size gate first, every node counted, max_group_items
+// capped before recursing, then.value checked per then.kind). Full parity, not just the
+// schema-level check above: every fixture must get the SAME ok/not-ok verdict on both sides.
+test('PromotionRule fixtures: Python twin validate_promotion_rule() agrees with JS validatePromotionRule() on every verdict', { skip: !canPy && 'python3 or wm-demo not available' }, () => {
+  if (!wmDemoExists) return;
+  const validFiles = fs.readdirSync(path.join(RULE_FIXTURES_DIR, 'valid')).filter((f) => f.endsWith('.json'));
+  const invalidFiles = fs.readdirSync(path.join(RULE_FIXTURES_DIR, 'invalid')).filter((f) => f.endsWith('.json'));
+  const script = `
+import json, sys; sys.path.insert(0, ${JSON.stringify(WM)})
+import os; os.environ['HW_CONTRACTS_DIR'] = ${JSON.stringify(path.join(ROOT, 'contracts'))}
+from wmdemo import contracts as C
+names = json.loads(sys.stdin.read())
+out = {}
+for kind, files in names.items():
+    out[kind] = {}
+    for fn, rule in files.items():
+        if not hasattr(C, 'validate_promotion_rule'):
+            out[kind][fn] = None
+        else:
+            out[kind][fn] = C.validate_promotion_rule(rule)['ok']
+print(json.dumps(out))`;
+  const payload = { valid: {}, invalid: {} };
+  for (const f of validFiles) payload.valid[f] = JSON.parse(fs.readFileSync(path.join(RULE_FIXTURES_DIR, 'valid', f), 'utf8'));
+  for (const f of invalidFiles) payload.invalid[f] = JSON.parse(fs.readFileSync(path.join(RULE_FIXTURES_DIR, 'invalid', f), 'utf8'));
+  const r = spawnSync('python3', ['-c', script], { input: JSON.stringify(payload), encoding: 'utf8' });
+  assert.equal(r.status, 0, 'python failed: ' + r.stderr);
+  const pyOut = JSON.parse(r.stdout);
+  if (Object.values(pyOut.valid)[0] === null) return; // older wm-demo checkout with no validate_promotion_rule yet
+  for (const f of validFiles) {
+    const js = C.validatePromotionRule(JSON.parse(fs.readFileSync(path.join(RULE_FIXTURES_DIR, 'valid', f), 'utf8')));
+    assert.equal(pyOut.valid[f], js.ok, 'validate_promotion_rule disagreed on valid fixture ' + f);
+  }
+  for (const f of invalidFiles) {
+    const js = C.validatePromotionRule(JSON.parse(fs.readFileSync(path.join(RULE_FIXTURES_DIR, 'invalid', f), 'utf8')));
+    assert.equal(pyOut.invalid[f], js.ok, 'validate_promotion_rule disagreed on invalid fixture ' + f);
+  }
+});
+
+// The two refuter attack payloads (scratchpad attack2.cjs, 2026-09-16) rebuilt here PROGRAMMATICALLY
+// -- never checked in as fixture files -- so the tree-size cap is proven against the exact shape
+// that broke it (empty groups, no leaf conditions, well under max_depth) without a 6-29 MB file in git.
+test('validatePromotionRule rejects the refuter\'s unbounded-empty-groups DoS payloads, fast and by name', () => {
+  const validBase = JSON.parse(fs.readFileSync(path.join(RULE_FIXTURES_DIR, 'valid', 'op-eq-product-sku.json'), 'utf8'));
+  const emptyGroup = () => ({ all: [], any: [], not: [] });
+  for (const n of [200000, 1000000]) {
+    const rule = JSON.parse(JSON.stringify(validBase));
+    rule.if = { all: Array.from({ length: n }, emptyGroup), any: [], not: [] };
+    const t0 = Date.now();
+    const r = C.validatePromotionRule(rule);
+    const ms = Date.now() - t0;
+    assert.equal(r.ok, false, n + ' empty groups must be rejected');
+    assert.ok(r.errors.length === 1 && r.errors[0].includes('max_bytes'), n + ' empty groups: expected a max_bytes error, got ' + JSON.stringify(r.errors));
+    assert.ok(ms < 2000, n + ' empty groups took ' + ms + 'ms -- the byte-size gate should reject before any recursion, not walk the tree');
   }
 });
 

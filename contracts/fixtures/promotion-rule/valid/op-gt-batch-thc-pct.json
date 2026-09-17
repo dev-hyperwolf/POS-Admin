@@ -31,7 +31,7 @@
   },
   "then": {
     "kind": "gift",
-    "value": 15,
+    "value": "SKU-GIFT-2",
     "applies_to": "matched_lines",
     "cap_cents": null,
     "max_per_order": null

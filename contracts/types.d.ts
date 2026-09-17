@@ -169,7 +169,7 @@ export function signingPreimage(unixTs: number | string, body: unknown): string;
 export function randomHex(bytes: number): string;
 export function validate(schema: string | object, value: unknown): Validation;
 export const RULE_FIELD_TYPE: Record<RuleField, RuleFieldType>;
-export const RULE_LIMITS: { max_depth: number; max_nodes: number; max_list: number; max_string: number };
+export const RULE_LIMITS: { max_depth: number; max_nodes: number; max_group_items: number; max_bytes: number; max_list: number; max_string: number };
 export const RULE_OPS_BY_TYPE: Record<RuleFieldType, RuleOp[]>;
 export function validatePromotionRule(rule: unknown): Validation;
 export const PII_CLASS: Record<string, PiiClass>;
