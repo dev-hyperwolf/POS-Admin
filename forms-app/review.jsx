@@ -147,6 +147,12 @@
       detail.attachments && detail.attachments.length > 0 && React.createElement('div', { style: { marginTop: 20 } },
         React.createElement('div', { style: { fontSize: 11.5, fontWeight: 700, color: P.inkMute, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.03em' } }, 'Attachments'),
         detail.attachments.map((a) => React.createElement(AttachmentThumb, { key: a.id, P, att: a }))),
+      // A severity:"warn" validator message (wmdemo/forms.py's VALIDATOR_SEVERITIES) -- recorded
+      // on the submission, never a reason it was blocked. Same `detail` payload the form host
+      // above already rendered from; nothing extra to fetch.
+      detail.warnings && detail.warnings.length > 0 && React.createElement('div', { style: { marginTop: 16, padding: '10px 13px', borderRadius: P.r8, background: P.surface2, border: `1px solid ${P.hairline2}` } },
+        React.createElement('div', { style: { fontSize: 11.5, fontWeight: 700, color: P.inkMute, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.03em' } }, 'Warnings'),
+        detail.warnings.map((w, i) => React.createElement('div', { key: i, style: { fontSize: 12.5, color: P.ink, marginTop: i ? 4 : 0 } }, w))),
       detail.review_note && React.createElement('div', { className: 'hdform-no-print', style: { marginTop: 12, fontSize: 12.5, color: P.inkMute } }, 'Review note: ' + detail.review_note),
       detail.status === 'submitted' && React.createElement('div', { className: 'hdform-no-print', style: { marginTop: 24, borderTop: `1px solid ${P.hairline2}`, paddingTop: 16 } },
         React.createElement('textarea', {

@@ -70,16 +70,41 @@
           : { type: 'string', enum: f.options || [], nullable: !f.required };
       case 'multiselect':
         return { type: 'array', items: f.$enum ? { type: 'string', $enum: f.$enum } : { type: 'string', enum: f.options || [] } };
+      // `checkbox` is `boolean` under another name (wmdemo/forms.py's own FIELD_TYPES
+      // docstring, and forms_seed.py's original note on why it used `boolean` instead) --
+      // both sides of the estate now agree on this, so it validates identically.
       case 'boolean':
       case 'checkbox':
+        return { type: 'boolean' };
+      // `pin_required`/`pin_stepup` are DELIBERATELY UNSUPPORTED (FORMS-MIGRATION-MATRIX §B:
+      // this file used to case them as if they were real boolean fields -- a "correct-looking"
+      // schema entry the backend's FIELD_TYPES never recognised, so a FormDef using either
+      // type produced a silently-wrong compiled schema server-side, not a rejection). Fixed
+      // by resolving the contradiction on THIS side instead: no real PIN/re-auth shared
+      // component exists yet (proposal §8, owner question 3), so these two types are refused
+      // visibly (see FieldRow's `$unsupported` branch and `compile()`'s exclusion of them from
+      // the schema entirely) rather than quietly pretending to validate/collect data for a
+      // flow the backend cannot enforce.
       case 'pin_required':
       case 'pin_stepup':
-        return { type: 'boolean' };
+        return { nullable: true, $unsupported: true };
       case 'person':
       case 'store':
       case 'photo':
       case 'signature':
         return { type: 'string', minLength: f.required ? 1 : 0, nullable: !f.required };
+      // Restricted PII (FORMS-MIGRATION-MATRIX §B gap 2): validated here as a plain string --
+      // the value in flight client-side is the PLAINTEXT the actor is typing; wmdemo/forms.py
+      // encrypts it at rest on submit and never returns it unmasked except through the
+      // forms:admin `/reveal` route, which this renderer does not call.
+      case 'pii':
+        return { type: 'string', minLength: f.required ? 1 : 0, nullable: !f.required };
+      // Multi-attachment (FORMS-MIGRATION-MATRIX §B gap 3): an array of attachment ids, same
+      // convention `photo`/`signature` already use (a string id, not raw bytes). Count/type
+      // limits (`max`/`accept`) are enforced server-side (wmdemo/forms.py's own no-maxItems
+      // rule, module docstring there) -- not duplicated here as a schema keyword.
+      case 'files':
+        return { type: 'array', items: { type: 'string' } };
       case 'checklist':
         return { type: 'array', items: { type: 'string' } };
       case 'repeating_group':
@@ -129,7 +154,9 @@
     var required = [];
     var properties = {};
     flat.forEach(function (f) {
-      if (!f || f.type === 'section') return;
+      // `pin_required`/`pin_stepup` join `section` here -- never part of the schema at all
+      // (see fieldSchema's own comment: no real component exists to collect or enforce them).
+      if (!f || f.type === 'section' || f.type === 'pin_required' || f.type === 'pin_stepup') return;
       properties[f.key] = fieldSchema(f);
       if (f.required && !f.showWhen && f.type !== 'computed' && f.type !== 'repeating_group') required.push(f.key);
     });
@@ -174,7 +201,8 @@
     var compiled = compile(definition);
     var fieldErrors = {};
     compiled.fields.forEach(function (f) {
-      if (!f || f.type === 'section' || f.type === 'computed') return;
+      if (!f || f.type === 'section' || f.type === 'computed'
+          || f.type === 'pin_required' || f.type === 'pin_stepup') return;
       if (!evalShowWhen(f.showWhen, data)) return;
       if (f.type === 'repeating_group') {
         var rows = Array.isArray(data[f.key]) ? data[f.key] : [];
@@ -216,16 +244,19 @@
 
   // ── draft autosave (localStorage, try/catch — a private tab must not throw) ─
   function draftKey(definition) { return 'hdform-draft-' + ((definition && (definition.slug || definition.id)) || 'unknown'); }
-  function loadDraft(definition) {
+  function loadDraft(definition, autosave) {
+    if (autosave === false) return null;
     try {
       var raw = window.localStorage.getItem(draftKey(definition));
       return raw ? JSON.parse(raw) : null;
     } catch (e) { return null; }
   }
-  function saveDraft(definition, data) {
+  function saveDraft(definition, data, autosave) {
+    if (autosave === false) return;
     try { window.localStorage.setItem(draftKey(definition), JSON.stringify(data)); } catch (e) { /* private mode, quota, etc. */ }
   }
-  function clearDraft(definition) {
+  function clearDraft(definition, autosave) {
+    if (autosave === false) return;
     try { window.localStorage.removeItem(draftKey(definition)); } catch (e) {}
   }
 
@@ -272,6 +303,20 @@
     var P = useP();
     if (!evalShowWhen(f.showWhen, opts.data)) return null;
     if (f.type === 'section') return null;
+
+    // Visible refusal, not a silent gap: this used to fall through to a null render (a PIN
+    // step-up flag that looked wired up but had no backend enforcement behind it -- exactly
+    // the "code vs code" contradiction FORMS-MIGRATION-MATRIX §B flagged). Until a real
+    // pin_required/pin_stepup component exists, a FormDef using either type shows this instead
+    // of quietly collecting nothing.
+    if (f.type === 'pin_required' || f.type === 'pin_stepup') {
+      return React.createElement(Row, null,
+        React.createElement('div', {
+          style: { padding: '10px 13px', borderRadius: P.r8, border: '1px dashed ' + P.fieldBorder,
+                  background: P.surface3, color: P.inkDim, fontSize: 12.5 },
+        }, 'Field type "' + f.type + '" (' + (f.label || f.key) + ') is not supported by this '
+          + 'form backend yet -- no PIN/re-auth step is enforced.'));
+    }
 
     if (f.type === 'computed') {
       var cv = computeValue(f, opts.data);
@@ -437,9 +482,43 @@
         React.createElement(ErrorLine, { P: P, msg: error }));
     }
 
-    if (f.type === 'pin_required' || f.type === 'pin_stepup') {
-      // No inline control — this is a submit-time gate. See FormView's PIN sheet.
-      return null;
+    if (f.type === 'pii') {
+      // A masked input: the actor's own keystrokes are still visible while typing (an SSN
+      // typo needs to be readable to fix), but the field never round-trips a previously-
+      // stored value in the clear -- wmdemo/forms.py masks it on every list/detail read
+      // (`•••-••-1234`), and this renderer has no `/reveal` call, so `value` here is only
+      // ever what THIS session typed, never a decrypted server value.
+      return React.createElement(Row, null,
+        React.createElement(LabelLine, { P: P, f: f }),
+        React.createElement('input', {
+          type: 'password', autoComplete: 'off', value: value == null ? '' : value, disabled: disabled,
+          onChange: function (e) { onChange(e.target.value); },
+          style: { width: '100%', minHeight: 44, padding: '10px 13px', borderRadius: P.r8, border: '1px solid ' + P.fieldBorder, background: P.field, color: P.ink, font: 'inherit', boxSizing: 'border-box' },
+        }),
+        React.createElement(ErrorLine, { P: P, msg: error }));
+    }
+
+    if (f.type === 'files') {
+      // Multiple files -> multiple placeholder object URLs, same "not uploaded here yet"
+      // convention `photo` already uses; a real upload step turns each into the attachment id
+      // string wmdemo/forms.py's `files` type actually stores. Client-side count/`accept` are
+      // a courtesy (the `<input>`'s own `multiple`/`accept`) -- the server re-checks both
+      // (max attachments, content type) regardless, per its own no-maxItems rule.
+      var filesVal = Array.isArray(value) ? value : [];
+      var filesCap = f.max || 20;
+      return React.createElement(Row, null,
+        React.createElement(LabelLine, { P: P, f: f }),
+        React.createElement('input', {
+          type: 'file', multiple: true, accept: (f.accept || []).join(',') || undefined, disabled: disabled,
+          style: { minHeight: 44 },
+          onChange: function (e) {
+            var chosen = Array.prototype.slice.call(e.target.files || []).slice(0, filesCap);
+            onChange(chosen.map(function (file) { return URL.createObjectURL(file); }));
+          },
+        }),
+        React.createElement('div', { style: { fontSize: 11.5, color: P.inkMute, marginTop: 4 } },
+          filesVal.length + ' / ' + filesCap + ' file' + (filesCap === 1 ? '' : 's')),
+        React.createElement(ErrorLine, { P: P, msg: error }));
     }
 
     if (f.type === 'repeating_group') {
@@ -553,18 +632,25 @@
     var P = useP();
     var definition = opts.definition;
     var mode = opts.mode || 'fill';
+    var autosave = opts.autosave !== false; // default true
     var compiled = React.useMemo(function () { return compile(definition); }, [definition]);
     var initial = React.useMemo(function () {
-      return opts.initial || (mode === 'fill' ? loadDraft(definition) : null) || {};
-    }, [definition]);
+      return opts.initial || (mode === 'fill' ? loadDraft(definition, autosave) : null) || {};
+    }, [definition, autosave]);
     var _d = React.useState(initial), data = _d[0], setData = _d[1];
     var _e = React.useState({}), fieldErrors = _e[0], setFieldErrors = _e[1];
     var _pin = React.useState(false), pinOpen = _pin[0], setPinOpen = _pin[1];
     var _busy = React.useState(false), busy = _busy[0], setBusy = _busy[1];
+    // A severity:"warn" validator (wmdemo/forms.py's VALIDATOR_SEVERITIES, 2026-09-17) never
+    // blocks a submit -- the 201 response's own `submission.warnings` is the only place it
+    // shows up, so it needs its own inline slot here rather than piggybacking on fieldErrors
+    // (which is for a 400 only) or the toast (which disappears, and a shortfall a closer must
+    // act on should not).
+    var _warn = React.useState([]), warnings = _warn[0], setWarnings = _warn[1];
 
     React.useEffect(function () {
-      if (mode === 'fill') saveDraft(definition, data);
-    }, [data, mode]);
+      if (mode === 'fill') saveDraft(definition, data, autosave);
+    }, [data, mode, autosave]);
 
     function setField(key, v) {
       setData(function (prev) { return Object.assign({}, prev, { [key]: v }); });
@@ -580,6 +666,7 @@
       var res = validate(definition, data);
       setFieldErrors(res.fieldErrors);
       if (!res.ok) { window.hdToast && window.hdToast({ title: 'Fix the highlighted fields', tone: 'warn' }); return; }
+      setWarnings([]);
       var payload = pin ? Object.assign({}, data, { _pin: pin }) : data;
       var run = opts.onSubmit ? opts.onSubmit({ data: payload, station_id: opts.station }) : defaultSubmit(definition, payload, opts.station);
       setBusy(true);
@@ -587,8 +674,10 @@
         setBusy(false);
         var ok = result === true || (result && result.ok);
         if (ok) {
-          clearDraft(definition);
-          window.hdToast && window.hdToast({ title: 'Submitted', tone: 'ok' });
+          clearDraft(definition, autosave);
+          var w = (result && result.body && result.body.submission && result.body.submission.warnings) || [];
+          setWarnings(w);
+          window.hdToast && window.hdToast({ title: w.length ? 'Submitted, with a warning' : 'Submitted', tone: w.length ? 'warn' : 'ok' });
         } else {
           var details = result && result.body && result.body.error && result.body.error.details && result.body.error.details.fields;
           if (details) setFieldErrors(details);
@@ -633,6 +722,15 @@
       }),
       mode === 'fill' && React.createElement('div', { className: 'hdform-no-print', style: { marginTop: 20 } },
         React.createElement(window.PBtn, { variant: 'primary', size: 'lg', busy: busy, onClick: onSubmitClick }, 'Submit')),
+      // Inline, persistent (not a toast) -- a severity:"warn" validator shortfall (e.g. the
+      // retail/delivery closer reports' denomination_subset_sum rule) is submitted successfully
+      // and never blocks, but a closer still needs to SEE it, not just have it logged server-side.
+      mode === 'fill' && warnings.length > 0 && React.createElement('div', {
+        className: 'hdform-no-print',
+        style: { marginTop: 14, padding: '10px 13px', borderRadius: P.r8, background: P.surface3, border: '1px solid ' + P.fieldBorder, color: P.inkDim, fontSize: 12.5 },
+      },
+        React.createElement('div', { style: { fontWeight: 700, marginBottom: 4, color: P.ink } }, 'Submitted, with a warning:'),
+        warnings.map(function (w, i) { return React.createElement('div', { key: i, style: { marginTop: i ? 4 : 0 } }, w); })),
       React.createElement(PinSheet, { open: pinOpen, onCancel: function () { setPinOpen(false); }, onConfirm: function (pin) { setPinOpen(false); doSubmit(pin); } }));
   }
 
@@ -678,5 +776,8 @@
     computeValue: computeValue,
     dollarsToCents: dollarsToCents,
     centsToDollarsStr: centsToDollarsStr,
+    // draft persistence seam, exposed for tests only: the `autosave` third argument is the
+    // opt-out the signing page relies on (a signature PNG must never land in localStorage).
+    _drafts: { load: loadDraft, save: saveDraft, clear: clearDraft, key: draftKey },
   };
 })();

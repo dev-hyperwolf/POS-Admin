@@ -46,9 +46,12 @@ function loadWindow() {
   const out = Babel.transform(src, babelOptions('shared/hd-form.jsx')).code;
   vm.runInContext(out, ctx, { filename: 'shared/hd-form.jsx' });
   if (!sandbox.HDForm) throw new Error('hd-form.test: window.HDForm did not load');
+  _sandboxWindow = sandbox;
   return sandbox.HDForm;
 }
 
+let _sandboxWindow = null;
+function getSandboxWindow() { return _sandboxWindow; }
 const HDForm = loadWindow();
 
 /** Structural copy across the vm realm boundary (see test/harness.mjs `plain`):
@@ -187,4 +190,53 @@ test('a computed field is read-only and never appears in the required set or val
   const res = HDForm.validate(def, { a: 1, b: 2 }); // total omitted entirely
   assert.equal(res.ok, true);
   assert.equal(HDForm.computeValue(def.fields[2], { a: 1, b: 2 }), 3);
+});
+
+test('autosave: false never reads, writes or clears the draft key; default still does', () => {
+  // FormView needs React to mount, so the seam itself is exercised: the three draft helpers
+  // FormView calls (load on init, save on change, clear on submit) with the opt-out flag.
+  const def = { id: 'onb_ack_sign', slug: 'onb_ack_sign', fields: [
+    { key: 'signatureImage', type: 'signature', required: true },
+    { key: 'typedName', type: 'text', required: true },
+  ]};
+  const calls = [];
+  const store = new Map();
+  const win = getSandboxWindow();
+  win.localStorage = {
+    getItem: (k) => { calls.push(['get', k]); return store.has(k) ? store.get(k) : null; },
+    setItem: (k, v) => { calls.push(['set', k]); store.set(k, v); },
+    removeItem: (k) => { calls.push(['rm', k]); store.delete(k); },
+  };
+  const key = HDForm._drafts.key(def);
+  store.set(key, JSON.stringify({ typedName: 'stale', signatureImage: 'data:image/png;base64,AAAA' }));
+
+  // opt-out: no access of any kind, and a pre-existing draft is neither returned nor removed
+  assert.equal(HDForm._drafts.load(def, false), null);
+  HDForm._drafts.save(def, { typedName: 'Alice', signatureImage: 'data:image/png;base64,BBBB' }, false);
+  HDForm._drafts.clear(def, false);
+  assert.deepEqual(calls, [], 'autosave:false must not touch localStorage at all');
+  assert.equal(store.get(key).includes('stale'), true, 'existing draft untouched');
+
+  // default (undefined / true): reads, writes and clears exactly as before
+  assert.equal(plain(HDForm._drafts.load(def)).typedName, 'stale');
+  HDForm._drafts.save(def, { typedName: 'Alice' });
+  assert.equal(JSON.parse(store.get(key)).typedName, 'Alice');
+  HDForm._drafts.clear(def, true);
+  assert.equal(store.has(key), false);
+  assert.deepEqual(calls.map(c => c[0]), ['get', 'set', 'rm']);
+  delete win.localStorage;
+});
+
+test('FormView threads the autosave flag into every draft helper call (source check)', () => {
+  const src = fs.readFileSync(HD_FORM, 'utf8');
+  const body = src.slice(src.indexOf('function FormView('), src.indexOf('window.HDForm = {'));
+  assert.match(body, /var autosave = opts\.autosave !== false/);
+  for (const fn of ['loadDraft', 'saveDraft', 'clearDraft']) {
+    const uses = body.match(new RegExp(fn + '\\(', 'g')) || [];
+    assert.ok(uses.length >= 1, fn + ' is called from FormView');
+    const bare = body.match(new RegExp(fn + '\\([^)]*\\)', 'g')).filter(c => !/autosave\)$/.test(c));
+    assert.deepEqual(bare, [], fn + ' called without the autosave flag: ' + bare.join(' | '));
+  }
+  const sign = fs.readFileSync(path.join(ROOT, 'shared', 'hw-sign-page.jsx'), 'utf8');
+  assert.match(sign, /autosave:\s*false/, 'signing page opts out of draft autosave');
 });
