@@ -170,7 +170,17 @@ LedgerGreen literal (TEAM-TODO 0.1–0.2) — those are JT's console actions.
 
 Storefronts (D9) sit outside this sequence.
 
-## 8. Decisions needed from JT
+## 8. Decisions — DECIDED 2026-09-17 by JT
+
+- **D5 host:** AWS for production; the demo/stage moves to AWS within 1–2 weeks (Render is a short bridge). Backup bucket = S3 in JT's AWS account.
+- **D6 database:** PostgreSQL on RDS Multi-AZ; keep developing meanwhile.
+- **D7 runtime:** TypeScript server (Fastify/Hono + Postgres via Drizzle/Kysely), strangler migration by agent swarms with elite QA: byte-identical goldens/fixtures per ported module, a differential probe running both runtimes on the same requests, and a refuter per module before it takes over its route.
+- **D8 front end:** Vite build, one bundle per module, ES modules replace the IIFE files.
+- **D9 storefronts:** keep the vendor storefronts now, pointed at our API through the contracts; rebuild on our platform later as its own track. JT notes a redesigned storefront UI already exists in our files and the developers plan a UI update soon — align that update with the contracts boundary (storefront track opened).
+
+Original framing kept below.
+
+## 8 (original). Decisions needed from JT
 
 - **D5** host (AWS prod, Render stage) · **D6** Postgres · **D7** TypeScript runtime ·
   **D8** frontend build step · **D9** storefront strategy.
