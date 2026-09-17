@@ -8,8 +8,8 @@
 // (window.HWRestock), which itself goes through window.HW_LIVE — this file
 // has no fetch of its own.
 //
-// TWO GAPS FROM THE MOCKUP, BOTH DATA GAPS RATHER THAN MISSING ROUTES —
-// see the build report for the full account:
+// ONE GAP FROM THE MOCKUP, A DATA GAP RATHER THAN A MISSING ROUTE — see the
+// build report for the full account:
 //
 //   1. "Manage shelf pars" (the mockup's dashed pill) has NO ROUTE — confirmed
 //      in the endpoint census and in wmdemo/restock_engine.py's own adapter
@@ -22,14 +22,11 @@
 //      · REASON — the PlanLine contract's own field names — instead of
 //      inventing ON SHELF/PAR numbers no route returns.
 //
-//   2. batch_no / THC / packaged date are NOT structured PlanLine fields
-//      (contracts/schema/PlanLine.json has no such properties). They exist
-//      only as a formatted string inside a mixed-batch line's `note`
-//      (restock_engine.py's _mixed_batch_note/_batch_detail_text). Every line
-//      always shows its batch_id; note text (when the server sent one) shows
-//      under it. GET /api/inventory/batches carries the full structured shape
-//      but is outside this build's approved endpoint set, so it is not
-//      called here.
+// batch_no / thc_pct / packaged_at ARE now structured PlanLine fields (contract
+// 0.5.0, additive — batch is the unit of control everywhere, owner ruling).
+// restock_engine.py populates them from batch_meta for every line; batchDetailLine()
+// below renders "batch_no · NN% THC · packaged YYYY-MM-DD" from them and falls back
+// to the free-text `note` only when batch_no is null (no batch_meta for that batch_id).
 //
 // RFID-first apply, per wmdemo/inventory_api.py's _restock_apply: a give>0
 // line applies untagged when the POST carries no `read` at all; with
@@ -128,16 +125,28 @@
       </label>);
   }
 
+  // batch_no/thc_pct/packaged_at are structured PlanLine fields as of contract 0.5.0
+  // (populated from batch_meta server-side). Show them when present; a line whose
+  // batch_id has no meta (batch_no null) falls back to the free-text `note` instead.
+  function batchDetailLine(line) {
+    if (line.batch_no == null) return null;
+    var parts = [line.batch_no];
+    if (line.thc_pct != null) parts.push(line.thc_pct + '% THC');
+    if (line.packaged_at) parts.push('packaged ' + line.packaged_at.slice(0, 10));
+    return parts.join(' · ');
+  }
+
   // ── one PlanLine row ───────────────────────────────────────────────────
   function LineRow({ line, exceptionReason, handCounted, onToggleHandCounted }) {
     const P = useP();
     var loud = !!line.mixed_batch;
     var bg = loud ? P.badSoft : (exceptionReason ? P.warnSoft : 'transparent');
+    var detail = batchDetailLine(line);
     return (
       <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 64px 64px 64px 74px 1.5fr', gap: 8, alignItems: 'flex-start', padding: '7px 10px', background: bg, borderRadius: 8, fontSize: 12 }}>
         <div style={{ fontFamily: P.fontMono, color: P.inkDim, minWidth: 0 }}>
           <b style={{ color: P.ink }}>batch {line.batch_id}</b>
-          {line.note && <div style={{ fontSize: 10.5, color: loud ? P.bad : P.inkMute, marginTop: 2, lineHeight: 1.35 }}>{line.note}</div>}
+          {(detail || line.note) && <div style={{ fontSize: 10.5, color: loud ? P.bad : P.inkMute, marginTop: 2, lineHeight: 1.35 }}>{detail || line.note}</div>}
         </div>
         <div style={{ fontFamily: P.fontMono, textAlign: 'right', color: P.ink2 }}>{line.sold ?? 0}</div>
         <div style={{ fontFamily: P.fontMono, textAlign: 'right', color: P.ink2 }}>{line.need ?? 0}</div>

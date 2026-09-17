@@ -60,6 +60,31 @@
       "type": "string",
       "nullable": true
     },
+    "batch_no": {
+      "type": "string",
+      "nullable": true
+    },
+    "thc_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "nullable": true
+    },
+    "packaged_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "received_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "expires_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
     "picked_by": {
       "type": "string",
       "nullable": true

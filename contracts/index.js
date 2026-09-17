@@ -27,7 +27,10 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.5.0'; // 0.5.0 (additive, Team 3b): HrEmployee/HrEmployeeRestricted/Incident/WriteUp/
+  var VERSION = '0.5.0'; // 0.5.0 (additive): PlanLine.batch_no/thc_pct/packaged_at/received_at/expires_at
+  // -- batch is the unit of control everywhere (owner ruling); populated from batch_meta, null
+  // when meta is absent, Floor Restock falls back to `note` only then.
+  // 0.5.0 (additive, Team 3b): HrEmployee/HrEmployeeRestricted/Incident/WriteUp/
   // CallOff/CloserReport/LossLedgerEntry + AirtableSourceRef (BUILD-PROGRAM-MASTER-PLAN-2026-09-16.md §4
   // Track 3 LP+HR migration, docs/migration/MIGRATION-PLAN-2026-09-16.md). PII_CLASS const (shape.property
   // -> restricted|internal|normal), exported to enums.json as pii_class; RULE_OPS_BY_TYPE now also
@@ -662,6 +665,13 @@
         sold: { type: 'integer', minimum: 0 }, need: { type: 'integer', minimum: 0 }, cap: { type: 'integer', minimum: 0 },
         give: { type: 'integer', minimum: 0 }, reasons: { type: 'array', items: { type: 'string', $enum: 'PlanReason' } },
         mixed_batch: { type: 'boolean' }, note: { type: 'string', nullable: true },
+        // 0.5.0 — batch identity the operator works from (owner ruling: batch is the unit of
+        // control everywhere). Populated from Batch/batch_meta; null when meta is unavailable —
+        // the Floor Restock screen falls back to `note` only in that case.
+        batch_no: { type: 'string', nullable: true }, thc_pct: { type: 'number', minimum: 0, maximum: 100, nullable: true },
+        packaged_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        received_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        expires_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
         // 0.4.1 attribution — who picked, packed and verified this line (person ids), with times
         picked_by: { type: 'string', nullable: true }, picked_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
         packed_by: { type: 'string', nullable: true }, packed_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },

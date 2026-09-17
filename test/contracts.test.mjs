@@ -167,6 +167,26 @@ test('validate: a contract Order passes, a mutated one names every defect', () =
   for (const name of Object.keys(C.SCHEMAS)) assert.equal(C.validate(name, null).ok, false, name + ' accepts null');
 });
 
+test('PlanLine: batch identity fields (batch_no/thc_pct/packaged_at/received_at/expires_at) validate present or absent', () => {
+  const base = { product_id: 'cake-crasher', batch_id: 'B-1001', to_location_id: 'loc-foh-1',
+    sold: 3, need: 5, cap: 10, give: 5, reasons: [] };
+  const withBatchMeta = { ...base, batch_no: 'BN-2026-0914', thc_pct: 21.4,
+    packaged_at: '2026-09-01T10:00:00Z', received_at: '2026-09-05T10:00:00Z', expires_at: '2027-03-01T00:00:00Z' };
+  assert.deepEqual(C.validate('PlanLine', withBatchMeta), { ok: true, errors: [] });
+  const withoutBatchMeta = { ...base, batch_no: null, thc_pct: null, packaged_at: null, received_at: null, expires_at: null,
+    note: 'mixed batch, see pick sheet' };
+  assert.deepEqual(C.validate('PlanLine', withoutBatchMeta), { ok: true, errors: [] });
+  const missingEntirely = { ...base }; // fields omitted altogether, not just null -- also valid (additive, optional)
+  assert.deepEqual(C.validate('PlanLine', missingEntirely), { ok: true, errors: [] });
+  const bad = { ...base, thc_pct: 142, packaged_at: '2026-09-01' };
+  const r = C.validate('PlanLine', bad);
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.errors, [
+    '$.thc_pct: above maximum 100',
+    '$.packaged_at: "2026-09-01" does not match ' + '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$',
+  ]);
+});
+
 test('the refuter inputs: both runtimes now agree and both fail closed', () => {
   assert.equal(C.roleAtLeast('viewer', 'Manager'), false, 'an unknown need denies, never grants');
   assert.equal(C.roleAtLeast('Admin', 'manager'), true);
