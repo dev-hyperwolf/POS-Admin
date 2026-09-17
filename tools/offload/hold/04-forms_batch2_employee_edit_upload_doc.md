@@ -2,6 +2,7 @@
 repo: /Users/jt/wm-demo
 model_hint: gpt-5-codex
 max_minutes: 60
+run_after: the PM commits the current wm-demo working tree (forms files are being edited until then)
 files_allowed: wmdemo/forms_seed.py qa/forms_batch2a_probe.py
 verify_command: cd /Users/jt/wm-demo && python3 qa/forms_batch2a_probe.py
 ---
