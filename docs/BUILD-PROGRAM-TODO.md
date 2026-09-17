@@ -28,11 +28,11 @@ Last updated: 2026-09-17 afternoon.
 | # | Item | State |
 |---|---|---|
 | B1 | Live update stream for the Render demo — fix 401 handling + per-family channel scopes, then commit, push, deploy | fix agent running |
-| B2 | AWS dev environment: phase-1 templates (network, data, realtime) deployable through the connector, runbook, cost, role permission pre-flight | agent running |
-| B3 | Transient 500 on the first signed-link request after a restart | dispatching |
+| B2 | AWS dev environment plan DONE (uncommitted): three phase-1 templates under the inline size limit, ~$110/mo, no NAT; BLOCKED on B17 (deploy role lacked CloudFormation actions) | waiting on B17 + A7 |
+| B3 | DONE (uncommitted) — cold-start probe (21 checks); real cause found: timesheet routes answered 500 instead of 503 when HR env is unset | refute + commit |
 | B4 | TypeScript port #4: restock, with Python goldens | dispatching |
-| B5 | Metrc phase 1 (read-only): day-ledger, unit→batch→package resolution, Metrc stub server, reconciliation read | dispatching |
-| B6 | Dispatch core phase 1: `RouteSolver` interface, hard-constraint checker, kit stock ledger, insertion quote (< 200 ms), GraphHopper + VROOM adapters behind stubs | dispatching |
+| B5 | DONE (uncommitted) — Metrc phase 1 read-only (88 checks, contracts 0.5.2) | refute + commit |
+| B6 | DONE (uncommitted, 204 tests) — Dispatch core phase 1: `RouteSolver` interface, hard-constraint checker, kit stock ledger, insertion quote (< 200 ms), GraphHopper + VROOM adapters behind stubs | dispatching |
 | B7 | Loyalty interop plan — DONE (`LOYALTY-INTEROP-PLAN-2026-09-17.md`); 5 owner questions added to A2 | done |
 | B8 | DONE — dev-team change list items 26–35 added. Was: add today's findings (driver password storage, public ID/selfie folder, unauthenticated order routes, Firebase keys in repos, Metrc integration state, dangling refs, tax-rate scale question) | dispatching |
 | B9 | HyperDrive: unlisted App Store distribution plan so builds stop expiring every 90 days | with B8 |
@@ -41,6 +41,12 @@ Last updated: 2026-09-17 afternoon.
 | B12 | Mobile readiness phase 2: remaining "minor" screens in batches; drag-and-drop touch fallbacks | queue |
 | B13 | `GET /api/tax/audit/sale` port to TS; TS realtime parity with Python channel names | queue |
 | B14 | Forms: port employee-edit and upload-doc (Codex brief 04) | in Codex queue |
+
+| B15 | **Sale lines**: `pos_sales` stores no per-line sku/batch/quantity and nothing writes a sale inventory movement, so the Metrc day-ledger resolves zero real lines today. Record sale lines + unit→batch movement at sale time (needed for Metrc, batch promotions reporting, COGS) | next, after the wm-demo commit |
+| B16 | Dispatch core 1b: address-time quote, soft holds, staged queue, joint sequencing, score presets with on-time guard, vendor usage cap | agent running |
+| B17 | Access template update: CloudFormation actions for deploy roles (scoped to `hyperwolf-<env>-*`, deny on `shorturl-service-prod` and on its own stack), missing RDS/KMS teardown actions, view-only self-inspection | agent running → then A7 re-apply |
+| B18 | Driver assignment model from the legacy Hyperdrive settings (`DRIVER-ASSIGNMENT-MODEL-2026-09-17.md`) | specialist running |
+| B19 | Tap-target before/after mockups (design only; Register included) | agent running |
 
 ## C. Landed today (2026-09-17) — detail in the master plan §9
 
