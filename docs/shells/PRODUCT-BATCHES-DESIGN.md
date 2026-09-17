@@ -56,17 +56,17 @@ level because they reference a batch by id.
 |---|---|---|---|
 | id | string | yes | |
 | product_id | string | yes | The variation (product) this batch fulfills |
-| sku | string \| null | no | |
+| sku | string, nullable | no | |
 | batch_no | string | yes | Grower's lot number |
-| metrc_tag | string \| null | no | **Deprecated as of contract 0.4.3.** Kept only as "first tag" so existing readers don't break; write `metrc_packages` instead |
+| metrc_tag | string, nullable | no | **Deprecated as of contract 0.4.3.** Kept only as "first tag" so existing readers don't break; write `metrc_packages` instead |
 | metrc_packages | array | no | `[{ tag: string (required), quantity?: integer, packaged_at?: ISO 8601 UTC }]`; one entry per Metrc package the batch has been split into |
-| packaged_at | ISO 8601 UTC \| null | no | |
-| expires_at | ISO 8601 UTC \| null | no | |
+| packaged_at | ISO 8601 UTC, nullable | no | |
+| expires_at | ISO 8601 UTC, nullable | no | |
 | received_at | ISO 8601 UTC | yes | |
-| thc_pct | number (0–100) \| null | no | Lab result for this batch |
-| unit_cost | Money \| null | no | |
+| thc_pct | number (0–100), nullable | no | Lab result for this batch |
+| unit_cost | Money, nullable | no | |
 | quantity | integer | yes | |
-| location_id | string \| null | no | |
+| location_id | string, nullable | no | |
 | external_ids | ExternalId[] | no | |
 
 ### Movement (summary)
@@ -91,15 +91,10 @@ Records one intake event. Keyed by `product_id` and `batch_id`.
 
 ## 4. How the batch keys the rest
 
-- **Rotation** is oldest-batch-first, ordered by the batch's `received_at` (or `packaged_at`
-  where that is the more relevant date for the product type). Never ordered by package tag.
-- **Promotions** target batch attributes only: `batch_no`, `thc_pct`, `packaged_at`, or
-  `received_at`. A promotion rule can never reference a Metrc package tag.
-- **Counts and pick slips** are per batch. A pick slip line carries the batch number, THC, and
-  packaged/received date so a packer working from paper can identify the physical lot without a
-  screen.
-- **The mixed-batch flag** surfaces on plan lines and counts whenever a product has more than one
-  batch live at once, so a mixed-batch kit or count is never mistaken for a single-batch one.
+- **Rotation** is oldest-batch-first, ordered by the batch's `received_at` (or `packaged_at` where that is the more relevant date for the product type). Never ordered by package tag.
+- **Promotions** target batch attributes only: `batch_no`, `thc_pct`, `packaged_at`, or `received_at`. A promotion rule can never reference a Metrc package tag.
+- **Counts and pick slips** are per batch. A pick slip line carries the batch number, THC, and packaged/received date so a packer working from paper can identify the physical lot without a screen.
+- **The mixed-batch flag** surfaces on plan lines and counts whenever a product has more than one batch live at once, so a mixed-batch kit or count is never mistaken for a single-batch one.
 
 ## 5. Metrc mapping
 

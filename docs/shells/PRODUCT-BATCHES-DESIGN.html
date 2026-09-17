@@ -151,8 +151,7 @@
 </tr>
 <tr>
 <td>sku</td>
-<td>string \</td>
-<td>null</td>
+<td>string, nullable</td>
 <td>no</td>
 <td></td>
 </tr>
@@ -164,8 +163,7 @@
 </tr>
 <tr>
 <td>metrc_tag</td>
-<td>string \</td>
-<td>null</td>
+<td>string, nullable</td>
 <td>no</td>
 <td><strong>Deprecated as of contract 0.4.3.</strong> Kept only as "first tag" so existing readers don't break; write <code>metrc_packages</code> instead</td>
 </tr>
@@ -177,15 +175,13 @@
 </tr>
 <tr>
 <td>packaged_at</td>
-<td>ISO 8601 UTC \</td>
-<td>null</td>
+<td>ISO 8601 UTC, nullable</td>
 <td>no</td>
 <td></td>
 </tr>
 <tr>
 <td>expires_at</td>
-<td>ISO 8601 UTC \</td>
-<td>null</td>
+<td>ISO 8601 UTC, nullable</td>
 <td>no</td>
 <td></td>
 </tr>
@@ -197,15 +193,13 @@
 </tr>
 <tr>
 <td>thc_pct</td>
-<td>number (0–100) \</td>
-<td>null</td>
+<td>number (0–100), nullable</td>
 <td>no</td>
 <td>Lab result for this batch</td>
 </tr>
 <tr>
 <td>unit_cost</td>
-<td>Money \</td>
-<td>null</td>
+<td>Money, nullable</td>
 <td>no</td>
 <td></td>
 </tr>
@@ -217,8 +211,7 @@
 </tr>
 <tr>
 <td>location_id</td>
-<td>string \</td>
-<td>null</td>
+<td>string, nullable</td>
 <td>no</td>
 <td></td>
 </tr>
@@ -269,21 +262,11 @@
 </tbody></table>
 <h2>4. How the batch keys the rest</h2>
 <ul>
-<li><strong>Rotation</strong> is oldest-batch-first, ordered by the batch's <code>received_at</code> (or <code>packaged_at</code></li>
+<li><strong>Rotation</strong> is oldest-batch-first, ordered by the batch's <code>received_at</code> (or <code>packaged_at</code> where that is the more relevant date for the product type). Never ordered by package tag.</li>
+<li><strong>Promotions</strong> target batch attributes only: <code>batch_no</code>, <code>thc_pct</code>, <code>packaged_at</code>, or <code>received_at</code>. A promotion rule can never reference a Metrc package tag.</li>
+<li><strong>Counts and pick slips</strong> are per batch. A pick slip line carries the batch number, THC, and packaged/received date so a packer working from paper can identify the physical lot without a screen.</li>
+<li><strong>The mixed-batch flag</strong> surfaces on plan lines and counts whenever a product has more than one batch live at once, so a mixed-batch kit or count is never mistaken for a single-batch one.</li>
 </ul>
-<p>where that is the more relevant date for the product type). Never ordered by package tag.</p>
-<ul>
-<li><strong>Promotions</strong> target batch attributes only: <code>batch_no</code>, <code>thc_pct</code>, <code>packaged_at</code>, or</li>
-</ul>
-<p><code>received_at</code>. A promotion rule can never reference a Metrc package tag.</p>
-<ul>
-<li><strong>Counts and pick slips</strong> are per batch. A pick slip line carries the batch number, THC, and</li>
-</ul>
-<p>packaged/received date so a packer working from paper can identify the physical lot without a screen.</p>
-<ul>
-<li><strong>The mixed-batch flag</strong> surfaces on plan lines and counts whenever a product has more than one</li>
-</ul>
-<p>batch live at once, so a mixed-batch kit or count is never mistaken for a single-batch one.</p>
 <h2>5. Metrc mapping</h2>
 <p>Compliance reporting resolves <strong>sale → unit → batch → the specific package that unit came from</strong>. This is what lets the Metrc report carry the correct package tag on every sale, while operators — receiving, counts, pick slips, promotions — work exclusively in batches and never need to know which package a given unit sits in.</p>
 <p>Metrc reporting today is keyed directly on the package tag, with no batch record beneath it, and the Hyperwolf catalog today has no batch record at all. The change described here is to introduce the batch as the operator-facing key, with Metrc packages hanging underneath it as compliance metadata — not to change what gets reported to the state, only what operators key their work on.</p>
