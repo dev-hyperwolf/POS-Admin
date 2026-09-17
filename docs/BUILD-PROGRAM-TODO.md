@@ -4,6 +4,16 @@ Single source of truth for what is open. Updated by the PM session every time so
 is added. Plan of record: `BUILD-PROGRAM-MASTER-PLAN-2026-09-16.md` (§9 is the history log).
 Last updated: 2026-09-17 evening.
 
+## 0. If the lead session is rate-limited
+
+ChatGPT/Codex takes over under `docs/HANDOFF-TO-CODEX-2026-09-17.md`. JT runs
+`tools/offload/setup_codex_worktrees.sh`, starts `codex` in `/Users/jt/codex-work`, pastes that brief.
+Codex works ONLY in the worktrees on branch `codex/handoff`, never pushes; its log is
+`docs/CODEX-HANDOFF-LOG.md` on that branch. On return the lead session reviews
+`git log main..codex/handoff` in both repos, refutes, then merges what passes.
+Agents in flight when this was written (results may be lost if the limit hits): B15 sale lines,
+B20 AWS access/dev-template security review, B21 dispatch + restock review.
+
 ## A. Waiting on JT (owner)
 
 | # | Item | Notes |
