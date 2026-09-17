@@ -1,0 +1,54 @@
+{
+  "$id": "HrEmployeeRestricted",
+  "contract": "0.5.0",
+  "type": "object",
+  "required": [
+    "source_ref",
+    "person_id"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "source_ref": {
+      "$ref": "AirtableSourceRef"
+    },
+    "person_id": {
+      "type": "string"
+    },
+    "entity_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "ssn": {
+      "type": "string",
+      "nullable": true
+    },
+    "dl_number": {
+      "type": "string",
+      "nullable": true
+    },
+    "passport_number": {
+      "type": "string",
+      "nullable": true
+    },
+    "home_address": {
+      "type": "string",
+      "nullable": true
+    },
+    "emergency_contact_name": {
+      "type": "string",
+      "nullable": true
+    },
+    "emergency_contact_phone": {
+      "type": "string",
+      "nullable": true
+    },
+    "emergency_contact_relationship": {
+      "type": "string",
+      "nullable": true
+    },
+    "bank_account_last4": {
+      "type": "string",
+      "nullable": true
+    }
+  }
+}

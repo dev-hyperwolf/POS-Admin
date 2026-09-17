@@ -1,0 +1,20 @@
+{
+  "shape": "HrEmployeeRestricted",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tblDtY9WsQGQOgHgw",
+      "record_id": "recEMP0000000001"
+    },
+    "person_id": "per_000001",
+    "entity_id": "entTHC",
+    "ssn": "000-00-0000",
+    "dl_number": "D1234567",
+    "passport_number": null,
+    "home_address": "123 Main St, Anaheim, CA",
+    "emergency_contact_name": "John Doe",
+    "emergency_contact_phone": "555-010-2000",
+    "emergency_contact_relationship": "spouse",
+    "bank_account_last4": "4321"
+  }
+}

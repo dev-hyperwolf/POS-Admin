@@ -1,0 +1,32 @@
+{
+  "shape": "Incident",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tblGkzrBFpSo2EqzP",
+      "record_id": "recINC0000000001"
+    },
+    "entity_id": "entTHC",
+    "store_id": null,
+    "employee_person_id": "per_000001",
+    "number": 1773,
+    "type": "late_delivery",
+    "issue_category": "timeliness",
+    "severity": "low",
+    "description": "Order delivered 20 minutes late.",
+    "date_of_incident": "2026-09-01T00:00:00Z",
+    "status": "open",
+    "source": "EOS Portal",
+    "escalate_to_writeup": false,
+    "customer_name": "A. Customer",
+    "order_number": "1288419",
+    "is_driver_involved": true,
+    "submitter_email": "manager@hyperwolf.com",
+    "subject_role": "Driver",
+    "attachments_count": 2,
+    "dismissed": false,
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "created_at": "2026-09-01T00:05:00Z"
+  }
+}

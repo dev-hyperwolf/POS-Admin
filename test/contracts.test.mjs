@@ -51,6 +51,10 @@ test('enums.json and schema/*.json are exactly what index.js exports (run tools/
   const fromJs = {}; for (const [k, v] of Object.entries(C.ENUMS)) fromJs[k] = v.values;
   assert.deepEqual(ej.enums, fromJs, 'enums.json drifted from index.js');
   assert.deepEqual(ej.http_status, C.HTTP_STATUS);
+  assert.deepEqual(ej.rule_field_type, C.RULE_FIELD_TYPE, 'enums.json rule_field_type drifted from index.js');
+  assert.deepEqual(ej.rule_limits, C.RULE_LIMITS, 'enums.json rule_limits drifted from index.js');
+  assert.deepEqual(ej.rule_ops_by_type, C.RULE_OPS_BY_TYPE, 'enums.json rule_ops_by_type drifted from index.js');
+  assert.deepEqual(ej.pii_class, C.PII_CLASS, 'enums.json pii_class drifted from index.js');
   const dir = path.join(ROOT, 'contracts', 'schema');
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, '')).sort();
   assert.deepEqual(files, Object.keys(C.SCHEMAS).sort(), 'schema files do not match SCHEMAS');
@@ -204,6 +208,132 @@ print(json.dumps({'errors': C.validate('Order', cases['bad'])['errors'], 'preima
   assert.equal(r.status, 0, 'python failed: ' + r.stderr);
   const pyOut = JSON.parse(r.stdout);
   assert.deepEqual(pyOut, JSON.parse(JSON.stringify(jsOut)), 'JS and Python disagree');
+});
+
+// ── 2c. PromotionRule fixtures: the one file list both runtimes must agree on ─
+const RULE_FIXTURES_DIR = path.join(ROOT, 'contracts', 'fixtures', 'promotion-rule');
+test('PromotionRule valid fixtures: every one passes both validate() and validatePromotionRule()', () => {
+  const dir = path.join(RULE_FIXTURES_DIR, 'valid');
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'));
+  assert.ok(files.length >= 12, 'expected at least 12 valid fixtures, found ' + files.length);
+  for (const f of files) {
+    const rule = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    const v = C.validate('PromotionRule', rule);
+    assert.deepEqual(v.errors, [], f + ' failed validate(): ' + JSON.stringify(v.errors));
+    const p = C.validatePromotionRule(rule);
+    assert.deepEqual(p.errors, [], f + ' failed validatePromotionRule(): ' + JSON.stringify(p.errors));
+  }
+  // every op and every then.kind appears at least once across the set
+  const rules = files.map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')));
+  const seenOps = new Set(), seenKinds = new Set();
+  const walkOps = (node) => { if (!node) return; if (node.op) seenOps.add(node.op);
+    ['all', 'any', 'not'].forEach((k) => (node[k] || []).forEach(walkOps)); };
+  for (const r of rules) { walkOps(r.if); seenKinds.add(r.then.kind); }
+  assert.deepEqual([...seenOps].sort(), [...C.ENUMS.RuleOp.values].sort(), 'a RuleOp is missing from the valid fixtures');
+  assert.deepEqual([...seenKinds].sort(), [...C.ENUMS.RuleThenKind.values].sort(), 'a RuleThenKind is missing from the valid fixtures');
+});
+
+test('PromotionRule invalid fixtures: every one fails validatePromotionRule() and names the offending path', () => {
+  const dir = path.join(RULE_FIXTURES_DIR, 'invalid');
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'));
+  assert.ok(files.length >= 15, 'expected at least 15 invalid fixtures, found ' + files.length);
+  for (const f of files) {
+    const rule = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    const r = C.validatePromotionRule(rule);
+    assert.equal(r.ok, false, f + ' was expected to be invalid');
+    assert.ok(r.errors.length > 0 && r.errors.every((e) => e.startsWith('$')), f + ' error does not name a path: ' + JSON.stringify(r.errors));
+  }
+});
+
+const wmDemoExists = fs.existsSync(path.join(WM, 'wmdemo', 'contracts.py'));
+test('PromotionRule fixtures: Python twin (wmdemo/contracts.py validate()) agrees on every fixture verdict', { skip: !canPy && 'python3 or wm-demo not available' }, () => {
+  if (!wmDemoExists) return; // contracts.py itself absent is covered by the skip above in practice
+  const validFiles = fs.readdirSync(path.join(RULE_FIXTURES_DIR, 'valid')).filter((f) => f.endsWith('.json'));
+  const invalidFiles = fs.readdirSync(path.join(RULE_FIXTURES_DIR, 'invalid')).filter((f) => f.endsWith('.json'));
+  const script = `
+import json, sys; sys.path.insert(0, ${JSON.stringify(WM)})
+import os; os.environ['HW_CONTRACTS_DIR'] = ${JSON.stringify(path.join(ROOT, 'contracts'))}
+from wmdemo import contracts as C
+names = json.loads(sys.stdin.read())
+out = {}
+for kind, files in names.items():
+    out[kind] = {}
+    for fn, rule in files.items():
+        out[kind][fn] = C.validate('PromotionRule', rule)['ok']
+print(json.dumps(out))`;
+  const payload = { valid: {}, invalid: {} };
+  for (const f of validFiles) payload.valid[f] = JSON.parse(fs.readFileSync(path.join(RULE_FIXTURES_DIR, 'valid', f), 'utf8'));
+  for (const f of invalidFiles) payload.invalid[f] = JSON.parse(fs.readFileSync(path.join(RULE_FIXTURES_DIR, 'invalid', f), 'utf8'));
+  const r = spawnSync('python3', ['-c', script], { input: JSON.stringify(payload), encoding: 'utf8' });
+  assert.equal(r.status, 0, 'python failed: ' + r.stderr);
+  const pyOut = JSON.parse(r.stdout);
+  // Python's validate() is the JSON-Schema layer only (no validatePromotionRule port here yet --
+  // that structural walk is JS-only per BUILD-PROGRAM-MASTER-PLAN §2.1 D4, engine team 1b's to build).
+  // So: every valid JS fixture must also pass Python's schema validate(); an invalid fixture whose
+  // defect is schema-shaped (bad enum, missing/extra key) must also fail Python's validate() --
+  // invalid fixtures whose defect is a structural-only rule (depth/nodes/list/string, both/neither
+  // form, op-type/value-type) are schema-valid and are EXPECTED to pass Python's plain validate().
+  const structuralOnly = new Set(['op-type-mismatch.json', 'depth-5-exceeds-limit.json', '51-condition-nodes.json',
+    '201-item-list.json', 'both-forms-one-node.json', 'neither-form.json', 'value-type-wrong.json', 'string-too-long.json',
+    'in-op-value-not-array.json']);
+  for (const f of validFiles) assert.equal(pyOut.valid[f], true, 'python validate() rejected valid fixture ' + f);
+  for (const f of invalidFiles) {
+    const expected = !structuralOnly.has(f);
+    assert.equal(pyOut.invalid[f], !expected, 'python validate() disagreed with JS schema verdict on ' + f);
+  }
+});
+
+// ── 2d. HR/LP fixtures (Team 3b, BUILD-PROGRAM-MASTER-PLAN-2026-09-16.md §4 Track 3) ─────────
+// Each fixture is { shape, record } so one flat directory per domain can cover several shapes
+// (HrEmployee/HrEmployeeRestricted/Incident/WriteUp/CallOff in hr/, CloserReport/LossLedgerEntry in lp/).
+function checkFixtureDomain(domain, minValid, minInvalid) {
+  const dir = path.join(ROOT, 'contracts', 'fixtures', domain);
+  test(domain + ' fixtures: every valid fixture passes validate() for its declared shape', () => {
+    const files = fs.readdirSync(path.join(dir, 'valid')).filter((f) => f.endsWith('.json'));
+    assert.ok(files.length >= minValid, 'expected at least ' + minValid + ' valid ' + domain + ' fixtures, found ' + files.length);
+    for (const f of files) {
+      const { shape, record } = JSON.parse(fs.readFileSync(path.join(dir, 'valid', f), 'utf8'));
+      const v = C.validate(shape, record);
+      assert.deepEqual(v.errors, [], f + ' (' + shape + ') failed validate(): ' + JSON.stringify(v.errors));
+    }
+  });
+  test(domain + ' fixtures: every invalid fixture fails validate() for its declared shape and names the path', () => {
+    const files = fs.readdirSync(path.join(dir, 'invalid')).filter((f) => f.endsWith('.json'));
+    assert.ok(files.length >= minInvalid, 'expected at least ' + minInvalid + ' invalid ' + domain + ' fixtures, found ' + files.length);
+    for (const f of files) {
+      const { shape, record } = JSON.parse(fs.readFileSync(path.join(dir, 'invalid', f), 'utf8'));
+      const v = C.validate(shape, record);
+      assert.equal(v.ok, false, f + ' (' + shape + ') was expected to be invalid');
+      assert.ok(v.errors.length > 0 && v.errors.every((e) => e.startsWith('$')), f + ' error does not name a path: ' + JSON.stringify(v.errors));
+    }
+  });
+}
+checkFixtureDomain('hr', 10, 15); // 5 shapes x (2 valid + 3 invalid)
+checkFixtureDomain('lp', 4, 6);   // 2 shapes x (2 valid + 3 invalid)
+
+test('HrEmployee is the over-posting guard for HrEmployeeRestricted: restricted PII on an HrEmployee record is rejected', () => {
+  const withSsn = { source_ref: { base: 'app8mI9K1lS1D3Uhk', table: 'tblDtY9WsQGQOgHgw', record_id: 'recX' },
+    entity_id: 'entTHC', display_name: 'X', status: 'active', ssn: '000-00-0000' };
+  const v = C.validate('HrEmployee', withSsn);
+  assert.equal(v.ok, false, 'HrEmployee must reject an ssn property (additionalProperties:false)');
+});
+
+test('PII_CLASS: every HrEmployeeRestricted property is restricted, and none of its properties appear on HrEmployee', () => {
+  for (const k of Object.keys(C.SCHEMAS.HrEmployeeRestricted.properties)) {
+    if (k === 'source_ref' || k === 'person_id' || k === 'entity_id') continue; // structural/join keys, not PII
+    assert.equal(C.PII_CLASS['HrEmployeeRestricted.' + k], 'restricted', k + ' should be restricted');
+    assert.ok(!(k in C.SCHEMAS.HrEmployee.properties), 'HrEmployee must not also carry restricted field ' + k);
+  }
+});
+
+test('PII_CLASS covers every property of every 0.5.0 Track-3 shape (no gaps a route could misclassify)', () => {
+  for (const shape of ['HrEmployee', 'HrEmployeeRestricted', 'Incident', 'WriteUp', 'CallOff', 'CloserReport', 'LossLedgerEntry']) {
+    for (const prop of Object.keys(C.SCHEMAS[shape].properties)) {
+      const key = shape + '.' + prop;
+      assert.ok(key in C.PII_CLASS, 'PII_CLASS missing ' + key);
+      assert.ok(['restricted', 'internal', 'normal'].includes(C.PII_CLASS[key]), key + ' has a bad PII_CLASS value');
+    }
+  }
 });
 
 // ── 3. drift against the estate ─────────────────────────────────────────────

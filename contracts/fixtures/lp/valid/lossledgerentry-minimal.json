@@ -1,0 +1,28 @@
+{
+  "shape": "LossLedgerEntry",
+  "record": {
+    "source_ref": {
+      "base": "appouBkOofOK3zjN8",
+      "table": "tblRDz09UwZdkDnoZ",
+      "record_id": "recCR00000000007"
+    },
+    "entity_id": "entCCTG",
+    "person_id": "per_000002",
+    "shift_date": "2026-08-20",
+    "final_loss": {
+      "cents": 1000,
+      "currency": "USD",
+      "basis": "inc_tax"
+    },
+    "amount_recovered": {
+      "cents": 0,
+      "currency": "USD",
+      "basis": "inc_tax"
+    },
+    "net_loss": {
+      "cents": 1000,
+      "currency": "USD",
+      "basis": "inc_tax"
+    }
+  }
+}

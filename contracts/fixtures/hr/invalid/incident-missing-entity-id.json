@@ -1,0 +1,15 @@
+{
+  "shape": "Incident",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tblGkzrBFpSo2EqzP",
+      "record_id": "recINC0000000004"
+    },
+    "employee_person_id": "per_000001",
+    "type": "customer_complaint",
+    "severity": "low",
+    "description": "x",
+    "status": "open"
+  }
+}

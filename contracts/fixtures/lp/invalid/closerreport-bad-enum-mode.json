@@ -1,0 +1,14 @@
+{
+  "shape": "CloserReport",
+  "record": {
+    "source_ref": {
+      "base": "appouBkOofOK3zjN8",
+      "table": "tblRDz09UwZdkDnoZ",
+      "record_id": "recCR00000000005"
+    },
+    "entity_id": "entTHC",
+    "mode": "pickup",
+    "shift_date": "2026-09-01",
+    "status": "unresolved"
+  }
+}

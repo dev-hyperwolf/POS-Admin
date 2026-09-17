@@ -1,0 +1,11 @@
+{
+  "shape": "HrEmployeeRestricted",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tblDtY9WsQGQOgHgw",
+      "record_id": "recEMP0000000002"
+    },
+    "person_id": "per_000002"
+  }
+}

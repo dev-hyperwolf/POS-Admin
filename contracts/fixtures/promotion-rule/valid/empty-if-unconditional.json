@@ -1,0 +1,39 @@
+{
+  "shape": "hw.rule.v1",
+  "id": "rule_01J00000000000000000e005",
+  "name": "Storewide 5% (unconditional)",
+  "status": "active",
+  "priority": 100,
+  "stackable": false,
+  "window": {
+    "starts_at": "2026-09-16T00:00:00Z",
+    "ends_at": null
+  },
+  "scope": {
+    "store_ids": [
+      "store_wh"
+    ],
+    "channels": [
+      "in_store",
+      "delivery"
+    ]
+  },
+  "if": {
+    "all": [],
+    "any": [],
+    "not": []
+  },
+  "then": {
+    "kind": "percent",
+    "value": 5,
+    "applies_to": "cart",
+    "cap_cents": null,
+    "max_per_order": null
+  },
+  "meta": {
+    "author": "owner",
+    "source": "ui",
+    "prompt": null,
+    "version": 1
+  }
+}

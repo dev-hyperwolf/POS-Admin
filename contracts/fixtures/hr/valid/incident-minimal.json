@@ -1,0 +1,16 @@
+{
+  "shape": "Incident",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tblGkzrBFpSo2EqzP",
+      "record_id": "recINC0000000002"
+    },
+    "entity_id": "entCCTG",
+    "employee_person_id": "per_000002",
+    "type": "customer_complaint",
+    "severity": "medium",
+    "description": "Customer complaint, no further detail.",
+    "status": "open"
+  }
+}

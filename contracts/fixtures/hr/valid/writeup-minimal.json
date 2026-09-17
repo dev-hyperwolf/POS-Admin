@@ -1,0 +1,18 @@
+{
+  "shape": "WriteUp",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tbliVQNsfTdPr7uEl",
+      "record_id": "recWU00000000002"
+    },
+    "entity_id": "entCCTG",
+    "employee_person_id": "per_000002",
+    "ladder": "accuracy",
+    "level": "first_warning",
+    "status": "pending",
+    "window_days": 90,
+    "dismissed": false,
+    "counts_toward_ladder": true
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "shape": "CloserReport",
+  "record": {
+    "source_ref": {
+      "base": "appouBkOofOK3zjN8",
+      "table": "tblRDz09UwZdkDnoZ",
+      "record_id": "recCR00000000001"
+    },
+    "entity_id": "entTHC",
+    "store_id": null,
+    "mode": "delivery",
+    "driver_person_id": "per_000001",
+    "auditor_person_id": "per_000099",
+    "region": "Anaheim",
+    "register": null,
+    "shift_date": "2026-09-01",
+    "created_at": "2026-09-01T23:10:00Z",
+    "cash": {
+      "expected": {
+        "amount": {
+          "cents": 12000,
+          "currency": "USD",
+          "basis": "inc_tax"
+        },
+        "source": "pos"
+      },
+      "counted_total": {
+        "cents": 11500,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "cash_total_calc": {
+        "cents": 11500,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "float_amount": {
+        "cents": 6000,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "safe_drop_amount": {
+        "cents": 5500,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "cash_dropped": {
+        "cents": 5500,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "deposit_variance": {
+        "cents": -500,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "over_under": "under"
+    },
+    "cards": {
+      "blaze_count": 8,
+      "blaze_total": {
+        "cents": 30000,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "lp_count": 8,
+      "lp_total": {
+        "cents": 30000,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "lp_status": "match",
+      "lp_audited": true
+    },
+    "discrepancy": {
+      "has_discrepancy": true,
+      "type": "cash_short",
+      "suspicious_bills": false,
+      "damaged_inventory": false,
+      "missing_accessories": false,
+      "broken_hardware": false,
+      "payment_discrepancy": false
+    },
+    "severity": "low",
+    "status": "unresolved",
+    "eos_incident_id": "recINC0000000009",
+    "response_deadline": "2026-09-03T23:10:00Z",
+    "driver_response": null,
+    "driver_response_at": null,
+    "manager_decision": null,
+    "manager_decision_by": null,
+    "manager_decision_at": null,
+    "lp_disposition": null,
+    "lp_disposition_by": null,
+    "lp_disposition_at": null,
+    "lp_owner": "lp.owner@hyperwolf.com",
+    "amount_recovered": null,
+    "final_loss": null,
+    "pattern_flag": false
+  }
+}

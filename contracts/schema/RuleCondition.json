@@ -1,0 +1,22 @@
+{
+  "$id": "RuleCondition",
+  "contract": "0.5.0",
+  "type": "object",
+  "required": [
+    "field",
+    "op",
+    "value"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "field": {
+      "type": "string",
+      "$enum": "RuleField"
+    },
+    "op": {
+      "type": "string",
+      "$enum": "RuleOp"
+    },
+    "value": {}
+  }
+}

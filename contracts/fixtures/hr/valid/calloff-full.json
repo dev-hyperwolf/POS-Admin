@@ -1,0 +1,28 @@
+{
+  "shape": "CallOff",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tbl9FPOZp6Y0dmUPl",
+      "record_id": "recCO00000000001"
+    },
+    "entity_id": "entTHC",
+    "employee_person_id": "per_000001",
+    "type": "late",
+    "reason": "car_trouble",
+    "date": "2026-09-01T00:00:00Z",
+    "shift_start_time": "8:00 AM",
+    "expected_arrival_time": "8:45 AM",
+    "minutes_late": 45,
+    "notes": "Flat tire on the way in.",
+    "doctors_note_attachment_present": false,
+    "status": "pending_review",
+    "submitted_by": "sam.rivera@hyperwolf.com",
+    "team": "Driver",
+    "writeup_id": null,
+    "dismissed": false,
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "created_at": "2026-09-01T07:50:00Z"
+  }
+}

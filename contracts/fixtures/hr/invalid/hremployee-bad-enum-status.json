@@ -1,0 +1,13 @@
+{
+  "shape": "HrEmployee",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tblDtY9WsQGQOgHgw",
+      "record_id": "recEMP0000000005"
+    },
+    "entity_id": "entTHC",
+    "display_name": "Bad Status",
+    "status": "fired"
+  }
+}

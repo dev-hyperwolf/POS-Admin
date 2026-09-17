@@ -1,6 +1,6 @@
 {
   "$id": "Batch",
-  "contract": "0.4.3",
+  "contract": "0.5.0",
   "type": "object",
   "required": [
     "id",

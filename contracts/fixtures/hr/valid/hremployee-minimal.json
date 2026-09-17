@@ -1,0 +1,13 @@
+{
+  "shape": "HrEmployee",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tblDtY9WsQGQOgHgw",
+      "record_id": "recEMP0000000002"
+    },
+    "entity_id": "entCCTG",
+    "display_name": "Sam Rivera",
+    "status": "on_leave"
+  }
+}

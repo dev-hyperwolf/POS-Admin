@@ -1,0 +1,15 @@
+{
+  "shape": "CloserReport",
+  "record": {
+    "source_ref": {
+      "base": "appouBkOofOK3zjN8",
+      "table": "tblRDz09UwZdkDnoZ",
+      "record_id": "recCR00000000002"
+    },
+    "entity_id": "entPM",
+    "store_id": "storeCorona",
+    "mode": "retail",
+    "shift_date": "2026-09-02",
+    "status": "submit_for_review"
+  }
+}

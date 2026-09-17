@@ -1,6 +1,6 @@
 {
   "$id": "Promotion",
-  "contract": "0.4.3",
+  "contract": "0.5.0",
   "type": "object",
   "required": [
     "id",
@@ -55,6 +55,10 @@
     },
     "stackable": {
       "type": "boolean"
+    },
+    "rule": {
+      "$ref": "PromotionRule",
+      "nullable": true
     }
   }
 }

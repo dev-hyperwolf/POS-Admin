@@ -1,0 +1,46 @@
+{
+  "shape": "hw.rule.v1",
+  "id": "rule_01J000000000000000000001",
+  "name": "Aged 30%+ flower, 15% off",
+  "status": "draft",
+  "priority": 100,
+  "stackable": false,
+  "window": {
+    "starts_at": "2026-09-16T00:00:00Z",
+    "ends_at": null
+  },
+  "scope": {
+    "store_ids": [
+      "store_wh"
+    ],
+    "channels": [
+      "in_store",
+      "delivery"
+    ]
+  },
+  "if": {
+    "all": [
+      {
+        "field": "batch.thc_pct",
+        "op": "gte",
+        "value": 30
+      }
+    ],
+    "any": [],
+    "not": []
+  },
+  "then": {
+    "kind": "percent",
+    "value": 15,
+    "applies_to": "matched_lines",
+    "cap_cents": null,
+    "max_per_order": null,
+    "extra": "nope"
+  },
+  "meta": {
+    "author": "owner",
+    "source": "ui",
+    "prompt": null,
+    "version": 1
+  }
+}

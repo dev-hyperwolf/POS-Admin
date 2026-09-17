@@ -1,0 +1,147 @@
+{
+  "$id": "PromotionRule",
+  "contract": "0.5.0",
+  "type": "object",
+  "required": [
+    "shape",
+    "id",
+    "name",
+    "status",
+    "priority",
+    "stackable",
+    "window",
+    "scope",
+    "if",
+    "then",
+    "meta"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "shape": {
+      "type": "string",
+      "$enum": "RuleShape"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "$enum": "RuleStatus"
+    },
+    "priority": {
+      "type": "integer"
+    },
+    "stackable": {
+      "type": "boolean"
+    },
+    "window": {
+      "type": "object",
+      "required": [
+        "starts_at",
+        "ends_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "starts_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+        },
+        "ends_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+          "nullable": true
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "store_ids",
+        "channels"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "store_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "$enum": "RuleChannel"
+          }
+        }
+      }
+    },
+    "if": {
+      "$ref": "RuleGroup"
+    },
+    "then": {
+      "type": "object",
+      "required": [
+        "kind",
+        "value",
+        "applies_to",
+        "cap_cents",
+        "max_per_order"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "$enum": "RuleThenKind"
+        },
+        "value": {},
+        "applies_to": {
+          "type": "string",
+          "enum": [
+            "matched_lines",
+            "cart"
+          ]
+        },
+        "cap_cents": {
+          "type": "integer",
+          "nullable": true
+        },
+        "max_per_order": {
+          "type": "integer",
+          "nullable": true
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "author",
+        "source",
+        "prompt",
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "$enum": "RuleSource"
+        },
+        "prompt": {
+          "type": "string",
+          "nullable": true
+        },
+        "version": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

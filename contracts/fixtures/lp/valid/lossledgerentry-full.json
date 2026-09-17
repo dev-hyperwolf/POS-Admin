@@ -1,0 +1,51 @@
+{
+  "shape": "LossLedgerEntry",
+  "record": {
+    "source_ref": {
+      "base": "appouBkOofOK3zjN8",
+      "table": "tblRDz09UwZdkDnoZ",
+      "record_id": "recCR00000000006"
+    },
+    "entity_id": "entTHC",
+    "person_id": "per_000001",
+    "store_id": null,
+    "closer_report_id": "recCR00000000006",
+    "shift_date": "2026-08-15",
+    "final_loss": {
+      "cents": 5000,
+      "currency": "USD",
+      "basis": "inc_tax"
+    },
+    "amount_recovered": {
+      "cents": 2000,
+      "currency": "USD",
+      "basis": "inc_tax"
+    },
+    "net_loss": {
+      "cents": 3000,
+      "currency": "USD",
+      "basis": "inc_tax"
+    },
+    "reason_code": "cash_short",
+    "disposition": "true_loss",
+    "window": {
+      "lifetime": {
+        "cents": 8000,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "mtd": {
+        "cents": 3000,
+        "currency": "USD",
+        "basis": "inc_tax"
+      },
+      "ytd": {
+        "cents": 8000,
+        "currency": "USD",
+        "basis": "inc_tax"
+      }
+    },
+    "high_risk": false,
+    "recorded_at": "2026-08-15T23:59:00Z"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "shape": "CallOff",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tbl9FPOZp6Y0dmUPl",
+      "record_id": "recCO00000000005"
+    },
+    "entity_id": "entTHC",
+    "employee_person_id": "per_000001",
+    "type": "vacation",
+    "date": "2026-09-01T00:00:00Z",
+    "status": "pending"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "shape": "HrEmployee",
+  "record": {
+    "source_ref": {
+      "base": "app8mI9K1lS1D3Uhk",
+      "table": "tblDtY9WsQGQOgHgw",
+      "record_id": "recEMP0000000001"
+    },
+    "person_id": "per_000001",
+    "entity_id": "entTHC",
+    "store_id": "storeWH",
+    "display_name": "Jane Doe",
+    "email": "jane.doe@hyperwolf.com",
+    "phone": "555-010-1000",
+    "status": "active",
+    "title": [
+      "Driver"
+    ],
+    "location": "West Hollywood",
+    "reports_to": "per_000099",
+    "tenure_label": "1 yr 2 mo",
+    "accountability_band": "clean",
+    "total_incidents": 0,
+    "writeup_count": 0,
+    "doc_flags": [
+      {
+        "doc_type": "drivers_license",
+        "status": "current",
+        "expires_at": "2027-01-01T00:00:00Z"
+      }
+    ],
+    "separation_date": null,
+    "separation_note": null,
+    "created_at": "2024-01-01T00:00:00Z"
+  }
+}

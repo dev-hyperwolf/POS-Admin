@@ -1,0 +1,31 @@
+{
+  "$id": "RuleGroup",
+  "contract": "0.5.0",
+  "type": "object",
+  "required": [
+    "all",
+    "any",
+    "not"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "all": {
+      "type": "array",
+      "items": {
+        "$ref": "RuleNode"
+      }
+    },
+    "any": {
+      "type": "array",
+      "items": {
+        "$ref": "RuleNode"
+      }
+    },
+    "not": {
+      "type": "array",
+      "items": {
+        "$ref": "RuleNode"
+      }
+    }
+  }
+}

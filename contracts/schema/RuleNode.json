@@ -1,0 +1,35 @@
+{
+  "$id": "RuleNode",
+  "contract": "0.5.0",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "field": {
+      "type": "string",
+      "$enum": "RuleField"
+    },
+    "op": {
+      "type": "string",
+      "$enum": "RuleOp"
+    },
+    "value": {},
+    "all": {
+      "type": "array",
+      "items": {
+        "$ref": "RuleNode"
+      }
+    },
+    "any": {
+      "type": "array",
+      "items": {
+        "$ref": "RuleNode"
+      }
+    },
+    "not": {
+      "type": "array",
+      "items": {
+        "$ref": "RuleNode"
+      }
+    }
+  }
+}
