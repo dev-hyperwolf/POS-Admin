@@ -4,6 +4,7 @@
 const useP = window.useP;
 const _mm = (n) => window.HW.fmt.money(n);
 const _dwell = (s) => `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`;
+const HWSafe = window.HWSafe || { top: (n) => `${n}px`, bottom: (n) => `${n}px`, left: (n) => `${n}px`, right: (n) => `${n}px` };
 
 const PROBLEM_REASONS = [
 { id: 'unavailable', label: 'Customer unavailable' },
@@ -234,7 +235,7 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
       </div>
 
       {/* footer */}
-      {!problemOpen && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
+      {!problemOpen && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `14px 16px ${HWSafe.bottom(34)}`, background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
         {!canCollect && <div style={{ fontSize: 11.5, color: P.warn, textAlign: 'center', marginBottom: 8, fontWeight: 600 }}>Scan the customer's ID to continue</div>}
         {cod ?
         <PBtn variant="accent" size="xl" full icon="check" disabled={!canCollect || !pay} onClick={() => finish('success')}>{pay ? 'Complete delivery' : `Collect ${_mm(totals.total)} to finish`}</PBtn> :

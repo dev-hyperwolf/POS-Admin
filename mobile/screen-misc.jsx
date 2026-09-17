@@ -2,6 +2,9 @@
 //    notifications, help ─────────────────────────────────────────────────────
 const useP = window.useP;
 const SB = 52;
+// window.HWSafe adds the real device inset on top of SB; 0 in the framed
+// desktop preview (env() is unsupported there) or if the helper didn't load.
+const SB_TOP = window.HWSafe ? window.HWSafe.top(SB) : SB;
 
 // Generic bottom sheet shell
 function Sheet({ title, onClose, children, footer }) {
@@ -157,7 +160,7 @@ window.BreakTimerScreen = function BreakTimerScreen() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: P.bg }}>
-      <div style={{ height: SB, flex: '0 0 auto' }} />
+      <div style={{ height: SB_TOP, flex: '0 0 auto' }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 16px 10px' }}>
         <Seg size="sm" value={variant} onChange={setVariant} options={[{ value: 'ring', label: 'Ring' }, { value: 'bar', label: 'Bar' }, { value: 'focus', label: 'Focus' }]} />
         <div style={{ flex: 1 }} />{closeBtn}

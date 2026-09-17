@@ -95,6 +95,30 @@ branch.
    generator-hosted form — every GAS form in this catalogue has at least one such side effect
    (Airtable write at minimum; several also fire Discord/email). This blocks every LP/writeup form
    from being a true 1:1 port, not just a UI port.
+
+   **PARTIALLY RESOLVED, 2026-09-17 (session task) — the Discord/email half was fixed first**
+   (`wmdemo/forms.py`'s FIX 1: `_dispatch_explicit_entry`, per-kind explicit payload shapes
+   through `outbound/discord.py`/`outbound/email.py`/`outbound/connecteam.py`, verified over real
+   HTTP by `qa/forms_batch2_hr_probe.py`'s `FB2-http-discord-*`/`FB2-gap-*` checks) **and the
+   Airtable half is now wired for 10 of the 12 forms whose `submit` declares
+   `target:"airtable"`** across the three Batch 2/3 modules, via a per-form `dispatch_<slug>`
+   function each calls `wmdemo/hr/airtable_write.py` directly (`forms.py`'s own generic
+   `kind:"table"` dispatch is unchanged and still only ever records `pending_airtable` — see
+   `docs/AIRTABLE-ADAPTER.md`'s "First real caller" section for the exact pattern and the field
+   maps, cited line-by-line to this same GAS source):
+   - **Wired**: hr_incident_report, hr_calloff (`forms_batch2_hr.py`); lp_retail_verify_dispute,
+     lp_closer_report_delivery, lp_closer_report_retail (`forms_batch2_lp.py`);
+     onb_journey_step_1/2/3, hr_ssn_backfill, onb_ack_sign (`forms_batch3_onboarding.py`).
+   - **Still `pending_airtable`, genuinely blocked** (not merely undone): ops_doc_note_upload,
+     hr_doc_reupload — both forms' only real content is a `files`-typed attachment, and this
+     module has no fetchable-URL/attachment-upload path to Airtable's `attach()` shape yet (GAP,
+     unchanged from finding B.3's own multi-attachment note).
+   - `pii`-typed fields (ssn/dlNumber/passportNumber) are never sent to Airtable by any wired
+     form — `hr_ssn_backfill` sends only the derived last-4 digits — a deliberate divergence from
+     live GAS (which writes SSN_PLAIN by 2026-08-09 owner decision) documented in
+     `forms_batch3_onboarding.py`'s own SECURITY NOTE and its "Airtable write-back" section.
+   - Probed by `FB2-AT-*` (`forms_batch2_hr_probe.py`, `forms_batch2_lp_probe.py`) and `FB3-AT-*`
+     (`forms_batch3_probe.py`) against a real `qa/hr_airtable_stub.py` subprocess per suite.
 8. **`showWhen` not evaluated inside `repeating_group` rows** — `_field_schema`'s
    `repeating_group` branch calls `compile_schema({"fields": f.get("fields") or []})` with no
    `data`/`actor_role` args (`forms.py:311`), so nested-row conditional-required (Closer Report

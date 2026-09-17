@@ -1,6 +1,7 @@
 // ── Shop / catalog — shop-at-home POS: browse, filter, add to cart ──────────
 const useP = window.useP;
 const _cardVariantKey = 'hw-m-cardvariant';
+const HWSafe = window.HWSafe || { top: (n) => `${n}px`, bottom: (n) => `${n}px`, left: (n) => `${n}px`, right: (n) => `${n}px` };
 
 // Category dot color
 const catColor = (c) => window.HW.CAT_COLOR[c] || '#6E6E66';
@@ -105,7 +106,7 @@ function FilterChip({ label, icon, value, onOpen }) {
   const P = useP();
   const active = value != null;
   return (
-    <button onClick={onOpen} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 99, border: `1.5px solid ${active ? P.accentBorder : P.hairline2}`, background: active ? P.accentSoft : 'transparent', color: active ? P.accentText : P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}>
+    <button onClick={onOpen} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '8px 13px', borderRadius: 99, border: `1.5px solid ${active ? P.accentBorder : P.hairline2}`, background: active ? P.accentSoft : 'transparent', color: active ? P.accentText : P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}>
       {icon && <Icon name={icon} size={14} stroke={2} />}{active ? value : label}<Icon name="chevron-down" size={14} stroke={2.2} />
     </button>);
 }
@@ -235,14 +236,14 @@ window.ShopScreen = function ShopScreen({ taskId }) {
       {/* category chips */}
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 16px 10px', flex: '0 0 auto' }}>
         {cats.map((c) => {const a = cat === c;const color = catColor(c);return (
-            <button key={c} onClick={() => setCat(c)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 99, border: `1.5px solid ${a ? P.ink : P.hairline2}`, background: a ? P.ink : 'transparent', color: a ? P.surface : P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}>
+            <button key={c} onClick={() => setCat(c)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '8px 14px', borderRadius: 99, border: `1.5px solid ${a ? P.ink : P.hairline2}`, background: a ? P.ink : 'transparent', color: a ? P.surface : P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}>
             {c !== 'All' && <span style={{ width: 7, height: 7, borderRadius: 99, background: color }} />}{c}
           </button>);})}
       </div>
       {/* quick + attribute filters */}
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px 12px', flex: '0 0 auto', alignItems: 'center' }}>
-        {cust && <button onClick={() => setForCust((x) => !x)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 99, border: `1.5px solid ${forCust ? '#E5A24E' : P.hairline2}`, background: forCust ? '#E5A24E22' : 'transparent', color: forCust ? '#E5A24E' : P.ink2, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}><Icon name="sparkle" size={14} stroke={2.2} />For {cust}</button>}
-        <button onClick={() => setSaleOnly((x) => !x)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 99, border: `1.5px solid ${saleOnly ? P.accentBorder : P.hairline2}`, background: saleOnly ? P.accentSoft : 'transparent', color: saleOnly ? P.accentText : P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}><Icon name="tag" size={14} stroke={2} />On sale</button>
+        {cust && <button onClick={() => setForCust((x) => !x)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '8px 13px', borderRadius: 99, border: `1.5px solid ${forCust ? '#E5A24E' : P.hairline2}`, background: forCust ? '#E5A24E22' : 'transparent', color: forCust ? '#E5A24E' : P.ink2, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}><Icon name="sparkle" size={14} stroke={2.2} />For {cust}</button>}
+        <button onClick={() => setSaleOnly((x) => !x)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '8px 13px', borderRadius: 99, border: `1.5px solid ${saleOnly ? P.accentBorder : P.hairline2}`, background: saleOnly ? P.accentSoft : 'transparent', color: saleOnly ? P.accentText : P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}><Icon name="tag" size={14} stroke={2} />On sale</button>
         <FilterChip label="Box" icon="box" value={box} onOpen={() => setPicker('box')} />
         <FilterChip label="Brand" icon="crown" value={brand} onOpen={() => setPicker('brand')} />
         {anyFilter && <button onClick={() => {setBrand(null);setBox(null);setSaleOnly(false);setForCust(false);}} style={{ padding: '8px 10px', background: 'transparent', border: 'none', color: P.info, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flex: '0 0 auto' }}>Clear</button>}
@@ -257,7 +258,7 @@ window.ShopScreen = function ShopScreen({ taskId }) {
       </div>
 
       {totals.count > 0 &&
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px 16px ${HWSafe.bottom(34)}`, background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
           <button onClick={() => setCartOpen(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: P.accent, border: 'none', borderRadius: P.r14, cursor: 'pointer' }}>
             <span style={{ width: 28, height: 28, borderRadius: 8, background: P.accentInk, color: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono }}>{totals.count}</span>
             <span style={{ fontSize: 15, fontWeight: 800, color: P.accentInk }}>Review cart</span>

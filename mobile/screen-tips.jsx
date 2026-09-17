@@ -58,7 +58,7 @@ window.AddTipSheet = function AddTipSheet({ name, order }) {
       <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r12, padding: '16px', textAlign: 'center', fontSize: 40, fontWeight: 800, color: num > 0 ? P.ink : P.inkFaint, fontFamily: P.fontMono, marginBottom: 12 }}>{num > 0 ? _t(num) : '$0.00'}</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>{[2, 3, 5, 10, 20].map((v) => <button key={v} onClick={() => setAmt(String(v))} style={{ flex: 1, padding: '12px 4px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 15, fontWeight: 700, color: P.info, cursor: 'pointer', fontFamily: P.fontMono }}>${v}</button>)}</div>
       <Eyebrow style={{ marginBottom: 8 }}>Amount</Eyebrow>
-      <div style={{ marginBottom: 14 }}><Field icon="cash" placeholder="0.00" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^0-9.]/g, ''))} mono /></div>
+      <div style={{ marginBottom: 14 }}><Field icon="cash" placeholder="0.00" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^0-9.]/g, ''))} mono /></div>
       <Eyebrow style={{ marginBottom: 8 }}>From (optional)</Eyebrow>
       <Field icon="user" placeholder="Customer name" value={who} onChange={(e) => setWho(e.target.value)} />
     </window.Sheet>);
@@ -79,7 +79,7 @@ window.MakeChangeSheet = function MakeChangeSheet() {
     }>
       <div style={{ fontSize: 13.5, color: P.inkDim, lineHeight: 1.5, marginBottom: 16 }}>Break a customer's large bill using your own tip cash — keeps company funds untouched.</div>
       <Eyebrow style={{ marginBottom: 8 }}>Amount owed</Eyebrow>
-      <div style={{ marginBottom: 16 }}><Field icon="receipt" placeholder="0.00" value={owed} onChange={(e) => setOwed(e.target.value.replace(/[^0-9.]/g, ''))} mono /></div>
+      <div style={{ marginBottom: 16 }}><Field icon="receipt" placeholder="0.00" inputMode="decimal" value={owed} onChange={(e) => setOwed(e.target.value.replace(/[^0-9.]/g, ''))} mono /></div>
       <Eyebrow style={{ marginBottom: 8 }}>Customer paying with</Eyebrow>
       <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>{[20, 50, 100].map((v) => { const a = bill === v; return <button key={v} onClick={() => setBill(v)} style={{ flex: 1, padding: '13px 4px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 16, fontWeight: 700, color: P.ink, cursor: 'pointer', fontFamily: P.fontMono }}>${v}</button>; })}</div>
       <div style={{ padding: '15px 16px', borderRadius: P.r14, background: change > 0 ? (enough ? P.goodSoft : P.badSoft) : P.surface2 }}>

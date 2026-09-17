@@ -1,5 +1,6 @@
 // ── Task detail — arrival (ID + street view), items w/ barcode scan, collect ─
 const useP = window.useP;
+const HWSafe = window.HWSafe || { top: (n) => `${n}px`, bottom: (n) => `${n}px`, left: (n) => `${n}px`, right: (n) => `${n}px` };
 
 function findTask(id) {
   return window.MD.TASKS.find((t) => t.id === id) || window.MD.SCHEDULED.find((t) => t.id === id);
@@ -709,11 +710,11 @@ window.TaskScreen = function TaskScreen({ taskId }) {
 
       {/* footer */}
       {!done ?
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `14px 16px ${HWSafe.bottom(34)}`, background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
           {!allScanned && <div style={{ fontSize: 11.5, color: P.warn, textAlign: 'center', marginBottom: 8, fontWeight: 600 }}>Scan all items to continue</div>}
           <PBtn variant="accent" size="xl" full icon={cod ? 'cash' : 'check'} disabled={!allScanned} onClick={() => {window.M.startCart(taskId, items);window.M.push('complete', { taskId });}}>{cod ? `Close out · collect ${window.HW.fmt.money(totals.total)}` : 'Close out · confirm delivery'}</PBtn>
         </div> :
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `14px 16px ${HWSafe.bottom(34)}`, background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
           <PBtn variant="secondary" size="xl" full icon="receipt" onClick={() => window.M.push('complete', { taskId, receiptOnly: true })}>View receipt</PBtn>
         </div>}
 

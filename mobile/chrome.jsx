@@ -1,5 +1,6 @@
 // ── Mobile app chrome — header, bottom nav, toast, overlays ─────────────────
 const useP = window.useP,useTheme = window.useTheme;
+const HWSafe = window.HWSafe || { top: (n) => `${n}px`, bottom: (n) => `${n}px`, left: (n) => `${n}px`, right: (n) => `${n}px` };
 
 // iOS-style switch used inside the duty card
 function DutySwitch({ on }) {
@@ -96,7 +97,7 @@ window.BottomNav = function BottomNav() {
   const items = [['home', 'Home', 'home'], ['activity', 'Activity', 'chart'], ['help', 'Help', 'help', true], ['discrepancy', 'Discrepancy', 'package'], ['profile', 'Profile', 'user']];
   const topName = M.s.stack.length ? M.s.stack[M.s.stack.length - 1].name : null;
   return (
-    <div data-tour="nav" style={{ flex: '0 0 auto', display: 'flex', padding: '10px 4px 26px', borderTop: `1px solid ${P.hairline}`, background: P.bg, gap: 2 }}>
+    <div data-tour="nav" style={{ flex: '0 0 auto', display: 'flex', padding: `10px 4px ${HWSafe.bottom(26)}`, borderTop: `1px solid ${P.hairline}`, background: P.bg, gap: 2 }}>
       {items.map(([id, label, icon, isPush]) => {const a = isPush ? topName === 'help' : tab === id && !topName;return (
           <button key={id} onClick={() => isPush ? window.M.push('help') : window.M.go(id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', color: a ? P.ink : P.inkMute }}>
           <Icon name={icon} size={22} stroke={a ? 2.1 : 1.7} />

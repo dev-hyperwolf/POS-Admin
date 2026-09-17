@@ -1,12 +1,15 @@
 // ── Mobile app root + router ────────────────────────────────────────────────
 const useP = window.useP,useTheme = window.useTheme;
 const SB_PAD = 52; // clear the iOS status bar / dynamic island
+// window.HWSafe adds the real device inset on top of SB_PAD; 0 in the framed
+// desktop preview (env() is unsupported there) or if the helper failed to load.
+const SB_PAD_TOP = window.HWSafe ? window.HWSafe.top(SB_PAD) : SB_PAD;
 
 // Shared top bar for pushed (full-screen) views — back chevron + title
 window.MTopBar = function MTopBar({ title, onBack, right, sub }) {
   const P = useP();
   return (
-    <div style={{ flex: '0 0 auto', padding: `${SB_PAD}px 10px 10px`, display: 'flex', alignItems: 'center', gap: 6, borderBottom: `1px solid ${P.hairline}`, background: P.bg }}>
+    <div style={{ flex: '0 0 auto', padding: `${SB_PAD_TOP} 10px 10px`, display: 'flex', alignItems: 'center', gap: 6, borderBottom: `1px solid ${P.hairline}`, background: P.bg }}>
       <button onClick={onBack || (() => window.M.pop())} style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink }}><Icon name="chevron-left" size={26} stroke={2.2} /></button>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: P.ink, textAlign: right ? 'left' : 'center', lineHeight: 1.1 }}>{title}</div>
@@ -157,7 +160,7 @@ function AppInner() {
       mGuard(M_REFUSE_PUSH, top.name, (PUSH_SCREENS[top.name] || (() => null))(top.props),
       () => window.M.pop(), 'Back to today') :
       <>
-            <div style={{ height: SB_PAD, flex: '0 0 auto' }} />
+            <div style={{ height: SB_PAD_TOP, flex: '0 0 auto' }} />
             <ScreenFrame name="The header"><window.AppHeader tab={M.s.tab} /></ScreenFrame>
             {/* No onReset on a tab: the tab bar below is still alive and IS the
                 way back. A refusing tab escalates past these siblings to the
@@ -177,8 +180,56 @@ function AppInner() {
 
 }
 
+/* Below this width there is no room for the 74px HWRail plus a 402px device
+ * mockup (mobile/ios-frame.jsx) -- that combination doesn't fit a 390px real
+ * phone viewport, so a driver on an actual phone got a sidebar and a
+ * letterboxed app instead of the app. matchMedia's initial value is read
+ * synchronously in the useState initializer (no effect round-trip needed
+ * before first paint), so a phone never flashes the framed layout first. No
+ * SSR here -- this page has no build step -- but the lazy-init guard keeps
+ * this safe if that ever changes. */
+const HW_PHONE_QUERY = '(max-width: 600px)';
+function useIsPhone() {
+  const [isPhone, setIsPhone] = React.useState(() => {
+    try {return typeof window.matchMedia === 'function' && window.matchMedia(HW_PHONE_QUERY).matches;} catch (e) {return false;}
+  });
+  React.useEffect(() => {
+    let mql;
+    try {mql = window.matchMedia(HW_PHONE_QUERY);} catch (e) {return;}
+    const onChange = () => setIsPhone(mql.matches);
+    onChange();
+    if (mql.addEventListener) mql.addEventListener('change', onChange);else if (mql.addListener) mql.addListener(onChange);
+    window.addEventListener('resize', onChange);
+    return () => {
+      if (mql.removeEventListener) mql.removeEventListener('change', onChange);else if (mql.removeListener) mql.removeListener(onChange);
+      window.removeEventListener('resize', onChange);
+    };
+  }, []);
+  return isPhone;
+}
+
+// A real phone: no rail (there's no room), no device mockup (the phone IS the
+// device) -- the driver app fills the actual viewport. `.hw-phone-root` sets
+// height:100dvh with a height:100vh fallback -- can't express a CSS property
+// fallback (two values, last-supported wins) as one React style object key,
+// so it's a one-off stylesheet rule the same way pos/atoms.jsx's DualRange
+// carries its thumb CSS.
+function PhoneRoot({ mode }) {
+  return (
+    <>
+      <style>{'.hw-phone-root{height:100vh;height:100dvh;width:100vw;}'}</style>
+      <div className="hw-phone-root" style={{ display: 'flex', background: mode === 'dark' ? '#050505' : '#c9c7c0', overflow: 'hidden' }}>
+        <ScreenFrame name="The driver app">
+          <AppInner />
+        </ScreenFrame>
+      </div>
+    </>);
+}
+
 function Root() {
   const { mode } = useTheme();
+  const isPhone = useIsPhone();
+  if (isPhone) return <PhoneRoot mode={mode} />;
   return (
     <div style={{ height: '100vh', width: '100%', display: 'flex', background: mode === 'dark' ? '#050505' : '#c9c7c0', overflow: 'hidden' }}>
       <ScreenFrame name="The navigation rail"><window.HWRail active="driver" /></ScreenFrame>

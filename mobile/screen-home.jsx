@@ -1,5 +1,6 @@
 // ── Home — task list + map (Today / Scheduled) ──────────────────────────────
 const useP = window.useP;
+const HWSafe = window.HWSafe || { top: (n) => `${n}px`, bottom: (n) => `${n}px`, left: (n) => `${n}px`, right: (n) => `${n}px` };
 
 // Big segmented Today / Scheduled control
 function TodaySeg() {
@@ -150,7 +151,7 @@ function RouteMap({ stops }) {
         )}
         <circle cx="200" cy="300" r="9" fill="#2E7CF6" stroke="#fff" strokeWidth="3" />
       </svg>
-      <button onClick={() => window.M.setHomeView('list')} style={{ position: 'absolute', bottom: 20, right: 18, display: 'flex', alignItems: 'center', gap: 8, padding: '13px 20px', background: P.ink, color: P.surface, border: 'none', borderRadius: 99, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: P.shadowLg }}><Icon name="list" size={18} stroke={2} />List</button>
+      <button onClick={() => window.M.setHomeView('list')} style={{ position: 'absolute', bottom: HWSafe.bottom(20), right: 18, display: 'flex', alignItems: 'center', gap: 8, padding: '13px 20px', background: P.ink, color: P.surface, border: 'none', borderRadius: 99, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: P.shadowLg }}><Icon name="list" size={18} stroke={2} />List</button>
     </div>);
 
 }
@@ -241,7 +242,7 @@ window.PackingScreen = function PackingScreen() {
         {stops.map((t) => <PackRow key={t.id} t={t} />)}
         {allDone && <div style={{ textAlign: 'center', color: P.good, fontSize: 13.5, fontWeight: 700, padding: '8px 0' }}>All orders packed — you're ready to roll.</div>}
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `14px 16px ${HWSafe.bottom(34)}`, background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
         {allDone ?
         <PBtn variant="accent" size="xl" full icon="check" onClick={() => {window.M.pop();window.M.flash('Van packed — ready to roll');}}>Done — van packed</PBtn> :
         <PBtn variant="primary" size="xl" full icon="barcode" disabled>{unitsLeft} item{unitsLeft === 1 ? '' : 's'} left to scan</PBtn>}
@@ -291,7 +292,7 @@ window.HomeScreen = function HomeScreen() {
         </>
       }
       {onDuty && view === 'list' &&
-      <button onClick={() => window.M.setHomeView('map')} style={{ position: 'absolute', bottom: 96, right: 18, display: 'flex', alignItems: 'center', gap: 8, padding: '13px 20px', background: P.ink, color: P.surface, border: 'none', borderRadius: 99, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: P.shadowLg, zIndex: 20 }}><Icon name="map" size={18} stroke={2} />Map</button>
+      <button onClick={() => window.M.setHomeView('map')} style={{ position: 'absolute', bottom: HWSafe.bottom(96), right: 18, display: 'flex', alignItems: 'center', gap: 8, padding: '13px 20px', background: P.ink, color: P.surface, border: 'none', borderRadius: 99, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: P.shadowLg, zIndex: 20 }}><Icon name="map" size={18} stroke={2} />Map</button>
       }
     </div>);
 

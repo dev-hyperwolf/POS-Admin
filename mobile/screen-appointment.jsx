@@ -3,6 +3,8 @@
 //   reviews the brief, then shops WITH the customer against their budget.
 const useP = window.useP;
 const _am = (n) => window.HW.fmt.money(n);
+// Fallback matches window.HWSafe's own no-op shape (0 inset) if shared/hw-safe-area.js didn't load.
+const HWSafe = window.HWSafe || { top: (n) => `${n}px`, bottom: (n) => `${n}px`, left: (n) => `${n}px`, right: (n) => `${n}px` };
 
 window.AppointmentScreen = function AppointmentScreen({ taskId }) {
   const P = useP();const M = window.useM();
@@ -94,11 +96,11 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
           home, guest won't show ID, guest changed their mind. The close-out is
           therefore NOT gated; it routes to CompleteScreen, which owns both
           halves of an ending — collect payment, or "Can't complete this order". */}
-      {!done ? <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 30px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
+      {!done ? <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `14px 16px ${HWSafe.bottom(30)}`, background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
         {!idOk && <div style={{ fontSize: 11.5, color: P.warn, textAlign: 'center', marginBottom: 8, fontWeight: 600 }}>Scan the customer's ID to begin shopping</div>}
         <PBtn variant="accent" size="xl" full icon="shop" disabled={!idOk} onClick={start}>Start shopping with {base.name.split(' ')[0]}</PBtn>
         <button onClick={() => window.M.push('complete', { taskId })} style={{ width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 4, background: 'transparent', border: 'none', color: P.inkDim, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}><Icon name="flag" size={15} stroke={2} />Close out appointment</button>
-      </div> : <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
+      </div> : <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `14px 16px ${HWSafe.bottom(34)}`, background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
         <PBtn variant="secondary" size="xl" full icon="receipt" onClick={() => window.M.push('complete', { taskId, receiptOnly: true })}>View receipt</PBtn>
       </div>}
 

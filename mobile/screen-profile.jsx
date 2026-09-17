@@ -203,7 +203,7 @@ window.EditPhoneSheet = function EditPhoneSheet() {
       <PBtn variant="accent" size="xl" full icon="check" disabled={!ok} onClick={() => { window.M.submitPhone(val); window.M.closeSheet(); window.M.flash('Number submitted — pending management approval', 'warn'); }}>Submit for approval</PBtn>
     }>
       <Eyebrow style={{ marginBottom: 8 }}>Mobile number</Eyebrow>
-      <Field icon="phone" placeholder="(555) 555-5555" value={val} onChange={(e) => setVal(e.target.value)} />
+      <Field icon="phone" placeholder="(555) 555-5555" type="tel" inputMode="tel" value={val} onChange={(e) => setVal(e.target.value)} />
       {prof.pendingPhone &&
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '10px 12px', background: P.warnSoft, borderRadius: P.r10 }}><Icon name="clock" size={15} stroke={2} color={P.warn} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.warn }}>{prof.pendingPhone} is awaiting approval.</span></div>}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
@@ -301,7 +301,7 @@ window.VehiclesSheet = function VehiclesSheet() {
               <span style={{ width: 38, height: 38, borderRadius: 10, background: a ? P.accent : P.surface3, color: a ? P.accentInk : P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="truck" size={19} stroke={1.9} /></span>
               <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>{v.label}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{v.plate}{a ? ' · active' : ''}</div></div>
             </button>
-            <button onClick={() => window.M.openSheet('editvehicle', { idx: i })} style={{ padding: '7px 12px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
+            <button onClick={() => window.M.openSheet('editvehicle', { idx: i })} style={{ minHeight: 44, padding: '7px 12px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
           </div>); })}
       </div>
     </window.Sheet>);

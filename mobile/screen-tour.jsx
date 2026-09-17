@@ -47,9 +47,14 @@ window.TourOverlay = function TourOverlay() {
       const root = document.querySelector('[data-approot]');
       const el = document.querySelector(`[data-tour="${cur.target}"]`);
       if (!root || !el) {setRect(null);return;}
+      // root and el are both real DOM nodes measured in the same viewport --
+      // there is no separate scaled reference layout to convert from, so no
+      // divisor is needed. (This used to divide by cr.width / 402, which
+      // assumed the frame was always exactly the 402px desktop-preview mockup
+      // width; on an actual phone the container is the real device width, and
+      // that hardcode would have skewed the spotlight box.)
       const cr = root.getBoundingClientRect();const er = el.getBoundingClientRect();
-      const scale = cr.width / 402 || 1;
-      setRect({ left: (er.left - cr.left) / scale, top: (er.top - cr.top) / scale, width: er.width / scale, height: er.height / scale });
+      setRect({ left: er.left - cr.left, top: er.top - cr.top, width: er.width, height: er.height });
     }, 300);
     return () => clearTimeout(t);
   }, [step]);
