@@ -149,6 +149,12 @@
 <script type="text/babel" src="shared/id-photos.jsx"></script>
 <script type="text/babel" src="shared/hd-format.jsx"></script>
 <script type="text/babel" src="shared/hd-ui.jsx"></script>
+<!-- The D2 sign-in prompt for shared/hw-live.js's server-issued session
+     (HW_LIVE.login/logout/session). Self-mounts into its own detached root —
+     see the file header — so it needs React/ReactDOM/Babel and the house
+     atoms (Card/PBtn/Field/overlayScrim, pos/atoms.jsx) already loaded, which
+     is why it sits here rather than immediately after shared/hw-live.js. -->
+<script type="text/babel" src="shared/hw-signin.jsx"></script>
 <script type="text/babel" src="idv/idv-client.jsx"></script>
 <script src="idv/terms-text.js"></script>
 <script type="text/babel" src="idv/idv-shared.jsx"></script>
