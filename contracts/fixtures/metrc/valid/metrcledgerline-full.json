@@ -1,0 +1,22 @@
+{
+  "shape": "MetrcLedgerLine",
+  "record": {
+    "id": "mll_00000002",
+    "licence_number": "C10-0000123-LIC",
+    "business_day": "2026-09-16",
+    "order_id": "ord_00009981",
+    "order_line_idx": 2,
+    "store_id": "west-hollywood",
+    "product_id": "prod_000045",
+    "unit_id": "unit_0009812",
+    "batch_id": "bat_00000123",
+    "package_tag": "1A4060300002F5E000000123",
+    "quantity": 1,
+    "unit_of_measure": "Each",
+    "resolution_path": "manual_correction",
+    "supersedes": "mll_00000001",
+    "superseded_by": null,
+    "content_hash": "sha256:9a7c2b4e5061f3d1",
+    "recorded_at": "2026-09-17T08:05:11Z"
+  }
+}

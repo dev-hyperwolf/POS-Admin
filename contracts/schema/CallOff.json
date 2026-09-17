@@ -1,6 +1,6 @@
 {
   "$id": "CallOff",
-  "contract": "0.5.0",
+  "contract": "0.5.2",
   "type": "object",
   "required": [
     "source_ref",

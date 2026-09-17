@@ -104,9 +104,40 @@
       return b;
     }
 
+    // ── realtime pill ("sockets as soon as possible" build, 2026-09-17) ──────
+    // shared/hw-live.js's HW_LIVE.realtimeStatus mirrors shared/hw-realtime.js's
+    // own status strings, but changes on its own schedule (a reconnect, a
+    // dropped stream) rather than on a DOM event this chip could listen for —
+    // so it gets its own short-interval repaint of JUST this one span, never a
+    // full render() (which would rebuild "Signed in as..."/Sign out for no
+    // reason and could steal focus off an in-progress interaction).
+    var _rtPill = null;
+    var RT_LABELS = {
+      live: ['● Live', '#6FCF97'],
+      connecting: ['● Connecting…', '#9b9788'],
+      reconnecting: ['● Reconnecting…', '#FFD100'],
+      polling: ['● Polling', '#FFD100'],
+      paused: ['● Paused', '#9b9788']
+      // 'stopped' and null/undefined (not armed, or no known store/entity
+      // scope to subscribe with — see hw-live.js's own realtimeChannelsFor())
+      // intentionally have no entry: the pill is simply not shown at all,
+      // same "say nothing rather than show a wrong or fabricated state" rule
+      // this file's session text already follows for a null session.
+    };
+    function paintRealtimePill() {
+      if (!_rtPill) { return; }
+      var status = live.realtimeStatus;
+      var entry = status && RT_LABELS[status];
+      if (!entry) { _rtPill.style.display = 'none'; return; }
+      _rtPill.style.display = '';
+      _rtPill.textContent = entry[0];
+      _rtPill.style.color = entry[1];
+    }
+
     function render() {
       var s = live.session();
       el.innerHTML = '';
+      _rtPill = null;
       if (!s) {
         // (c) from the sign-in prompt's own spec: the chip's own "Sign in"
         // reopens it via the window hook shared/hw-signin.jsx registers.
@@ -126,6 +157,10 @@
         warn.textContent = mins <= 0 ? 'expiring' : ('· ' + mins + 'm left');
         el.appendChild(warn);
       }
+      _rtPill = document.createElement('span');
+      _rtPill.style.cssText = 'font-weight:600;';
+      el.appendChild(_rtPill);
+      paintRealtimePill();
       var signOut = linkBtn('Sign out');
       signOut.style.opacity = '.85';
       signOut.addEventListener('click', function () {
@@ -141,6 +176,11 @@
     // Countdown freshness only — every state CHANGE already re-renders via
     // the two events above.
     setInterval(render, 20000);
+    // Realtime status ticks on its own schedule (see paintRealtimePill's own
+    // comment) — 2s is cheap (one property read + a style/text write, no DOM
+    // rebuild) and matches how fast an operator actually expects a status
+    // word to catch up after their network blips.
+    setInterval(paintRealtimePill, 2000);
   }
 
   if (document.body) { mount(); } else { document.addEventListener('DOMContentLoaded', mount); }

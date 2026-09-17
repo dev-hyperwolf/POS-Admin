@@ -1,0 +1,15 @@
+{
+  "shape": "MetrcLedgerLine",
+  "record": {
+    "id": "mll_00000004",
+    "licence_number": "C10-0000123-LIC",
+    "business_day": "2026-09-16",
+    "product_id": "prod_000045",
+    "batch_id": "bat_00000123",
+    "package_tag": "1A4060300002F5E000000123",
+    "quantity": 1,
+    "resolution_path": "guessed",
+    "content_hash": "sha256:1f3d9a7c2b4e5061",
+    "recorded_at": "2026-09-16T23:41:02Z"
+  }
+}

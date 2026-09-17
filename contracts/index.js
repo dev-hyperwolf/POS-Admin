@@ -27,7 +27,12 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.5.0'; // 0.5.0 (additive, Team 6a): RegisterSession/CashDrop/CashCount +
+  var VERSION = '0.5.2'; // 0.5.2 (additive): MetrcPackage/MetrcLedgerLine/MetrcReconVariance +
+  // MetrcResolutionPath/MetrcVarianceKind/MetrcExceptionState (METRC-PROGRAM-PLAN-2026-09-17.md
+  // §5 Phase 1, READ-ONLY foundation -- no submit shape exists yet because nothing submits).
+  // No prior shape changed.
+  // 0.5.1 (additive, fix pass, see below): Region.store_id.
+  // 0.5.0 (additive, Team 6a): RegisterSession/CashDrop/CashCount +
   // RegisterSessionStatus/CashDropReason/CashCountKind (ADMIN-GAP-LIST-2026-09-17.md §B Drawers,
   // §C items 1/3/5/9). wm-demo's own server-side cash-drawer sessions; real prior art is
   // end-of-shift-portal/RetailFloatPlan.gs + CR/CRX Airtable, not hyper-tech (no drawer model
@@ -309,6 +314,24 @@
       source: 'end-of-shift-portal safe-drop vocabulary, widened for paid-outs/paid-ins and mid-shift float top-ups; direction (add/subtract from expected cash) is carried by this enum, never by the amount\'s sign. paid_in added 2026-09-17 per docs/ADMIN-LIVE-AUDIT-2026-09-17.md\'s live read of Blaze\'s own Cash Drawer screen, which tracks Paid In and Paid Out as separate first-class columns' },
     CashCountKind: { values: ['opening', 'mid', 'closing'],
       source: 'wmdemo/register.py -- a closing-kind count is the precondition POST .../close requires' },
+    // 0.5.2 -- Metrc Phase 1 (READ-ONLY foundation, METRC-PROGRAM-PLAN-2026-09-17.md).
+    // MetrcResolutionPath: how a day-ledger line's unit -> batch -> package resolution was
+    // produced -- 'sale_hook' (resolved synchronously at sale time), 'backfill_job' (resolved
+    // after the fact from pos_sales + inventory movements, when the sale-time hook could not run
+    // as one line), 'manual_correction' (a superseding row an operator or the exception queue
+    // produced). Never resolved by guessing -- see wmdemo/metrc/ledger.py.
+    MetrcResolutionPath: { values: ['sale_hook', 'backfill_job', 'manual_correction'],
+      source: 'METRC-PROGRAM-PLAN-2026-09-17.md §3 day-ledger design; wmdemo/metrc/ledger.py' },
+    // MetrcVarianceKind: the recon-read comparison classes (plan §3 "compare our ledger/
+    // inventory against the last Metrc package read per licence"). Read-only in Phase 1 -- no
+    // submit-side variance kind exists yet because nothing submits.
+    MetrcVarianceKind: { values: ['package_balance', 'ledger_missing_in_metrc',
+      'metrc_missing_in_ledger', 'uom_mismatch', 'duplicate_submit'],
+      source: 'METRC-PROGRAM-PLAN-2026-09-17.md §3 reconciliation design; wmdemo/metrc/recon.py' },
+    // MetrcExceptionState: the daytime exception-queue AND recon-variance state machine, same
+    // three states for both (plan §3: "open -> acknowledged -> resolved").
+    MetrcExceptionState: { values: ['open', 'acknowledged', 'resolved'],
+      source: 'METRC-PROGRAM-PLAN-2026-09-17.md §3 exception queue design; wmdemo/metrc/exceptions.py' },
   };
   var HTTP_STATUS = { bad_request: 400, unauthorized: 401, forbidden: 403, not_found: 404,
     conflict: 409, unprocessable: 422, rate_limited: 429, internal: 500, not_built: 501 };
@@ -1104,6 +1127,65 @@
       properties: { id: ID, session_id: ID, kind: { type: 'string', $enum: 'CashCountKind' },
         denominations: { type: 'object' },
         total_cents: { type: 'integer', minimum: 0 }, by: { type: 'string', minLength: 1 }, at: ISO } },
+
+    // 0.5.2 -- Metrc Phase 1 (READ-ONLY foundation, METRC-PROGRAM-PLAN-2026-09-17.md §5 Phase 1).
+    // MetrcPackage is the shape a package read (GET .../packages/v1/active|inactive, same
+    // behavior class as the existing Stilo getActivePackages call the plan's §1.4 flags as
+    // reusable) is normalized into before anything in wm-demo touches it -- the wire quantity can
+    // be fractional (weight-based UOM), so `quantity` is `number`, not `integer`, unlike every
+    // cents-based Money field elsewhere in this file. `tag` is the compliance id
+    // (Batch.metrc_packages[].tag already carries this on the batch side, 0.4.3) -- this shape is
+    // the READ side of that same tag.
+    MetrcPackage: { type: 'object',
+      required: ['tag', 'licence_number', 'item_name', 'quantity', 'unit_of_measure', 'is_active'],
+      additionalProperties: false,
+      properties: {
+        tag: { type: 'string', minLength: 1 }, licence_number: { type: 'string', minLength: 1 },
+        item_name: { type: 'string' }, item_category: { type: 'string', nullable: true },
+        quantity: { type: 'number', minimum: 0 }, unit_of_measure: { type: 'string' },
+        packaged_date: { type: 'string', pattern: BARE_DATE.source, nullable: true },
+        is_active: { type: 'boolean' }, is_finished: { type: 'boolean', nullable: true },
+        production_batch_number: { type: 'string', nullable: true },
+        location_name: { type: 'string', nullable: true },
+        batch_id: { type: 'string', nullable: true }, // wm-demo Batch.id this tag resolves to, when known
+        last_modified: { type: 'string', pattern: ISO_UTC.source, nullable: true } } },
+    // The day-ledger (plan §3): one row per sale line, resolved unit -> batch -> Metrc package AT
+    // SALE TIME, written IMMUTABLY -- a correction is a new row (`supersedes` pointing back),
+    // never an UPDATE of an existing one (wmdemo/metrc/ledger.py enforces this at the DB layer;
+    // this shape is the wire/read side of that same row). `content_hash` lets a caller prove two
+    // rows for the same order/line disagree without re-deriving the whole resolution.
+    MetrcLedgerLine: { type: 'object',
+      required: ['id', 'licence_number', 'business_day', 'product_id', 'batch_id', 'package_tag',
+        'quantity', 'resolution_path', 'content_hash', 'recorded_at'],
+      additionalProperties: false,
+      properties: {
+        id: ID, licence_number: { type: 'string', minLength: 1 },
+        business_day: { type: 'string', pattern: BARE_DATE.source },
+        order_id: { type: 'string', nullable: true }, order_line_idx: { type: 'integer', minimum: 0, nullable: true },
+        store_id: { type: 'string', nullable: true }, product_id: ID, unit_id: { type: 'string', nullable: true },
+        batch_id: ID, package_tag: { type: 'string', minLength: 1 },
+        quantity: { type: 'number', minimum: 0 }, unit_of_measure: { type: 'string', nullable: true },
+        resolution_path: { type: 'string', $enum: 'MetrcResolutionPath' },
+        supersedes: { type: 'string', nullable: true }, superseded_by: { type: 'string', nullable: true },
+        content_hash: { type: 'string', minLength: 1 }, recorded_at: ISO } },
+    // Next-morning reconciliation (plan §3): one row per detected variance between the local
+    // ledger/inventory and the last Metrc package read for a licence. Read-only by construction
+    // in Phase 1 -- nothing here ever triggers a Metrc write; `status` is staff-worked the same
+    // way an exception-queue item is (open -> acknowledged -> resolved).
+    MetrcReconVariance: { type: 'object',
+      required: ['id', 'licence_number', 'business_day', 'kind', 'severity', 'detected_at', 'status'],
+      additionalProperties: false,
+      properties: {
+        id: ID, licence_number: { type: 'string', minLength: 1 },
+        business_day: { type: 'string', pattern: BARE_DATE.source },
+        package_tag: { type: 'string', nullable: true }, batch_id: { type: 'string', nullable: true },
+        kind: { type: 'string', $enum: 'MetrcVarianceKind' }, severity: { type: 'string', $enum: 'Severity' },
+        local_quantity: { type: 'number', nullable: true }, metrc_quantity: { type: 'number', nullable: true },
+        delta: { type: 'number', nullable: true }, detail: { type: 'string', nullable: true },
+        detected_at: ISO, status: { type: 'string', $enum: 'MetrcExceptionState' },
+        acknowledged_by: { type: 'string', nullable: true }, acknowledged_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        resolved_by: { type: 'string', nullable: true }, resolved_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        resolution_note: { type: 'string', nullable: true } } },
   };
 
   function typeOf(v) {

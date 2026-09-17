@@ -1,0 +1,91 @@
+{
+  "$id": "MetrcReconVariance",
+  "contract": "0.5.2",
+  "type": "object",
+  "required": [
+    "id",
+    "licence_number",
+    "business_day",
+    "kind",
+    "severity",
+    "detected_at",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "licence_number": {
+      "type": "string",
+      "minLength": 1
+    },
+    "business_day": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "package_tag": {
+      "type": "string",
+      "nullable": true
+    },
+    "batch_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "kind": {
+      "type": "string",
+      "$enum": "MetrcVarianceKind"
+    },
+    "severity": {
+      "type": "string",
+      "$enum": "Severity"
+    },
+    "local_quantity": {
+      "type": "number",
+      "nullable": true
+    },
+    "metrc_quantity": {
+      "type": "number",
+      "nullable": true
+    },
+    "delta": {
+      "type": "number",
+      "nullable": true
+    },
+    "detail": {
+      "type": "string",
+      "nullable": true
+    },
+    "detected_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    },
+    "status": {
+      "type": "string",
+      "$enum": "MetrcExceptionState"
+    },
+    "acknowledged_by": {
+      "type": "string",
+      "nullable": true
+    },
+    "acknowledged_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "resolved_by": {
+      "type": "string",
+      "nullable": true
+    },
+    "resolved_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "resolution_note": {
+      "type": "string",
+      "nullable": true
+    }
+  }
+}

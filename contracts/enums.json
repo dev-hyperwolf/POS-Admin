@@ -1,5 +1,5 @@
 {
-  "contract": "0.5.0",
+  "contract": "0.5.2",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -951,6 +951,23 @@
       "opening",
       "mid",
       "closing"
+    ],
+    "MetrcResolutionPath": [
+      "sale_hook",
+      "backfill_job",
+      "manual_correction"
+    ],
+    "MetrcVarianceKind": [
+      "package_balance",
+      "ledger_missing_in_metrc",
+      "metrc_missing_in_ledger",
+      "uom_mismatch",
+      "duplicate_submit"
+    ],
+    "MetrcExceptionState": [
+      "open",
+      "acknowledged",
+      "resolved"
     ]
   }
 }

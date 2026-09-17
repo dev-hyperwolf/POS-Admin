@@ -244,6 +244,8 @@
   }
 
   function dispatchUnauthenticated() {
+    stopRealtime();  // a dead credential (session OR legacy token) must not keep a
+                     // stream open under it -- see stopRealtime()'s own comment.
     try {
       var evt = (typeof W.CustomEvent === 'function') ? new W.CustomEvent('hw-live:unauthenticated')
         : null;
@@ -251,11 +253,126 @@
     } catch (e) {}
   }
 
+  function dispatchChanged() {
+    try {
+      var evt = (typeof W.CustomEvent === 'function') ? new W.CustomEvent('hw-live:changed') : null;
+      if (evt) { W.dispatchEvent(evt); }
+    } catch (e) {}
+  }
+
+  // ── realtime (shared/hw-realtime.js), "sockets as soon as possible" build ──
+  // hw-realtime.js is a pure transport with no idea what a token or a store id
+  // is -- this is the ONLY code that hands it a credential (via getHeaders(),
+  // called fresh on every (re)connect so a rotated session is picked up
+  // without restarting the subscription) and the ONLY code that knows what
+  // "something changed" should DO (a debounced full refresh()). See
+  // shared/hw-realtime.js's own header comment for why the split is drawn
+  // there.
+  var _rtHandle = null;      // the live HWRealtime.subscribe() handle, or null
+  var _rtStatus = null;      // mirrors HWRealtime's own status strings, or null when unarmed
+  var _rtDebounce = null;
+
+  function stopRealtime() {
+    if (_rtHandle) { try { _rtHandle.stop(); } catch (e) {} }
+    _rtHandle = null;
+    _rtStatus = null;
+    if (_rtDebounce) { clearTimeout(_rtDebounce); _rtDebounce = null; }
+  }
+
+  // A realtime event never carries data (server-side payload discipline: ids
+  // only, see wmdemo/realtime_channels.py) -- the ONLY correct reaction is
+  // "go re-read the truth", exactly what refresh() already does. Debounced
+  // because a single register drop or a busy restock apply can fire several
+  // events within milliseconds of each other and this must cost one
+  // /api/state fetch, not five.
+  function debouncedRealtimeRefresh() {
+    if (_rtDebounce) { return; }
+    _rtDebounce = setTimeout(function () {
+      _rtDebounce = null;
+      (LITE ? loadLite() : load()).then(function () {
+        rerenderIfMounted();
+        dispatchChanged();
+      });
+    }, 400);
+  }
+
+  // No guessed channel names, ever (this file header's own "falls back
+  // silently" rule, applied to scope the same way it already applies to
+  // network failure): a caller with a KNOWN, real store/entity scope
+  // subscribes to exactly those channels; a caller this page cannot resolve
+  // a scope for (network failure reading it, or a genuinely unrestricted
+  // credential with no store/entity list to enumerate) gets NO realtime
+  // channels and falls through to hw-realtime.js's own polling fallback via
+  // the `poll` callback below -- still correct, just not instant.
+  function realtimeChannelsFor(scope) {
+    var out = [];
+    var storeIds = scope && scope.store_ids;
+    var entityIds = scope && scope.entity_ids;
+    if (storeIds) {
+      for (var i = 0; i < storeIds.length; i++) {
+        out.push('register.store.' + storeIds[i]);
+        out.push('inventory.store.' + storeIds[i]);
+        out.push('orders.store.' + storeIds[i]);
+        out.push('lp.store.' + storeIds[i]);
+      }
+    }
+    if (entityIds) {
+      for (var j = 0; j < entityIds.length; j++) { out.push('writeup.entity.' + entityIds[j]); }
+    }
+    return out;
+  }
+
+  // (Re)arms the realtime subscription against whatever credential is
+  // current right now -- called at boot (if a credential is already stored),
+  // right after a successful login(), and after the settings panel sets a
+  // new legacy token. Reads the caller's OWN scope from GET /api/session/me
+  // (works for a real D2 session AND the legacy shared-token fallback alike
+  // -- both resolve to a "session"-kind Principal server-side, see
+  // wmdemo/authz.py's own Principal docstring) rather than trusting a
+  // client-side guess.
+  function armRealtime() {
+    if (!armed || LITE || !sameOrigin() || !W.HWRealtime) { return; }
+    var cred = currentCredential();
+    stopRealtime();
+    if (!cred) { return; }
+    fetch(base + '/api/session/me', {
+      method: 'GET', headers: { 'x-hw-write-token': cred },
+      credentials: 'omit', cache: 'no-store'
+    }).then(function (res) { return res.ok ? res.json() : null; },
+           function () { return null; })
+      .then(function (scope) {
+        // The credential may have changed (or been cleared) while this GET was
+        // in flight -- re-check before arming anything against a stale answer.
+        if (currentCredential() !== cred || _rtHandle) { return; }
+        var channels = realtimeChannelsFor(scope);
+        if (!channels.length) { return; }
+        _rtHandle = W.HWRealtime.subscribe({
+          baseUrl: base,
+          channels: channels,
+          getHeaders: function () {
+            var c = currentCredential();
+            return c ? { 'x-hw-write-token': c } : {};
+          },
+          onEvent: function () { debouncedRealtimeRefresh(); },
+          onStatus: function (s) { _rtStatus = s; },
+          // A dead credential on the realtime path (a revoked/expired session,
+          // or one never valid) reacts exactly like a 401 on a normal fetch --
+          // clear it and let dispatchUnauthenticated() open the sign-in prompt
+          // (it also stops this same subscription itself; calling it here is
+          // still correct, not a double-stop, see hw-realtime.js's own
+          // handleUnauthenticated, which fires this callback at most once).
+          onUnauthenticated: function () { clearSession(); dispatchUnauthenticated(); },
+          poll: function () { return LITE ? loadLite() : load(); }
+        });
+      });
+  }
+
   // Drops the SESSION only -- never touches the legacy `_token`/localStorage
   // path, which has its own independent clearToken(). A dead session must not
   // be confused with "no legacy token configured either".
   function clearSession() {
     if (!_session) { return; }
+    stopRealtime();
     _session = null;
     storeSession(null);
     _writes = 'unknown'; _tokenSent = false;
@@ -378,6 +495,7 @@
       _token = null;
       _writes = 'unknown'; _tokenSent = false;
       paintBadge();
+      armRealtime();
       return { ok: true, code: res.status,
                session: { expires_at: j.expires_at, scopes: j.scopes, store_ids: j.store_ids },
                error: null };
@@ -1982,6 +2100,11 @@
     get status() { return _status; },
     get report() { return _report; },
     get base() { return base; },
+    // 'connecting' | 'live' | 'reconnecting' | 'polling' | 'paused' | 'stopped' | null.
+    // null means "not armed" -- no HWRealtime, no known scope, or off entirely (see
+    // armRealtime()'s own guard clause). shared/app-nav.js's session-chip indicator reads
+    // this to show "Live" / "Reconnecting" next to the write-gate badge.
+    get realtimeStatus() { return _rtStatus; },
     // ONLY THIS FILE HOLDS A REACT ROOT. It wraps ReactDOM.createRoot first, so
 
     // every sibling seam's identical wrapper never sees the call, its _root stays
@@ -2013,6 +2136,7 @@
       storeToken(_token);
       _writes = 'unknown'; _tokenSent = false;
       paintBadge();
+      armRealtime();
       return probeWrites();
     },
     clearToken: function () {
@@ -2020,6 +2144,7 @@
       storeToken(null);
       _writes = 'unknown'; _tokenSent = false;
       paintBadge();
+      stopRealtime();
       return probeWrites();
     },
     // D2: server-issued session login. `token_or_pin` is today's console
@@ -2099,5 +2224,5 @@
     }
   };
 
-  if (armed) { LITE ? loadLite() : load(); }
+  if (armed) { LITE ? loadLite() : load(); armRealtime(); }
 })();

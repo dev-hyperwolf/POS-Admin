@@ -1,0 +1,23 @@
+{
+  "shape": "MetrcReconVariance",
+  "record": {
+    "id": "mrv_00000002",
+    "licence_number": "C10-0000123-LIC",
+    "business_day": "2026-09-16",
+    "package_tag": "1A4060300002F5E000000123",
+    "batch_id": "bat_00000123",
+    "kind": "ledger_missing_in_metrc",
+    "severity": "high",
+    "local_quantity": 12,
+    "metrc_quantity": 10,
+    "delta": 2,
+    "detail": "Local ledger shows 12 units sold against this package; Metrc's last read shows only 10 consumed.",
+    "detected_at": "2026-09-17T07:00:03Z",
+    "status": "acknowledged",
+    "acknowledged_by": "per_000010",
+    "acknowledged_at": "2026-09-17T08:15:00Z",
+    "resolved_by": null,
+    "resolved_at": null,
+    "resolution_note": null
+  }
+}

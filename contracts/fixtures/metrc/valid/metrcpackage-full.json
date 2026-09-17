@@ -1,0 +1,18 @@
+{
+  "shape": "MetrcPackage",
+  "record": {
+    "tag": "1A4060300002F5E000000123",
+    "licence_number": "C10-0000123-LIC",
+    "item_name": "Blue Dream 1g Preroll",
+    "item_category": "Infused Preroll",
+    "quantity": 41.5,
+    "unit_of_measure": "Grams",
+    "packaged_date": "2026-08-30",
+    "is_active": true,
+    "is_finished": true,
+    "production_batch_number": "PB-2026-0091",
+    "location_name": "Main Vault",
+    "batch_id": "bat_00000123",
+    "last_modified": "2026-09-16T04:12:00Z"
+  }
+}

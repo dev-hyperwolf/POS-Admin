@@ -56,6 +56,11 @@
      call window.HW_WAIT.shortWait and hold no copy of their own. -->
 <script src="shared/hw-wait.js"></script>
 <script src="shared/hw-seam-dock.js"></script>
+<!-- Live-update transport (window.HWRealtime), "sockets as soon as possible" build,
+     2026-09-17. Must load BEFORE hw-live.js: hw-live.js calls HWRealtime.subscribe()
+     once it knows its own session/store scope. Pure transport, holds no token/session
+     of its own — see shared/hw-realtime.js's own header comment. -->
+<script src="shared/hw-realtime.js"></script>
 <script src="shared/hw-live.js"></script>
 <!-- @hyper-tech/contracts: the estate's enums, ids, money, time, error and event rules as
      window.HWContracts. Plain JS, IIFE, one global. See docs/BUILD-AGAINST-THE-SOURCE.md. -->

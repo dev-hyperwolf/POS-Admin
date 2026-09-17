@@ -1,0 +1,12 @@
+{
+  "shape": "MetrcReconVariance",
+  "record": {
+    "id": "mrv_00000004",
+    "licence_number": "C10-0000123-LIC",
+    "business_day": "2026-09-16",
+    "kind": "package_balance",
+    "severity": "critical",
+    "detected_at": "2026-09-17T07:00:03Z",
+    "status": "open"
+  }
+}

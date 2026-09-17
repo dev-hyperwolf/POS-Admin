@@ -349,3 +349,135 @@ test('sessionStorage.getItem throwing at load time does not break module load or
   const res = await HW_LIVE.login({ token: 'good-token', actor_label: 'Jamie' });
   assert.equal(res.ok, true);
 });
+
+// ── refuter finding #1: realtime re-arm on login, teardown on logout/401 ──
+//
+// `armed` (module-level, from OFF_KEY) gates armRealtime() as well as the
+// initial load(), so every test above sets OFF_KEY and never exercises the
+// wiring at all -- that is by design (see this file's header comment) for
+// the session-surface tests, but the realtime wiring itself needs `armed`
+// true to run. This harness variant leaves it on and stubs just enough
+// (a fake `window.HWRealtime`, `/api/state`, the fulfilment board, and
+// `/api/session/me`) for load()/armRealtime() to complete without a real
+// POS page underneath them -- no `window.HW`, no `window.THEMES`, so
+// paintBadge()/the window.HW setter stay no-ops the whole time (see
+// palette()'s own `if (!W.THEMES) return null` and paintBadge()'s own
+// `if (!_badge)` guard), which is what this test needs: only the realtime
+// seam, nothing else standing up.
+function fakeHWRealtime() {
+  const subs = [];
+  return {
+    subs,
+    supportsStreaming: true,
+    subscribe(opts) {
+      const handle = { opts, stopped: false, status: 'live' };
+      handle.stop = () => { handle.stopped = true; };
+      subs.push(handle);
+      return handle;
+    }
+  };
+}
+
+function meHandler(respond) {
+  return { match: (u) => u.endsWith('/api/session/me'), respond };
+}
+function stateHandler(respond) {
+  return { match: (u) => u.endsWith('/api/state'), respond };
+}
+function boardHandler(respond) {
+  return { match: (u) => u.includes('/api/fulfillment/'), respond };
+}
+
+function loadHwLiveArmed({ fetchHandlers = [], hwRealtime } = {}) {
+  const ls = fakeStorage();
+  const ss = fakeStorage();
+  // No OFF_KEY seeded -- `armed` stays true.
+  const listeners = {};
+  const windowObj = {
+    localStorage: ls,
+    sessionStorage: ss,
+    location: { origin: 'http://127.0.0.1:8812', search: '', pathname: '/', hash: '', reload() {} },
+    addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+    removeEventListener(type, fn) { if (listeners[type]) listeners[type] = listeners[type].filter((f) => f !== fn); },
+    dispatchEvent(evt) { (listeners[evt.type] || []).slice().forEach((fn) => fn(evt)); return true; },
+    HWRealtime: hwRealtime,
+    AbortController,
+  };
+  windowObj.CustomEvent = CustomEvent;
+  const fetchImplUsed = fakeFetch([
+    stateHandler({ status: 503 }),          // no real catalog here -- load() degrades to 'unreachable'
+    boardHandler({ status: 404 }),          // loadBoard() catches this and returns false
+    ...fetchHandlers,
+  ]);
+  const context = {
+    window: windowObj,
+    document: { currentScript: null },
+    fetch: fetchImplUsed,
+    CustomEvent,
+    URL,
+    AbortController,
+    performance,
+    setTimeout, clearTimeout, setInterval, clearInterval,
+    console
+  };
+  vm.createContext(context);
+  vm.runInContext(SRC, context, { filename: 'shared/hw-live.js' });
+  return { HW_LIVE: windowObj.HW_LIVE, ls, ss, fetch: fetchImplUsed, listeners, window: windowObj };
+}
+
+test('a successful login() re-arms a realtime subscription scoped to /api/session/me\'s store_ids', async () => {
+  const rt = fakeHWRealtime();
+  const fetchHandlers = [
+    loginHandler({ status: 200, body: GOOD_LOGIN_BODY }),
+    meHandler({ status: 200, body: { store_ids: ['corona'], entity_ids: [] } }),
+  ];
+  const { HW_LIVE } = loadHwLiveArmed({ hwRealtime: rt, fetchHandlers });
+
+  const res = await HW_LIVE.login({ token: 'good-token', actor_label: 'Jamie', store_id: 'corona' });
+  assert.equal(res.ok, true);
+  await new Promise((r) => setTimeout(r, 0));  // let armRealtime()'s /api/session/me chain settle
+  assert.equal(rt.subs.length, 1, 'login() must arm exactly one realtime subscription');
+  assert.deepEqual(rt.subs[0].opts.channels.slice().sort(),
+    ['inventory.store.corona', 'lp.store.corona', 'orders.store.corona', 'register.store.corona'].sort());
+  assert.equal(typeof rt.subs[0].opts.onUnauthenticated, 'function');
+});
+
+test('the realtime onUnauthenticated callback clears the session and fires hw-live:unauthenticated, and stops the subscription', async () => {
+  const rt = fakeHWRealtime();
+  const fetchHandlers = [
+    loginHandler({ status: 200, body: GOOD_LOGIN_BODY }),
+    meHandler({ status: 200, body: { store_ids: ['corona'], entity_ids: [] } }),
+  ];
+  const { HW_LIVE, window: win } = loadHwLiveArmed({ hwRealtime: rt, fetchHandlers });
+  await HW_LIVE.login({ token: 'good-token', actor_label: 'Jamie', store_id: 'corona' });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(rt.subs.length, 1);
+  const handle = rt.subs[0];
+
+  let unauthFired = 0;
+  win.addEventListener('hw-live:unauthenticated', () => { unauthFired++; });
+  handle.opts.onUnauthenticated();
+
+  assert.equal(HW_LIVE.session(), null, 'a dead realtime credential must clear the session, exactly like a 401 on a normal fetch');
+  assert.equal(unauthFired, 1);
+  assert.equal(handle.stopped, true, 'the subscription itself must be stopped, not left dangling');
+});
+
+test('logout() stops the armed realtime subscription (abort the reader) as part of clearing the session', async () => {
+  const rt = fakeHWRealtime();
+  const fetchHandlers = [
+    loginHandler({ status: 200, body: GOOD_LOGIN_BODY }),
+    meHandler({ status: 200, body: { store_ids: ['corona'], entity_ids: [] } }),
+    logoutHandler({ status: 200, body: {} }),
+  ];
+  const { HW_LIVE } = loadHwLiveArmed({ hwRealtime: rt, fetchHandlers });
+  await HW_LIVE.login({ token: 'good-token', actor_label: 'Jamie', store_id: 'corona' });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(rt.subs.length, 1);
+  const handle = rt.subs[0];
+  assert.equal(handle.stopped, false);
+
+  await HW_LIVE.logout();
+  assert.equal(handle.stopped, true);
+  assert.equal(HW_LIVE.session(), null);
+});
