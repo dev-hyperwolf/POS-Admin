@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HR Overview — Manager Inbox (Concept D)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* ── Hyperwolf house tokens, inlined from pos/tokens.jsx (LIGHT/DARK/SHARED) ── */
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentText:#FFD100;
+    --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+    --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+    --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg2);color:var(--ink);font-family:var(--fontSans);}
+.mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+
+/* Phone-first canvas: fluid full-bleed under ~520px, capped and centered
+   above it so tablet width reads as an intentional device column, not a
+   stretched phone layout. */
+.canvas{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);box-shadow:var(--shadowLg);display:flex;flex-direction:column;}
+@media (min-width: 700px){
+  body{padding:28px 0;}
+  .canvas{min-height:auto;border-radius:20px;overflow:hidden;border:1px solid var(--hairline2);}
+}
+
+.topbar{padding:12px 14px 10px;border-bottom:1px solid var(--hairline2);}
+.topbar-row1{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.h1{font-size:15.5px;font-weight:700;letter-spacing:-.01em;}
+.phase-badge{display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:999px;background:var(--infoSoft);color:var(--info);font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-left:6px;}
+.role-chip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;background:var(--surface3);border:1px solid var(--hairline2);font-size:10.5px;color:var(--inkDim);cursor:help;white-space:nowrap;}
+.role-chip .scope{font-family:var(--fontMono);background:var(--accentSoft);color:var(--accentText);border-radius:5px;padding:0 5px;font-size:10px;font-weight:800;}
+
+.entity-switch{display:flex;gap:4px;margin-top:9px;}
+.entity-switch button{flex:1;border:1px solid var(--hairline2);background:var(--surface);padding:6px 8px;border-radius:8px;font-size:11.5px;font-weight:600;color:var(--inkDim);cursor:pointer;font-family:var(--fontSans);}
+.entity-switch button.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+
+/* mini stat strip */
+.ministats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:10px 14px;border-bottom:1px solid var(--hairline2);background:var(--surface2);}
+.mstat{background:var(--surface);border:1px solid var(--hairline2);border-radius:10px;padding:7px 8px;}
+.mstat .v{font-family:var(--fontMono);font-size:16px;font-weight:600;line-height:1;}
+.mstat .l{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);margin-top:4px;}
+.mstat.tone-warn .v{color:var(--warnText);}
+.mstat.tone-bad .v{color:var(--bad);}
+.mstat.tone-info .v{color:var(--info);}
+
+/* folder tabs */
+.folders{display:flex;gap:6px;padding:9px 14px;overflow-x:auto;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.folder{flex:0 0 auto;display:flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--hairline2);background:var(--surface3);font-size:12px;font-weight:600;color:var(--inkDim);cursor:pointer;white-space:nowrap;}
+.folder.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.folder .badge{font-family:var(--fontMono);font-size:10.5px;font-weight:700;background:var(--badSoft);color:var(--bad);border-radius:999px;padding:0 6px;min-width:16px;text-align:center;}
+.folder.active .badge{background:rgba(255,255,255,.22);color:inherit;}
+
+.route-bar{padding:6px 14px;font-family:var(--fontMono);font-size:9.5px;color:var(--inkMute);background:var(--surface2);border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:6px;}
+.route-bar .verb{color:var(--info);font-weight:700;}
+
+/* list */
+.list{flex:1;overflow-y:auto;}
+.section-label{padding:10px 14px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
+.item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--hairline);cursor:pointer;}
+.item:hover, .item.focused{background:var(--surface3);}
+.item.focused{box-shadow:inset 3px 0 0 var(--info);}
+.item .ic{flex:0 0 auto;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.item .ic.incident{background:var(--badSoft);color:var(--bad);}
+.item .ic.calloff{background:var(--warnSoft);color:var(--warnText);}
+.item .ic.doc{background:var(--infoSoft);color:var(--info);}
+.item .ic.writeup{background:var(--neutralSoft);color:var(--inkDim);}
+.item .body{flex:1;min-width:0;}
+.item .row1{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.item .who{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.item .when{font-size:10px;color:var(--inkMute);font-family:var(--fontMono);flex:0 0 auto;}
+.item .desc{font-size:12px;color:var(--inkDim);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.item .metarow{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.triage{display:inline-flex;align-items:center;height:19px;padding:0 8px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;cursor:pointer;border:1px solid transparent;}
+.triage.new{background:var(--infoSoft);color:var(--info);}
+.triage.seen{background:var(--neutralSoft);color:var(--inkDim);}
+.triage.waiting{background:var(--warnSoft);color:var(--warnText);}
+.triage.done{background:var(--goodSoft);color:var(--good);}
+.m4tag{display:inline-flex;align-items:center;height:17px;padding:0 6px;border-radius:5px;background:var(--neutralSoft);color:var(--inkMute);font-size:8.5px;font-weight:800;letter-spacing:.05em;font-family:var(--fontMono);}
+.empty-list{padding:36px 20px;text-align:center;color:var(--inkFaint);font-size:12.5px;}
+
+/* needs-a-person cards inline in list */
+.np-item{margin:8px 14px;border-radius:12px;border:1px dashed var(--hairline3);background:var(--surface);padding:11px 12px;}
+.np-item .head{display:flex;justify-content:space-between;align-items:center;}
+.np-item .name{font-size:12.5px;font-weight:700;}
+.np-item .desc{font-size:11.5px;color:var(--inkDim);margin-top:4px;line-height:1.4;}
+.np-item button{margin-top:8px;width:100%;height:32px;border-radius:8px;border:1px solid var(--hairline3);background:var(--surface3);color:var(--inkFaint);font-size:12px;font-weight:700;font-family:var(--fontSans);cursor:not-allowed;}
+
+/* keyboard footer */
+.kbfooter{padding:9px 14px;border-top:1px solid var(--hairline2);background:var(--surface2);display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--inkMute);}
+.kbfooter kbd{font-family:var(--fontMono);background:var(--surface);border:1px solid var(--hairline3);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--ink);}
+
+.route-foot{padding:8px 14px 14px;font-size:10px;color:var(--inkFaint);text-align:center;}
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <div class="topbar">
+    <div class="topbar-row1">
+      <div class="h1">HR Inbox <span class="phase-badge">M1</span></div>
+      <span class="role-chip" title="Server-side scope. Restricted fields are never fetched by this screen's route.">
+        <span class="scope">hr:read</span>
+      </span>
+    </div>
+    <div style="font-size:10.5px;color:var(--inkMute);margin-top:2px;">Manager Inbox — triage in one hand. hides SSN, DL, passport, home address, emergency contact.</div>
+    <div class="entity-switch" id="entitySwitch">
+      <button class="active" data-entity="all">All</button>
+      <button data-entity="highest-craft">Highest Craft</button>
+      <button data-entity="circle-city">Circle City</button>
+    </div>
+  </div>
+
+  <div class="ministats">
+    <div class="mstat tone-info"><div class="v mono" id="mActive">–</div><div class="l">Active</div></div>
+    <div class="mstat tone-warn"><div class="v mono" id="mExpiring">–</div><div class="l">Docs ≤30d</div></div>
+    <div class="mstat tone-bad"><div class="v mono" id="mIncidents">–</div><div class="l">Open inc.</div></div>
+    <div class="mstat"><div class="v mono" id="mCalloffs">–</div><div class="l">Call‑offs</div></div>
+  </div>
+
+  <div class="folders" id="folders">
+    <div class="folder active" data-folder="all">Inbox <span class="badge" id="bAll">0</span></div>
+    <div class="folder" data-folder="needs">Needs you <span class="badge" id="bNeeds">0</span></div>
+    <div class="folder" data-folder="incident">Incidents <span class="badge" id="bIncident">0</span></div>
+    <div class="folder" data-folder="calloff">Call‑offs <span class="badge" id="bCalloff">0</span></div>
+    <div class="folder" data-folder="doc">Expiring docs <span class="badge" id="bDoc">0</span></div>
+  </div>
+
+  <div class="route-bar" id="routeBar"><span class="verb">GET</span> /api/hr/incidents · /api/hr/calloffs · /api/hr/compliance/expiring?days=30</div>
+
+  <div class="list" id="list" tabindex="0"></div>
+
+  <div class="kbfooter">
+    <span><kbd>j</kbd>/<kbd>k</kbd> move</span>
+    <span><kbd>s</kbd> seen</span>
+    <span><kbd>w</kbd> waiting</span>
+    <span><kbd>d</kbd> done</span>
+    <span><kbd>1‑5</kbd> folder</span>
+  </div>
+  <div class="route-foot">Data: qa/fixtures/hr/{employees,incidents,calloffs,documents}.json — synthetic, no real PII. Triage state is a local demo only, nothing is written (M1 is GET‑only).</div>
+</div>
+
+<script>
+const TODAY = new Date('2026-09-16T00:00:00Z');
+
+const EMPLOYEES = [
+  {id:'rec_emp_001', name:'Ava Torres',   entity:'highest-craft', store:'Highest Craft Store'},
+  {id:'rec_emp_002', name:'Marcus Webb',  entity:'circle-city',   store:'Circle City Store'},
+  {id:'rec_emp_003', name:'Priya Nair',   entity:'highest-craft', store:'Highest Craft Store'},
+  {id:'rec_emp_004', name:'Ethan Cole',   entity:'circle-city',   store:'Circle City Store'},
+  {id:'rec_emp_005', name:'Sofia Reyes',  entity:'highest-craft', store:'Highest Craft Store'},
+  {id:'rec_emp_006', name:'Diego Marin',  entity:'circle-city',   store:'Circle City Store'},
+  {id:'rec_emp_007', name:'Nadia Farouk', entity:'highest-craft', store:'Highest Craft Store'},
+  {id:'rec_emp_008', name:'Leo Bianchi',  entity:'circle-city',   store:'Circle City Store'},
+  {id:'rec_emp_009', name:'Grace Kim',    entity:'highest-craft', store:'Highest Craft Store'},
+  {id:'rec_emp_010', name:'Owen Patel',   entity:'circle-city',   store:'Circle City Store'},
+  {id:'rec_emp_011', name:'Isla Novak',   entity:'highest-craft', store:'Highest Craft Store'},
+  {id:'rec_emp_012', name:'Tariq Rahman', entity:'circle-city',   store:'Circle City Store'},
+];
+const empById = Object.fromEntries(EMPLOYEES.map(e => [e.id, e]));
+const activeCount = { all: EMPLOYEES.filter(e=>e.status!=='terminated').length };
+
+const DOCS = [
+  {id:'rec_doc_002', person:'rec_emp_002', type:'cannabis_handler_permit', renewal:'2026-09-30', stale:'Expired', flag:true},
+  {id:'rec_doc_006', person:'rec_emp_008', type:'cannabis_handler_permit', renewal:'2026-09-25', stale:'Current'},
+  {id:'rec_doc_008', person:'rec_emp_010', type:'food_handler_card',       renewal:'2026-09-18', stale:'Expired', flag:true},
+];
+
+const INCIDENTS = [
+  {id:'rec_inc_001', person:'rec_emp_001', type:'customer_complaint',     severity:'medium', status:'open',   date:'2026-09-02', evidence:false},
+  {id:'rec_inc_002', person:'rec_emp_002', type:'wrong_order_items',      severity:'high',   status:'closed', date:'2026-09-03', evidence:true},
+  {id:'rec_inc_003', person:'rec_emp_003', type:'late_delivery',          severity:'low',    status:'open',   date:'2026-09-04', evidence:false},
+  {id:'rec_inc_004', person:'rec_emp_004', type:'poor_customer_service',  severity:'medium', status:'closed', date:'2026-09-05', evidence:false},
+  {id:'rec_inc_005', person:'rec_emp_005', type:'over_under_charged',     severity:'high',   status:'open',   date:'2026-09-06', evidence:false},
+  {id:'rec_inc_006', person:'rec_emp_006', type:'inappropriate_behavior', severity:'low',    status:'closed', date:'2026-09-07', evidence:false},
+];
+
+const CALLOFFS = [
+  {id:'rec_co_001', person:'rec_emp_001', type:'late',            date:'2026-09-03'},
+  {id:'rec_co_002', person:'rec_emp_002', type:'no_call_no_show', date:'2026-09-04'},
+  {id:'rec_co_003', person:'rec_emp_003', type:'sick',            date:'2026-09-05'},
+  {id:'rec_co_004', person:'rec_emp_004', type:'absent',          date:'2026-09-06'},
+  {id:'rec_co_005', person:'rec_emp_005', type:'late',            date:'2026-09-07'},
+  {id:'rec_co_006', person:'rec_emp_006', type:'no_call_no_show', date:'2026-09-08'},
+];
+
+// Same server-side logic as Concept C — RENEWAL_DATE only, never the stale
+// Table A STATUS column (wmdemo/hr/airtable_read.py:compute_doc_status).
+function computeDocStatus(renewalIso, days){
+  if (!renewalIso) return 'missing';
+  const renewal = new Date(renewalIso + 'T00:00:00Z');
+  if (renewal < TODAY) return 'expired';
+  const horizon = new Date(TODAY.getTime() + days*86400000);
+  if (renewal <= horizon) return 'expiring_soon';
+  return 'current';
+}
+function daysOut(iso){ return Math.round((new Date(iso+'T00:00:00Z') - TODAY)/86400000); }
+
+// Build unified inbox items
+function buildItems(){
+  const items = [];
+  INCIDENTS.forEach(i => items.push({
+    kind:'incident', id:i.id, person:i.person, date:i.date,
+    title: i.type.replace(/_/g,' '),
+    sub: `${i.severity} severity · ${i.status}`,
+    needsPerson: i.evidence && i.status==='closed' ? {label:'Escalate to write-up', desc:`Has evidence, no write-up yet (record ${i.id}).`} : null,
+    triage: i.status==='open' ? 'new' : 'done',
+  }));
+  CALLOFFS.forEach(c => items.push({
+    kind:'calloff', id:c.id, person:c.person, date:c.date,
+    title: c.type.replace(/_/g,' '),
+    sub: 'pending review',
+    triage: 'new',
+  }));
+  DOCS.forEach(d => {
+    const status = computeDocStatus(d.renewal, 30);
+    items.push({
+      kind:'doc', id:d.id, person:d.person, date:d.renewal,
+      title: d.type.replace(/_/g,' '),
+      sub: d.flag ? `renews in ${daysOut(d.renewal)}d — Table A says "${d.stale}" (stale, ignored)` : `renews in ${daysOut(d.renewal)}d`,
+      triage: status==='expired' ? 'waiting' : 'new',
+      flag: d.flag,
+    });
+  });
+  return items;
+}
+const ITEMS = buildItems();
+
+const NEEDS_PERSON = [
+  {name:'Approve & send write-up', desc:'Draft ready for Marcus Webb — requires manager PIN step-up, never cached.', person:'rec_emp_002'},
+  {name:'Escalate to write-up', desc:'rec_inc_002 has evidence, closed, no write-up filed yet.', person:'rec_emp_002'},
+  {name:'Reveal SSN', desc:'Admin-only, PIN every call. Not in any M1 payload.', person:null},
+];
+
+let currentEntity = 'all';
+let currentFolder = 'all';
+let focusedIdx = 0;
+const triageState = {}; // id -> triage override (in-memory demo only)
+
+function visibleItems(){
+  let list = ITEMS.filter(it => currentEntity==='all' || empById[it.person].entity===currentEntity);
+  if (currentFolder === 'incident') list = list.filter(i=>i.kind==='incident');
+  else if (currentFolder === 'calloff') list = list.filter(i=>i.kind==='calloff');
+  else if (currentFolder === 'doc') list = list.filter(i=>i.kind==='doc');
+  else if (currentFolder === 'needs') return []; // rendered separately
+  return list.map(it => ({...it, triage: triageState[it.id] || it.triage}));
+}
+
+function iconFor(kind){ return {incident:'!', calloff:'C', doc:'D', writeup:'W'}[kind]; }
+
+function renderMiniStats(){
+  const emps = EMPLOYEES.filter(e => currentEntity==='all' || e.entity===currentEntity);
+  document.getElementById('mActive').textContent = emps.filter(e=>e.status!=='terminated' && e.status!=='on_leave').length;
+  const docs = DOCS.filter(d => currentEntity==='all' || empById[d.person].entity===currentEntity);
+  document.getElementById('mExpiring').textContent = docs.filter(d=>computeDocStatus(d.renewal,30)==='expiring_soon').length;
+  const incs = INCIDENTS.filter(i => (currentEntity==='all'||empById[i.person].entity===currentEntity) && i.status==='open');
+  document.getElementById('mIncidents').textContent = incs.length;
+  const cos = CALLOFFS.filter(c => (currentEntity==='all'||empById[c.person].entity===currentEntity) && c.date==='2026-09-08');
+  document.getElementById('mCalloffs').textContent = cos.length;
+}
+
+function renderFolderBadges(){
+  const all = ITEMS.filter(it => currentEntity==='all' || empById[it.person].entity===currentEntity);
+  document.getElementById('bAll').textContent = all.length;
+  document.getElementById('bNeeds').textContent = NEEDS_PERSON.filter(n => currentEntity==='all' || !n.person || empById[n.person].entity===currentEntity).length;
+  document.getElementById('bIncident').textContent = all.filter(i=>i.kind==='incident').length;
+  document.getElementById('bCalloff').textContent = all.filter(i=>i.kind==='calloff').length;
+  document.getElementById('bDoc').textContent = all.filter(i=>i.kind==='doc').length;
+}
+
+function cycleTriage(t){
+  const order = ['new','seen','waiting','done'];
+  return order[(order.indexOf(t)+1) % order.length];
+}
+
+function renderList(){
+  const listEl = document.getElementById('list');
+  listEl.innerHTML = '';
+
+  if (currentFolder === 'needs'){
+    const rows = NEEDS_PERSON.filter(n => currentEntity==='all' || !n.person || empById[n.person].entity===currentEntity);
+    listEl.innerHTML = '<div class="section-label">Needs a person — M4, not built in M1</div>';
+    rows.forEach(n => {
+      const div = document.createElement('div');
+      div.className = 'np-item';
+      div.innerHTML = `<div class="head"><span class="name">${n.name}</span><span class="m4tag">M4</span></div><div class="desc">${n.desc}</div><button disabled>${n.name.split(' ')[0]}</button>`;
+      listEl.appendChild(div);
+    });
+    if (!rows.length) listEl.innerHTML += '<div class="empty-list">Nothing needs a person in this entity.</div>';
+    return;
+  }
+
+  const items = visibleItems().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  if (!items.length){ listEl.innerHTML = '<div class="empty-list">Inbox zero for this filter.</div>'; return; }
+
+  items.forEach((it, idx) => {
+    const emp = empById[it.person];
+    const row = document.createElement('div');
+    row.className = 'item' + (idx===focusedIdx ? ' focused' : '');
+    row.dataset.id = it.id;
+    row.innerHTML = `
+      <div class="ic ${it.kind}">${iconFor(it.kind)}</div>
+      <div class="body">
+        <div class="row1"><span class="who">${emp.name}</span><span class="when">${it.date || '—'}</span></div>
+        <div class="desc">${it.title}${it.flag ? ' · <span style="color:var(--warnText);font-weight:600;">flagged: stale field disagrees</span>' : ''}</div>
+        <div class="metarow">
+          <span class="triage ${it.triage}" data-id="${it.id}">${it.triage}</span>
+          <span style="font-size:9.5px;color:var(--inkMute);">${emp.store}</span>
+          ${it.needsPerson ? '<span class="m4tag">M4</span>' : ''}
+        </div>
+      </div>`;
+    listEl.appendChild(row);
+  });
+}
+
+function renderAll(){
+  renderMiniStats();
+  renderFolderBadges();
+  renderList();
+}
+
+document.getElementById('entitySwitch').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-entity]');
+  if (!btn) return;
+  currentEntity = btn.dataset.entity;
+  [...document.querySelectorAll('#entitySwitch button')].forEach(b=>b.classList.toggle('active', b===btn));
+  focusedIdx = 0;
+  renderAll();
+});
+
+document.getElementById('folders').addEventListener('click', e => {
+  const f = e.target.closest('.folder');
+  if (!f) return;
+  currentFolder = f.dataset.folder;
+  [...document.querySelectorAll('.folder')].forEach(x=>x.classList.toggle('active', x===f));
+  focusedIdx = 0;
+  renderList();
+});
+
+document.getElementById('list').addEventListener('click', e => {
+  const t = e.target.closest('.triage');
+  if (t){ triageState[t.dataset.id] = cycleTriage(t.textContent.trim()); renderList(); }
+});
+
+document.addEventListener('keydown', e => {
+  const items = visibleItems();
+  if (e.key === 'j'){ focusedIdx = Math.min(focusedIdx+1, Math.max(items.length-1,0)); renderList(); }
+  else if (e.key === 'k'){ focusedIdx = Math.max(focusedIdx-1, 0); renderList(); }
+  else if (['s','w','d'].includes(e.key)){
+    const it = items[focusedIdx]; if (!it) return;
+    triageState[it.id] = {s:'seen', w:'waiting', d:'done'}[e.key];
+    renderList();
+  } else if (['1','2','3','4','5'].includes(e.key)){
+    const folders = ['all','needs','incident','calloff','doc'];
+    const f = folders[+e.key - 1];
+    document.querySelector(`.folder[data-folder="${f}"]`)?.click();
+  }
+});
+
+renderAll();
+</script>
+</body>
+</html>

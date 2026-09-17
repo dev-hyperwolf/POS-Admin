@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HR Overview — Concept B: People First</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Tokens inlined from pos/tokens.jsx (LIGHT/DARK/SHARED) and shared/hd-ui.jsx's visual
+   language (pill, stat tile, HDTable/TH/TD, micro-label). No build step: opens from disk. */
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --scrim:rgba(20,18,12,.42);
+}
+[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --scrim:rgba(0,0,0,.62);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+  padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.theme-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+  font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;margin-left:auto;}
+.theme-btn:hover{background:var(--railHover);}
+.intro{max-width:1320px;margin:0 auto;padding:16px 22px 0;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro .card{padding:16px 18px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+code,.mono{font-family:var(--fontMono);}
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+
+.layout{max-width:1320px;margin:16px auto 70px;padding:0 22px;display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
+@media (max-width:1080px){.layout{grid-template-columns:1fr;}}
+
+/* filter bar */
+.filterbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;margin-bottom:12px;}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r999);padding:3px;gap:2px;}
+.seg button{appearance:none;border:none;background:transparent;font-family:var(--fontSans);font-size:12px;font-weight:600;
+  color:var(--inkDim);padding:6px 12px;border-radius:var(--r999);cursor:pointer;white-space:nowrap;}
+.seg button.on{background:var(--ink);color:var(--surface);}
+.sel{height:32px;padding:0 10px;border-radius:var(--r8);border:1px solid var(--hairline3);background:var(--field);
+  font-family:var(--fontSans);font-size:12.5px;color:var(--ink);cursor:pointer;}
+.search{height:32px;padding:0 12px;border-radius:var(--r8);border:1px solid var(--hairline3);background:var(--field);
+  font-family:var(--fontSans);font-size:12.5px;color:var(--ink);min-width:180px;}
+.count-tag{margin-left:auto;font-size:11.5px;color:var(--inkMute);font-family:var(--fontMono);}
+
+/* table */
+.tablewrap{overflow-x:auto;}
+table.people{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;font-family:var(--fontSans);}
+table.people th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);
+  padding:9px 12px;border-bottom:1px solid var(--hairline2);white-space:nowrap;position:sticky;top:0;background:var(--surface);}
+table.people td{padding:9px 12px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
+table.people tbody tr{cursor:pointer;}
+table.people tbody tr:hover{background:var(--surface2);}
+table.people tbody tr.sel-row{background:var(--highlightSoft);}
+.namecell{font-weight:600;}
+.namecell .sub{display:block;font-weight:400;font-size:11px;color:var(--inkMute);margin-top:1px;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:10.5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.mono{font-family:var(--fontMono);}
+.dim{color:var(--inkMute);}
+
+/* right rail */
+.rail{display:flex;flex-direction:column;gap:12px;position:sticky;top:76px;}
+.rail-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);padding:13px 14px;}
+.rail-card h4{margin:0 0 10px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
+.stat-mini{display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--hairline);}
+.stat-mini:last-child{border-bottom:none;}
+.stat-mini .l{font-size:12px;color:var(--ink2);}
+.stat-mini .v{font-family:var(--fontMono);font-weight:700;font-size:14px;}
+.route-tag{display:block;margin-top:8px;font-family:var(--fontMono);font-size:10px;color:var(--info);background:var(--infoSoft);padding:2px 6px;border-radius:6px;width:fit-content;}
+.role-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 10px 5px 4px;border-radius:var(--r999);
+  background:var(--surface2);border:1px solid var(--hairline2);font-size:12px;position:relative;cursor:help;}
+.role-chip .dot{width:20px;height:20px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);
+  display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:9px;font-family:var(--fontMono);}
+.role-pop{display:none;position:absolute;top:32px;left:0;width:270px;background:var(--surface);border:1px solid var(--hairline2);
+  border-radius:var(--r10);box-shadow:var(--shadowLg);padding:11px 12px;z-index:80;font-size:11.5px;line-height:1.55;color:var(--ink2);text-align:left;}
+.role-chip:hover .role-pop, .role-chip:focus-within .role-pop{display:block;}
+.role-pop .yes{color:var(--good);font-weight:600;}
+.role-pop .no{color:var(--bad);font-weight:600;}
+.need-item{border-left:3px solid var(--warn);background:var(--surface2);border-radius:var(--r10);padding:9px 11px;margin-bottom:8px;}
+.need-item:last-child{margin-bottom:0;}
+.need-item .kind{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--warnText);}
+.need-item .who{font-size:12.5px;font-weight:600;margin-top:3px;}
+.need-item .what{font-size:11.5px;color:var(--inkDim);margin-top:2px;line-height:1.5;}
+.need-item .row{display:flex;align-items:center;gap:6px;margin-top:8px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:26px;padding:0 9px;
+  font-size:11px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+  white-space:nowrap;border:1px solid var(--hairline3);background:var(--surface);color:var(--ink);}
+.btn[disabled]{opacity:.5;cursor:not-allowed;}
+.m4tag{font-size:9px;font-weight:700;letter-spacing:.05em;padding:2px 5px;border-radius:6px;background:var(--neutralSoft);color:var(--ink2);}
+.fix-note{background:var(--goodSoft);border:1px solid var(--good);border-radius:var(--r10);padding:10px 11px;font-size:11.5px;color:var(--ink2);line-height:1.6;}
+.fix-note b{color:var(--good);}
+.fix-note .old{color:var(--bad);text-decoration:line-through;font-family:var(--fontMono);}
+.fix-note .new{color:var(--good);font-weight:700;font-family:var(--fontMono);}
+
+/* detail preview under the table when a row is selected */
+.detail-pop{margin-top:12px;padding:14px 16px;}
+.detail-pop .dh{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.detail-pop .dh .n{font-size:14.5px;font-weight:700;flex:1;}
+.detail-pop .x{appearance:none;border:none;background:var(--surface3);width:26px;height:26px;border-radius:99px;cursor:pointer;color:var(--inkDim);}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;}
+.dfield .l{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
+.dfield .v{margin-top:2px;font-size:13px;color:var(--ink);}
+.hidden-note{margin-top:12px;padding-top:10px;border-top:1px solid var(--hairline);font-size:11px;color:var(--inkMute);}
+
+@media (max-width:640px){
+  .doc-head{padding:11px 14px;}
+  .intro,.layout{padding-left:12px;padding-right:12px;}
+  .filterbar{padding:10px;}
+}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>HR Overview — Concept B: People First</h1>
+    <div class="sub">Track 3 · M1 read-only · reads <b>GET /api/hr/employees</b>, <b>/compliance/expiring</b>, <b>/incidents</b>, <b>/calloffs</b></div>
+  </div>
+  <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+</div>
+
+<div class="intro">
+  <div class="card">
+    <div class="eyebrow">The idea</div>
+    <h2>Overview <em>is</em> the roster. If HR opens this screen wanting to know "who," they should already be looking at rows of people, not a strip of numbers they have to click through.</h2>
+    <p>The table is the screen: name, role, entity, store, doc status, last incident, last call-off — one row per person, filterable at the top. Everything the Day Board concept turns into cards (headline counts, the escalation queue, the role/PII explainer) becomes a right rail here instead: present, but secondary to the roster.</p>
+    <p class="small-note">Every row comes from <code>qa/fixtures/hr/employees.json</code> joined against <code>incidents.json</code>/<code>calloffs.json</code>/Table A — the same join <code>GET /api/hr/employees</code> plus per-employee detail calls would do. Doc status is a computed flag (current/expiring/expired/missing), never the document itself. No SSN, DL, passport, address or emergency-contact field appears anywhere on this page — those never leave the server for this route, at any role.</p>
+  </div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="card filterbar">
+      <div class="seg" id="entitySeg">
+        <button class="on" data-entity="all">All entities</button>
+        <button data-entity="highest-craft">Highest Craft</button>
+        <button data-entity="circle-city">Circle City</button>
+      </div>
+      <select class="sel" id="statusSel">
+        <option value="all">All statuses</option>
+        <option value="active">Active</option>
+        <option value="on_leave">On leave</option>
+        <option value="terminated">Terminated</option>
+      </select>
+      <select class="sel" id="docSel">
+        <option value="all">Any doc status</option>
+        <option value="expired">Expired</option>
+        <option value="expiring_soon">Expiring soon</option>
+        <option value="current">Current</option>
+        <option value="missing">No docs on file</option>
+      </select>
+      <input class="search" id="searchBox" type="text" placeholder="Search name…">
+      <span class="count-tag" id="countTag"></span>
+    </div>
+
+    <div class="card">
+      <div class="tablewrap">
+        <table class="people">
+          <thead>
+            <tr>
+              <th>Name</th><th>Role</th><th>Entity</th><th>Store</th><th>Doc status</th><th>Last incident</th><th>Last call-off</th>
+            </tr>
+          </thead>
+          <tbody id="peopleBody"></tbody>
+        </table>
+      </div>
+      <div id="detailPop" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="rail-card">
+      <h4>Role &amp; visibility</h4>
+      <div class="role-chip" tabindex="0">
+        <span class="dot">HR</span> <b class="mono">hr:read</b>
+        <div class="role-pop">
+          <div><b>What this scope sees on this screen</b></div>
+          <div style="margin-top:6px;"><span class="yes">Visible</span> — name, role, entity, store, doc status flags, incident/call-off summaries.</div>
+          <div style="margin-top:4px;"><span class="no">Never returned</span> — SSN, DL, passport, home address, emergency contact. Excluded by construction in the adapter, not filtered after fetch — not even for admin, on this route.</div>
+          <div style="margin-top:4px;"><span class="no">Hidden here</span> — email/phone (internal-class): detail view only, not this table.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail-card">
+      <h4>Headline counts</h4>
+      <div id="statsMini"></div>
+    </div>
+
+    <div class="rail-card">
+      <h4>Needs a person</h4>
+      <div id="needsList"></div>
+      <div class="small-note" style="margin-top:8px;">M1 is read-only — every action above is disabled and tagged <span class="m4tag">M4</span>.</div>
+    </div>
+
+    <div class="rail-card">
+      <h4>Doc-expiry fix, live</h4>
+      <div class="fix-note" id="fixNote"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Same fixture-derived, contract-shaped data as Concept A — see that file's header comment
+   for provenance (qa/fixtures/hr/*.json, resolved through wmdemo/hr/airtable_read.py's field
+   maps to the names the client actually receives). */
+const EMPLOYEES = [
+  {person_id:'rec_emp_001', entity_id:'highest-craft', display_name:'Ava Torres', status:'active', title:['budtender'], location:'Highest Craft Store'},
+  {person_id:'rec_emp_002', entity_id:'circle-city',   display_name:'Marcus Webb', status:'active', title:['budtender'], location:'Circle City Store'},
+  {person_id:'rec_emp_003', entity_id:'highest-craft', display_name:'Priya Nair', status:'active', title:['shift_lead'], location:'Highest Craft Store'},
+  {person_id:'rec_emp_004', entity_id:'circle-city',   display_name:'Ethan Cole', status:'active', title:['driver'], location:'Circle City Store'},
+  {person_id:'rec_emp_005', entity_id:'highest-craft', display_name:'Sofia Reyes', status:'active', title:['budtender'], location:'Highest Craft Store'},
+  {person_id:'rec_emp_006', entity_id:'circle-city',   display_name:'Diego Marin', status:'active', title:['driver'], location:'Circle City Store'},
+  {person_id:'rec_emp_007', entity_id:'highest-craft', display_name:'Nadia Farouk', status:'on_leave', title:['manager'], location:'Highest Craft Store'},
+  {person_id:'rec_emp_008', entity_id:'circle-city',   display_name:'Leo Bianchi', status:'active', title:['budtender'], location:'Circle City Store'},
+  {person_id:'rec_emp_009', entity_id:'highest-craft', display_name:'Grace Kim', status:'active', title:['shift_lead'], location:'Highest Craft Store'},
+  {person_id:'rec_emp_010', entity_id:'circle-city',   display_name:'Owen Patel', status:'active', title:['driver'], location:'Circle City Store'},
+  {person_id:'rec_emp_011', entity_id:'highest-craft', display_name:'Isla Novak', status:'active', title:['budtender'], location:'Highest Craft Store'},
+  {person_id:'rec_emp_012', entity_id:'circle-city',   display_name:'Tariq Rahman', status:'terminated', title:['manager'], location:'Circle City Store'},
+];
+const DOCS = [
+  {id:'rec_doc_001', person_id:'rec_emp_001', doc_type:'food_handler_card', renewal_date:'2026-08-01', table_a_status:'Current'},
+  {id:'rec_doc_002', person_id:'rec_emp_002', doc_type:'cannabis_handler_permit', renewal_date:'2026-09-30', table_a_status:'Expired'},
+  {id:'rec_doc_003', person_id:'rec_emp_003', doc_type:'drivers_license', renewal_date:'2027-06-01', table_a_status:'Expired'},
+  {id:'rec_doc_004', person_id:'rec_emp_004', doc_type:'vehicle_insurance', renewal_date:null, table_a_status:'Current'},
+  {id:'rec_doc_005', person_id:'rec_emp_007', doc_type:'food_handler_card', renewal_date:'2026-07-15', table_a_status:'Current'},
+  {id:'rec_doc_006', person_id:'rec_emp_008', doc_type:'cannabis_handler_permit', renewal_date:'2026-09-25', table_a_status:'Current'},
+  {id:'rec_doc_007', person_id:'rec_emp_009', doc_type:'drivers_license', renewal_date:'2028-01-01', table_a_status:'Current'},
+  {id:'rec_doc_008', person_id:'rec_emp_010', doc_type:'food_handler_card', renewal_date:'2026-09-18', table_a_status:'Expired'},
+];
+const INCIDENTS = [
+  {id:'rec_inc_001', person_id:'rec_emp_001', type:'customer_complaint', severity:'medium', status:'open', created_at:'2026-09-02', escalate_to_writeup:false},
+  {id:'rec_inc_002', person_id:'rec_emp_002', type:'wrong_order_items', severity:'high', status:'closed', created_at:'2026-09-03', escalate_to_writeup:false},
+  {id:'rec_inc_003', person_id:'rec_emp_003', type:'late_delivery', severity:'low', status:'open', created_at:'2026-09-04', escalate_to_writeup:true},
+  {id:'rec_inc_004', person_id:'rec_emp_004', type:'poor_customer_service', severity:'medium', status:'closed', created_at:'2026-09-05', escalate_to_writeup:false},
+  {id:'rec_inc_005', person_id:'rec_emp_005', type:'over_under_charged', severity:'high', status:'open', created_at:'2026-09-06', escalate_to_writeup:false},
+  {id:'rec_inc_006', person_id:'rec_emp_006', type:'inappropriate_behavior', severity:'low', status:'closed', created_at:'2026-09-07', escalate_to_writeup:false},
+];
+const CALLOFFS = [
+  {id:'rec_co_001', person_id:'rec_emp_001', type:'late', reason:'personal', status:'pending_review', created_at:'2026-09-03'},
+  {id:'rec_co_002', person_id:'rec_emp_002', type:'no_call_no_show', reason:'car_trouble', status:'pending_review', created_at:'2026-09-04'},
+  {id:'rec_co_003', person_id:'rec_emp_003', type:'sick', reason:'appointment', status:'pending_review', created_at:'2026-09-05'},
+  {id:'rec_co_004', person_id:'rec_emp_004', type:'absent', reason:'sick', status:'pending_review', created_at:'2026-09-06'},
+  {id:'rec_co_005', person_id:'rec_emp_005', type:'late', reason:'personal', status:'pending_review', created_at:'2026-09-07'},
+  {id:'rec_co_006', person_id:'rec_emp_006', type:'no_call_no_show', reason:'car_trouble', status:'pending_review', created_at:'2026-09-08'},
+];
+const TODAY = '2026-09-16';
+const FIXTURE_ASOF = '2026-09-08';
+
+function computeDocStatus(renewalISO, days, now){
+  if(!renewalISO) return 'missing';
+  const renewal = new Date(renewalISO+'T00:00:00Z');
+  const nowD = new Date(now+'T00:00:00Z');
+  const horizon = new Date(nowD.getTime() + days*86400000);
+  if(renewal < nowD) return 'expired';
+  if(renewal <= horizon) return 'expiring_soon';
+  return 'current';
+}
+function findEmp(id){ return EMPLOYEES.find(e=>e.person_id===id); }
+function lastFor(list, id){
+  const rows = list.filter(r=>r.person_id===id).sort((a,b)=> a.created_at < b.created_at ? 1 : -1);
+  return rows[0] || null;
+}
+function docFlagFor(id){
+  const d = DOCS.find(d=>d.person_id===id);
+  if(!d) return {status:'missing', label:'No docs on file'};
+  const status = computeDocStatus(d.renewal_date, 30, TODAY);
+  const labels = {current:'Current', expiring_soon:'Expiring soon', expired:'Expired', missing:'No docs on file'};
+  return {status, label:labels[status], doc_type:d.doc_type, renewal_date:d.renewal_date};
+}
+
+let filters = {entity:'all', status:'all', doc:'all', q:''};
+let selectedId = null;
+
+function pillFor(status){
+  const map = {expired:'pill-bad', expiring_soon:'pill-warn', current:'pill-good', missing:'pill-neutral',
+    open:'pill-bad', closed:'pill-neutral', pending_review:'pill-warn'};
+  return map[status] || 'pill-neutral';
+}
+
+function rowsFiltered(){
+  return EMPLOYEES.filter(e => {
+    if(filters.entity!=='all' && e.entity_id!==filters.entity) return false;
+    if(filters.status!=='all' && e.status!==filters.status) return false;
+    const doc = docFlagFor(e.person_id);
+    if(filters.doc!=='all' && doc.status!==filters.doc) return false;
+    if(filters.q && !e.display_name.toLowerCase().includes(filters.q.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function render(){
+  const rows = rowsFiltered();
+  document.getElementById('countTag').textContent = `${rows.length} of ${EMPLOYEES.length} people · GET /api/hr/employees${filters.entity!=='all' ? '?entity_id='+filters.entity : ''}`;
+
+  document.getElementById('peopleBody').innerHTML = rows.map(e => {
+    const doc = docFlagFor(e.person_id);
+    const inc = lastFor(INCIDENTS, e.person_id);
+    const co = lastFor(CALLOFFS, e.person_id);
+    const statusPill = e.status==='active' ? 'pill-good' : e.status==='on_leave' ? 'pill-warn' : 'pill-neutral';
+    return `<tr data-id="${e.person_id}" class="${e.person_id===selectedId?'sel-row':''}">
+      <td class="namecell">${e.display_name}<span class="sub">${e.person_id}</span></td>
+      <td>${e.title.join(', ')}</td>
+      <td>${e.entity_id}</td>
+      <td>${e.location}</td>
+      <td><span class="pill ${pillFor(doc.status)}">${doc.label}</span></td>
+      <td>${inc ? `<span class="pill ${pillFor(inc.status)}">${inc.status}</span> <span class="dim mono" style="font-size:11px;">${inc.created_at}</span>` : '<span class="dim">none</span>'}</td>
+      <td>${co ? `<span class="pill ${pillFor(co.status)}">${co.type.replace(/_/g,' ')}</span> <span class="dim mono" style="font-size:11px;">${co.created_at}</span>` : '<span class="dim">none</span>'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="dim" style="padding:20px;text-align:center;">No people match these filters.</td></tr>`;
+
+  document.querySelectorAll('#peopleBody tr[data-id]').forEach(tr => tr.addEventListener('click', () => {
+    selectedId = tr.dataset.id === selectedId ? null : tr.dataset.id;
+    render();
+  }));
+
+  renderDetail();
+  renderRail(rows);
+}
+
+function renderDetail(){
+  const pop = document.getElementById('detailPop');
+  if(!selectedId){ pop.style.display='none'; pop.innerHTML=''; return; }
+  const e = findEmp(selectedId);
+  const doc = docFlagFor(e.person_id);
+  const inc = lastFor(INCIDENTS, e.person_id);
+  const co = lastFor(CALLOFFS, e.person_id);
+  pop.style.display = 'block';
+  pop.className = 'detail-pop';
+  pop.innerHTML = `
+    <div class="dh"><span class="n">${e.display_name} — detail preview</span><button class="x" id="detailClose">✕</button></div>
+    <div class="dgrid">
+      <div class="dfield"><div class="l">Role</div><div class="v">${e.title.join(', ')}</div></div>
+      <div class="dfield"><div class="l">Entity</div><div class="v">${e.entity_id}</div></div>
+      <div class="dfield"><div class="l">Store</div><div class="v">${e.location}</div></div>
+      <div class="dfield"><div class="l">Status</div><div class="v">${e.status.replace(/_/g,' ')}</div></div>
+      <div class="dfield"><div class="l">Doc status</div><div class="v">${doc.label}${doc.doc_type ? ' — '+doc.doc_type.replace(/_/g,' ')+' (renews '+doc.renewal_date+')' : ''}</div></div>
+      <div class="dfield"><div class="l">Last incident</div><div class="v">${inc ? inc.type.replace(/_/g,' ')+' ('+inc.status+', '+inc.created_at+')' : '—'}</div></div>
+      <div class="dfield"><div class="l">Last call-off</div><div class="v">${co ? co.type.replace(/_/g,' ')+' ('+co.status+', '+co.created_at+')' : '—'}</div></div>
+      <div class="dfield"><div class="l">Route</div><div class="v mono" style="font-size:11.5px;">GET /api/hr/employees/${e.person_id}</div></div>
+    </div>
+    <div class="hidden-note">Contact fields (email/phone) would appear here for hr/admin per the migration plan — omitted from this mockup's field list to keep every visible value traceable to a named fixture field. SSN/DL/passport/address/emergency contact never appear on this route at all, for any role.</div>
+  `;
+  document.getElementById('detailClose').addEventListener('click', (ev) => { ev.stopPropagation(); selectedId=null; render(); });
+}
+
+function renderRail(rowsInScope){
+  const entityFilter = filters.entity;
+  const emps = EMPLOYEES.filter(e => entityFilter==='all' || e.entity_id===entityFilter);
+  const activeCount = emps.filter(e=>e.status==='active').length;
+  const onLeave = emps.filter(e=>e.status==='on_leave').length;
+  const terminated = emps.filter(e=>e.status==='terminated').length;
+  const expiring = DOCS.map(d=>({...d, computed:computeDocStatus(d.renewal_date,30,TODAY), emp:findEmp(d.person_id)}))
+    .filter(d=>d.emp && (entityFilter==='all'||d.emp.entity_id===entityFilter))
+    .filter(d=>d.computed==='expiring_soon'||d.computed==='expired');
+  const incWindow = INCIDENTS.filter(i=>findEmp(i.person_id) && (entityFilter==='all'||findEmp(i.person_id).entity_id===entityFilter) && i.created_at>='2026-09-01' && i.created_at<=FIXTURE_ASOF);
+  const openInc = incWindow.filter(i=>i.status==='open');
+  const callToday = CALLOFFS.filter(c=>findEmp(c.person_id) && (entityFilter==='all'||findEmp(c.person_id).entity_id===entityFilter) && c.created_at===FIXTURE_ASOF);
+
+  document.getElementById('statsMini').innerHTML = `
+    <div class="stat-mini"><span class="l">Active people${onLeave||terminated?` <span class="dim">(+${onLeave} leave, ${terminated} term.)</span>`:''}</span><span class="v">${activeCount}</span></div>
+    <div class="stat-mini"><span class="l">Docs expiring · 30d</span><span class="v">${expiring.length}</span></div>
+    <div class="stat-mini"><span class="l">Open incidents<br><span class="dim" style="font-weight:400;">since 2026-09-01</span></span><span class="v">${openInc.length}</span></div>
+    <div class="stat-mini"><span class="l">Call-offs<br><span class="dim" style="font-weight:400;">fixture day ${FIXTURE_ASOF}</span></span><span class="v">${callToday.length}</span></div>
+    <span class="route-tag">GET /api/hr/employees · /compliance/expiring · /incidents · /calloffs</span>
+  `;
+
+  const escalateCandidate = INCIDENTS.find(i=>i.escalate_to_writeup && (entityFilter==='all'||findEmp(i.person_id).entity_id===entityFilter));
+  const approveCandidate = CALLOFFS.find(c=>c.type==='no_call_no_show' && (entityFilter==='all'||findEmp(c.person_id).entity_id===entityFilter));
+  const revealCandidate = emps.find(e=>e.person_id==='rec_emp_011' || e.person_id==='rec_emp_008' || e.person_id==='rec_emp_002' || e.person_id==='rec_emp_005');
+  const needs = [];
+  if(escalateCandidate){ const e=findEmp(escalateCandidate.person_id); needs.push({kind:'Escalate', who:e.display_name, what:`"${escalateCandidate.type.replace(/_/g,' ')}" flagged for write-up`, action:'Escalate'}); }
+  if(approveCandidate){ const e=findEmp(approveCandidate.person_id); needs.push({kind:'Approve', who:e.display_name, what:`Call-off pending review: ${approveCandidate.type.replace(/_/g,' ')}`, action:'Approve'}); }
+  if(revealCandidate){ needs.push({kind:'Reveal', who:revealCandidate.display_name, what:'SSN reveal requested — value never shown, every look is logged', action:'Reveal SSN'}); }
+  document.getElementById('needsList').innerHTML = needs.length ? needs.map(n=>`
+    <div class="need-item">
+      <div class="kind">${n.kind}</div>
+      <div class="who">${n.who}</div>
+      <div class="what">${n.what}</div>
+      <div class="row"><button class="btn" disabled>${n.action}</button><span class="m4tag">M4</span></div>
+    </div>`).join('') : `<div class="small-note">Nothing awaiting a manager for this entity.</div>`;
+
+  const demo = DOCS.find(d=>d.id==='rec_doc_003');
+  const demoEmp = findEmp(demo.person_id);
+  const fixNoteEl = document.getElementById('fixNote');
+  if(entityFilter==='all' || demoEmp.entity_id===entityFilter){
+    fixNoteEl.innerHTML = `<b>${demoEmp.display_name}'s</b> ${demo.doc_type.replace(/_/g,' ')} renews <b>${demo.renewal_date}</b> (~9 months out). Old dashboard read Table A's status column: <span class="old">${demo.table_a_status}</span>. This screen computes from the renewal date: <span class="new">current</span> — filter "Doc status → Expired" above and confirm ${demoEmp.display_name} is not in it.`;
+  } else {
+    fixNoteEl.innerHTML = `<span class="small-note">Demo row (${demoEmp.display_name}) is in the other entity — switch filters to see it.</span>`;
+  }
+}
+
+document.getElementById('entitySeg').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-entity]');
+  if(!btn) return;
+  filters.entity = btn.dataset.entity;
+  document.querySelectorAll('#entitySeg button').forEach(b=>b.classList.toggle('on', b===btn));
+  render();
+});
+document.getElementById('statusSel').addEventListener('change', (e) => { filters.status = e.target.value; render(); });
+document.getElementById('docSel').addEventListener('change', (e) => { filters.doc = e.target.value; render(); });
+document.getElementById('searchBox').addEventListener('input', (e) => { filters.q = e.target.value; render(); });
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
+});
+
+render();
+</script>
+</body>
+</html>

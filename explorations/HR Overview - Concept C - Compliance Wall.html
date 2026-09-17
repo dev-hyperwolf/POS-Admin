@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HR Overview — Compliance Wall (Concept C)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* ── Hyperwolf house tokens, inlined from pos/tokens.jsx (LIGHT/DARK/SHARED) ──
+   This is a static M1 read-only mockup: no build step, no React, no network
+   calls. Tokens are copied as CSS custom properties so it reads and behaves
+   like the rest of the POS-Admin design system when opened straight off disk. */
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentText:#FFD100;
+    --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+    --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+    --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--fontSans);}
+body{padding:0 0 64px;min-width:0;}
+.mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.wrap{max-width:1320px;margin:0 auto;padding:0 20px;}
+
+/* Topbar */
+.topbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--hairline2);padding:14px 0;backdrop-filter:blur(6px);}
+.topbar-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.brandcol{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:220px;}
+.h1{font-size:19px;font-weight:600;letter-spacing:-.01em;}
+.h1 small{font-weight:500;color:var(--inkMute);font-size:12.5px;margin-left:8px;}
+.phase-badge{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:var(--infoSoft);color:var(--info);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
+.subtitle{font-size:12.5px;color:var(--inkDim);}
+
+.entity-switch{display:inline-flex;background:var(--surface3);border:1px solid var(--hairline2);border-radius:999px;padding:3px;gap:2px;}
+.entity-switch button{border:none;background:transparent;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--inkDim);cursor:pointer;font-family:var(--fontSans);white-space:nowrap;}
+.entity-switch button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.entity-switch button:hover:not(.active){color:var(--ink);}
+
+.role-chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;background:var(--surface);border:1px solid var(--hairline2);font-size:12px;cursor:help;}
+.role-chip b{font-weight:700;color:var(--ink);}
+.role-chip .scope{font-family:var(--fontMono);background:var(--accentSoft);color:var(--accentText);border-radius:6px;padding:1px 6px;font-size:11px;font-weight:700;}
+
+/* route caption used on every panel */
+.route{display:inline-flex;align-items:center;gap:6px;font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);background:var(--surface3);border:1px solid var(--hairline);border-radius:6px;padding:3px 7px;white-space:nowrap;}
+.route .verb{color:var(--info);font-weight:700;}
+
+.section{margin-top:28px;}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.section-title{font-size:14px;font-weight:700;letter-spacing:.01em;}
+.section-sub{font-size:12px;color:var(--inkMute);margin-top:2px;}
+
+/* Stat tiles */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.stat{position:relative;overflow:hidden;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowSm);padding:14px 14px 12px;}
+.stat .strip{position:absolute;left:0;right:0;top:0;height:3px;}
+.stat .lbl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--inkMute);}
+.stat .val{margin-top:6px;font-size:30px;line-height:1;font-weight:500;font-family:var(--fontMono);}
+.stat .sub{margin-top:6px;font-size:12px;color:var(--inkDim);}
+.stat .route{margin-top:9px;}
+
+/* False-positive callout */
+.callout{border-radius:var(--r14);border:1px solid var(--accentBorder);background:var(--accentSoft);padding:16px 18px;display:flex;gap:14px;align-items:flex-start;}
+.callout .icon{width:30px;height:30px;border-radius:10px;background:var(--accent);color:var(--accentInk);display:flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 auto;}
+.callout h3{margin:0 0 4px;font-size:13.5px;color:var(--accentText);}
+.callout p{margin:0;font-size:12.5px;line-height:1.5;color:var(--ink2);}
+.callout .example{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:9px 12px;}
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;}
+.pill.bad{background:var(--badSoft);color:var(--bad);}
+.pill.warn{background:var(--warnSoft);color:var(--warnText);}
+.pill.good{background:var(--goodSoft);color:var(--good);}
+.pill.neutral{background:var(--neutralSoft);color:var(--inkDim);}
+.arrow{color:var(--inkFaint);font-weight:700;}
+
+/* Wall lanes */
+.wall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+.lane{border-radius:var(--r14);border:1px solid var(--hairline2);background:var(--surface2);padding:12px;display:flex;flex-direction:column;gap:10px;min-height:120px;}
+.lane-head{display:flex;align-items:center;justify-content:space-between;}
+.lane-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkDim);}
+.lane-count{font-family:var(--fontMono);font-size:12px;font-weight:700;color:var(--inkMute);}
+.lane.overdue .lane-title{color:var(--bad);}
+.lane.d30 .lane-title{color:var(--warnText);}
+
+.doc-card{background:var(--surface);border-radius:var(--r10);border:1px solid var(--hairline2);padding:10px 11px;box-shadow:var(--shadowSm);}
+.doc-card.flagged{outline:2px solid var(--accentBorder);outline-offset:-1px;}
+.doc-card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.doc-card .who{font-size:13px;font-weight:600;}
+.doc-card .what{font-size:11.5px;color:var(--inkDim);margin-top:1px;}
+.doc-card .dates{margin-top:8px;font-size:11px;color:var(--inkMute);font-family:var(--fontMono);}
+.doc-card .stale{margin-top:7px;font-size:10.5px;color:var(--inkMute);display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.lane-empty{font-size:11.5px;color:var(--inkFaint);padding:8px 2px;font-style:italic;}
+
+/* Secondary strips */
+.strips{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.stripcard{border-radius:var(--r14);border:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowSm);overflow:hidden;}
+.stripcard-head{padding:11px 14px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;}
+.stripcard-head .title{font-size:12.5px;font-weight:700;}
+.striprow{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--hairline);font-size:12.5px;}
+.striprow:last-child{border-bottom:none;}
+.striprow .who{font-weight:600;flex:0 0 auto;min-width:100px;}
+.striprow .what{color:var(--inkDim);flex:1;}
+.striprow .when{font-family:var(--fontMono);font-size:11px;color:var(--inkMute);flex:0 0 auto;}
+
+/* Needs a person */
+.npl{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.npcard{border-radius:var(--r12);border:1px dashed var(--hairline3);background:var(--surface);padding:13px 14px;display:flex;flex-direction:column;gap:8px;}
+.npcard .head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.npcard .name{font-size:13px;font-weight:700;}
+.m4tag{display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:6px;background:var(--neutralSoft);color:var(--inkDim);font-size:10px;font-weight:800;letter-spacing:.05em;font-family:var(--fontMono);}
+.npcard .desc{font-size:12px;color:var(--inkDim);line-height:1.45;}
+.npcard button{margin-top:2px;height:32px;border-radius:var(--r8);border:1px solid var(--hairline3);background:var(--surface3);color:var(--inkFaint);font-size:12.5px;font-weight:600;font-family:var(--fontSans);cursor:not-allowed;}
+
+.footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--hairline2);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--inkMute);}
+.footer a{color:inherit;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--inkDim);}
+.legend .dot{width:8px;height:8px;border-radius:99px;display:inline-block;margin-right:5px;}
+
+@media (max-width: 1080px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .wall{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .strips{grid-template-columns:1fr;}
+  .npl{grid-template-columns:1fr;}
+}
+@media (max-width: 620px){
+  .stats{grid-template-columns:1fr;}
+  .wall{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap topbar-row">
+    <div class="brandcol">
+      <div class="h1">HR Overview <small>Concept C — Compliance Wall</small></div>
+      <div class="subtitle">Read-only · timeline of documents by expiry week, built for the person who chases renewals</div>
+    </div>
+    <span class="phase-badge">M1 · read-only</span>
+    <div class="entity-switch" id="entitySwitch">
+      <button class="active" data-entity="all">All entities</button>
+      <button data-entity="highest-craft">Highest Craft</button>
+      <button data-entity="circle-city">Circle City</button>
+    </div>
+    <span class="role-chip" title="Server-side scope. Restricted fields are never fetched by this screen's route — not filtered client-side.">
+      Viewer scope <span class="scope">hr:read</span>
+      <span style="color:var(--inkMute)">hides SSN · DL · passport · home address · emergency contact</span>
+    </span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- Headline counts -->
+  <div class="section">
+    <div class="stats">
+      <div class="stat">
+        <div class="strip" style="background:var(--info)"></div>
+        <div class="lbl">Active people</div>
+        <div class="val mono" id="statActive">–</div>
+        <div class="sub" id="statActiveSub">of 12 fixture employees</div>
+        <div class="route"><span class="verb">GET</span>&nbsp;/api/hr/employees?status=active</div>
+      </div>
+      <div class="stat">
+        <div class="strip" style="background:var(--warn)"></div>
+        <div class="lbl">Docs expiring ≤30d</div>
+        <div class="val mono" id="statExpiring30">–</div>
+        <div class="sub">by RENEWAL_DATE, not Table A's STATUS column</div>
+        <div class="route"><span class="verb">GET</span>&nbsp;/api/hr/compliance/expiring?days=30</div>
+      </div>
+      <div class="stat">
+        <div class="strip" style="background:var(--bad)"></div>
+        <div class="lbl">Open incidents (7d)</div>
+        <div class="val mono" id="statIncidents">–</div>
+        <div class="sub">fixture window 2026‑09‑02→09‑07, shown as the illustrative 7d</div>
+        <div class="route"><span class="verb">GET</span>&nbsp;/api/hr/incidents?since=</div>
+      </div>
+      <div class="stat">
+        <div class="strip" style="background:var(--neutral)"></div>
+        <div class="lbl">Call‑offs today</div>
+        <div class="val mono" id="statCalloffs">–</div>
+        <div class="sub">fixture's latest date (2026‑09‑08) stands in for "today"</div>
+        <div class="route"><span class="verb">GET</span>&nbsp;/api/hr/calloffs?since=</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- False positive callout -->
+  <div class="section">
+    <div class="callout">
+      <div class="icon">✓</div>
+      <div style="flex:1;min-width:0;">
+        <h3>This screen fixes the Table‑A false‑positive bug — it does not carry it forward</h3>
+        <p>The live HR Dashboard reads Table A's own <b class="mono">STATUS</b> column, which only gets
+        backfilled once and never repatched by a renewal (<span class="mono">onboarding/Server.js:1584‑1591</span>) —
+        13 of 18 "Expired" rows there are false positives. This wall computes status only from
+        <b class="mono">RENEWAL_DATE</b>, server‑side, per <span class="mono">wmdemo/hr/airtable_read.py:compute_doc_status</span>.</p>
+        <div class="example">
+          <span style="font-size:12px;font-weight:600;">Marcus Webb · cannabis_handler_permit</span>
+          <span class="arrow">old dashboard said</span>
+          <span class="pill bad">● Expired</span>
+          <span class="arrow">→</span>
+          <span class="pill warn">● Expiring soon · 14 days (renews 2026‑09‑30)</span>
+          <span style="color:var(--inkMute);font-size:11px;">rec_doc_002 · fixture: qa/fixtures/hr/documents.json</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wall -->
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Compliance wall</div>
+        <div class="section-sub">Every card computed live from RENEWAL_DATE against today (2026‑09‑16) · color = current status, not the stale field</div>
+      </div>
+      <div class="route"><span class="verb">GET</span>&nbsp;/api/hr/compliance/expiring?days=90</div>
+    </div>
+    <div class="wall" id="wall"></div>
+  </div>
+
+  <!-- Secondary strips -->
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Incidents &amp; call‑offs</div>
+        <div class="section-sub">Secondary to the wall — same people, behavioral record only, no PII beyond name already shown above</div>
+      </div>
+    </div>
+    <div class="strips">
+      <div class="stripcard">
+        <div class="stripcard-head">
+          <span class="title">Open incidents</span>
+          <span class="route"><span class="verb">GET</span>&nbsp;/api/hr/incidents?since=2026-09-01</span>
+        </div>
+        <div id="incidentStrip"></div>
+      </div>
+      <div class="stripcard">
+        <div class="stripcard-head">
+          <span class="title">Recent call‑offs</span>
+          <span class="route"><span class="verb">GET</span>&nbsp;/api/hr/calloffs?since=2026-09-01</span>
+        </div>
+        <div id="calloffStrip"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Needs a person -->
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Needs a person</div>
+        <div class="section-sub">M1 is read‑only — these actions exist in the live dashboard today and land in a later phase, not this one</div>
+      </div>
+    </div>
+    <div class="npl">
+      <div class="npcard">
+        <div class="head"><span class="name">Approve &amp; send write‑up</span><span class="m4tag">M4</span></div>
+        <div class="desc">Draft write‑up ready for Marcus Webb (rec_emp_002) — requires manager PIN step‑up, never session‑cached.</div>
+        <button disabled>Approve &amp; send</button>
+      </div>
+      <div class="npcard">
+        <div class="head"><span class="name">Reveal SSN</span><span class="m4tag">M4</span></div>
+        <div class="desc">Admin‑only, PIN required on every call. This route never appears in any M1 payload — nothing to redact here.</div>
+        <button disabled>Reveal</button>
+      </div>
+      <div class="npcard">
+        <div class="head"><span class="name">Escalate to write‑up</span><span class="m4tag">M4</span></div>
+        <div class="desc">Incident rec_inc_002 (Marcus Webb · wrong_order_items · high) has evidence but no write‑up yet.</div>
+        <button disabled>Escalate</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="legend">
+      <span><span class="dot" style="background:var(--bad)"></span>Overdue</span>
+      <span><span class="dot" style="background:var(--warn)"></span>Expiring soon</span>
+      <span><span class="dot" style="background:var(--good)"></span>Current</span>
+      <span><span class="dot" style="background:var(--neutral)"></span>No date on file</span>
+    </div>
+    <div>Data: qa/fixtures/hr/{employees,documents,incidents,calloffs}.json — synthetic, no real names or PII. Mockup only, no network calls.</div>
+  </div>
+
+</div>
+
+<script>
+// ── Fixture data, transcribed from qa/fixtures/hr/*.json (field ids per
+// wmdemo/hr/airtable_read.py's _EMP_FIELD_IDS / _INC_FIELD_IDS / _CO_FIELD_IDS
+// maps). Restricted fields (SSN/DL/passport/home address/emergency contact)
+// are intentionally not transcribed here at all — this screen's route never
+// fetches them, so there is nothing to omit at render time.
+const TODAY = new Date('2026-09-16T00:00:00Z');
+
+const EMPLOYEES = [
+  {id:'rec_emp_001', name:'Ava Torres',      entity:'highest-craft', store:'Highest Craft Store', title:'budtender',   status:'active'},
+  {id:'rec_emp_002', name:'Marcus Webb',     entity:'circle-city',   store:'Circle City Store',   title:'budtender',   status:'active'},
+  {id:'rec_emp_003', name:'Priya Nair',      entity:'highest-craft', store:'Highest Craft Store', title:'shift_lead',  status:'active'},
+  {id:'rec_emp_004', name:'Ethan Cole',      entity:'circle-city',   store:'Circle City Store',   title:'driver',      status:'active'},
+  {id:'rec_emp_005', name:'Sofia Reyes',     entity:'highest-craft', store:'Highest Craft Store', title:'budtender',   status:'active'},
+  {id:'rec_emp_006', name:'Diego Marin',     entity:'circle-city',   store:'Circle City Store',   title:'driver',      status:'active'},
+  {id:'rec_emp_007', name:'Nadia Farouk',    entity:'highest-craft', store:'Highest Craft Store', title:'manager',     status:'on_leave'},
+  {id:'rec_emp_008', name:'Leo Bianchi',     entity:'circle-city',   store:'Circle City Store',   title:'budtender',   status:'active'},
+  {id:'rec_emp_009', name:'Grace Kim',       entity:'highest-craft', store:'Highest Craft Store', title:'shift_lead',  status:'active'},
+  {id:'rec_emp_010', name:'Owen Patel',      entity:'circle-city',   store:'Circle City Store',   title:'driver',      status:'active'},
+  {id:'rec_emp_011', name:'Isla Novak',      entity:'highest-craft', store:'Highest Craft Store', title:'budtender',   status:'active'},
+  {id:'rec_emp_012', name:'Tariq Rahman',    entity:'circle-city',   store:'Circle City Store',   title:'manager',     status:'terminated'},
+];
+const empById = Object.fromEntries(EMPLOYEES.map(e => [e.id, e]));
+
+const DOCS = [
+  {id:'rec_doc_001', person:'rec_emp_001', type:'food_handler_card',      renewal:'2026-08-01', stale:'Current'},
+  {id:'rec_doc_002', person:'rec_emp_002', type:'cannabis_handler_permit',renewal:'2026-09-30', stale:'Expired', flag:true},
+  {id:'rec_doc_003', person:'rec_emp_003', type:'drivers_license',       renewal:'2027-06-01', stale:'Expired'},
+  {id:'rec_doc_004', person:'rec_emp_004', type:'vehicle_insurance',     renewal:null,          stale:'Current'},
+  {id:'rec_doc_005', person:'rec_emp_007', type:'food_handler_card',      renewal:'2026-07-15', stale:'Current'},
+  {id:'rec_doc_006', person:'rec_emp_008', type:'cannabis_handler_permit',renewal:'2026-09-25', stale:'Current'},
+  {id:'rec_doc_007', person:'rec_emp_009', type:'drivers_license',       renewal:'2028-01-01', stale:'Current'},
+  {id:'rec_doc_008', person:'rec_emp_010', type:'food_handler_card',      renewal:'2026-09-18', stale:'Expired', flag:true},
+];
+
+const INCIDENTS = [
+  {id:'rec_inc_001', person:'rec_emp_001', type:'customer_complaint',     severity:'medium', status:'open',   date:'2026-09-02'},
+  {id:'rec_inc_002', person:'rec_emp_002', type:'wrong_order_items',      severity:'high',   status:'closed', date:'2026-09-03'},
+  {id:'rec_inc_003', person:'rec_emp_003', type:'late_delivery',          severity:'low',    status:'open',   date:'2026-09-04'},
+  {id:'rec_inc_004', person:'rec_emp_004', type:'poor_customer_service',  severity:'medium', status:'closed', date:'2026-09-05'},
+  {id:'rec_inc_005', person:'rec_emp_005', type:'over_under_charged',     severity:'high',   status:'open',   date:'2026-09-06'},
+  {id:'rec_inc_006', person:'rec_emp_006', type:'inappropriate_behavior', severity:'low',    status:'closed', date:'2026-09-07'},
+];
+
+const CALLOFFS = [
+  {id:'rec_co_001', person:'rec_emp_001', type:'late',              date:'2026-09-03'},
+  {id:'rec_co_002', person:'rec_emp_002', type:'no_call_no_show',   date:'2026-09-04'},
+  {id:'rec_co_003', person:'rec_emp_003', type:'sick',              date:'2026-09-05'},
+  {id:'rec_co_004', person:'rec_emp_004', type:'absent',            date:'2026-09-06'},
+  {id:'rec_co_005', person:'rec_emp_005', type:'late',              date:'2026-09-07'},
+  {id:'rec_co_006', person:'rec_emp_006', type:'no_call_no_show',   date:'2026-09-08'},
+];
+
+// Mirrors wmdemo/hr/airtable_read.py:compute_doc_status exactly — renewal date
+// only, the stale STATUS column is never consulted.
+function computeDocStatus(renewalIso, days){
+  if (!renewalIso) return 'missing';
+  const renewal = new Date(renewalIso + 'T00:00:00Z');
+  if (renewal < TODAY) return 'expired';
+  const horizon = new Date(TODAY.getTime() + days*86400000);
+  if (renewal <= horizon) return 'expiring_soon';
+  return 'current';
+}
+function daysBetween(iso){
+  const d = new Date(iso + 'T00:00:00Z');
+  return Math.round((d - TODAY) / 86400000);
+}
+function toneFor(status){
+  return {expired:'bad', expiring_soon:'warn', current:'good', missing:'neutral'}[status];
+}
+function fmtDate(iso){
+  if (!iso) return '—';
+  const d = new Date(iso+'T00:00:00Z');
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric', timeZone:'UTC'});
+}
+
+let currentEntity = 'all';
+
+function renderStats(){
+  const emps = EMPLOYEES.filter(e => currentEntity==='all' || e.entity===currentEntity);
+  const active = emps.filter(e => e.status==='active');
+  document.getElementById('statActive').textContent = active.length;
+  document.getElementById('statActiveSub').textContent = `of ${emps.length} ${currentEntity==='all'?'fixture employees':'in this entity'}`;
+
+  const docs = DOCS.filter(d => currentEntity==='all' || empById[d.person].entity===currentEntity);
+  const expiring30 = docs.filter(d => computeDocStatus(d.renewal, 30) === 'expiring_soon').length;
+  document.getElementById('statExpiring30').textContent = expiring30;
+
+  const incs = INCIDENTS.filter(i => (currentEntity==='all' || empById[i.person].entity===currentEntity) && i.status==='open');
+  document.getElementById('statIncidents').textContent = incs.length;
+
+  const cos = CALLOFFS.filter(c => (currentEntity==='all' || empById[c.person].entity===currentEntity) && c.date==='2026-09-08');
+  document.getElementById('statCalloffs').textContent = cos.length;
+}
+
+function renderWall(){
+  const wall = document.getElementById('wall');
+  wall.innerHTML = '';
+  const lanes = [
+    {key:'overdue', title:'Overdue', cls:'overdue', filter: d => computeDocStatus(d.renewal,90)==='expired'},
+    {key:'d30', title:'Due ≤ 30 days', cls:'d30', filter: d => computeDocStatus(d.renewal,30)==='expiring_soon'},
+    {key:'d60', title:'Due 31–60 days', cls:'', filter: d => { const s=computeDocStatus(d.renewal,90); return s==='expiring_soon' && daysBetween(d.renewal)>30 && daysBetween(d.renewal)<=60; }},
+    {key:'d90', title:'Due 61–90 days', cls:'', filter: d => { const s=computeDocStatus(d.renewal,90); return s==='expiring_soon' && daysBetween(d.renewal)>60; }},
+  ];
+  const docs = DOCS.filter(d => currentEntity==='all' || empById[d.person].entity===currentEntity);
+  lanes.forEach(lane => {
+    const rows = docs.filter(lane.filter).sort((a,b)=> (a.renewal||'9999') > (b.renewal||'9999') ? 1 : -1);
+    const laneEl = document.createElement('div');
+    laneEl.className = 'lane ' + lane.cls;
+    let html = `<div class="lane-head"><span class="lane-title">${lane.title}</span><span class="lane-count">${rows.length}</span></div>`;
+    if (rows.length === 0){
+      html += `<div class="lane-empty">No documents in this window.</div>`;
+    } else {
+      rows.forEach(d => {
+        const emp = empById[d.person];
+        const status = computeDocStatus(d.renewal, 90);
+        const tone = toneFor(status);
+        const label = {expired:'Overdue', expiring_soon:'Expiring soon', current:'Current', missing:'No date on file'}[status];
+        const dn = d.renewal ? Math.abs(daysBetween(d.renewal)) : null;
+        html += `<div class="doc-card ${d.flag?'flagged':''}">
+          <div class="top">
+            <div><div class="who">${emp.name}</div><div class="what">${d.type.replace(/_/g,' ')} · ${emp.store}</div></div>
+            <span class="pill ${tone}">${label}</span>
+          </div>
+          <div class="dates">${d.renewal ? `renews ${fmtDate(d.renewal)} · ${dn}d ${status==='expired'?'past':'out'}` : 'RENEWAL_DATE: null'}</div>
+          ${d.flag ? `<div class="stale"><span class="pill bad" style="height:18px;font-size:9.5px;">Table A STATUS: ${d.stale}</span><span>— stale field, ignored by this screen (record ${d.id})</span></div>` : `<div class="stale">Table A STATUS: ${d.stale} · record ${d.id}</div>`}
+        </div>`;
+      });
+    }
+    laneEl.innerHTML = html;
+    wall.appendChild(laneEl);
+  });
+}
+
+function renderStrips(){
+  const incWrap = document.getElementById('incidentStrip');
+  const coWrap = document.getElementById('calloffStrip');
+  const incs = INCIDENTS.filter(i => currentEntity==='all' || empById[i.person].entity===currentEntity);
+  const cos = CALLOFFS.filter(c => currentEntity==='all' || empById[c.person].entity===currentEntity);
+  incWrap.innerHTML = incs.map(i => {
+    const emp = empById[i.person];
+    const tone = i.severity==='high' ? 'bad' : i.severity==='medium' ? 'warn' : 'neutral';
+    return `<div class="striprow"><span class="who">${emp.name}</span><span class="what">${i.type.replace(/_/g,' ')} <span class="pill ${tone}" style="height:17px;font-size:9.5px;margin-left:4px;">${i.severity}</span> <span class="pill ${i.status==='open'?'warn':'neutral'}" style="height:17px;font-size:9.5px;">${i.status}</span></span><span class="when">${i.date}</span></div>`;
+  }).join('') || '<div class="lane-empty" style="padding:14px;">No incidents in this window.</div>';
+  coWrap.innerHTML = cos.map(c => {
+    const emp = empById[c.person];
+    return `<div class="striprow"><span class="who">${emp.name}</span><span class="what">${c.type.replace(/_/g,' ')}</span><span class="when">${c.date}</span></div>`;
+  }).join('') || '<div class="lane-empty" style="padding:14px;">No call-offs in this window.</div>';
+}
+
+function render(){ renderStats(); renderWall(); renderStrips(); }
+
+document.getElementById('entitySwitch').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-entity]');
+  if (!btn) return;
+  currentEntity = btn.dataset.entity;
+  [...document.querySelectorAll('#entitySwitch button')].forEach(b => b.classList.toggle('active', b===btn));
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

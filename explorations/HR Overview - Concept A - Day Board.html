@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HR Overview — Concept A: Day Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Tokens inlined from pos/tokens.jsx (LIGHT/DARK/SHARED) and shared/hd-ui.jsx's visual
+   language (pill, stat tile, table, micro-label). No build step: this file opens from disk. */
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --scrim:rgba(20,18,12,.42);
+}
+[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --scrim:rgba(0,0,0,.62);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+  padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.theme-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+  font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;margin-left:auto;}
+.theme-btn:hover{background:var(--railHover);}
+.stage{max-width:1180px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1180px;margin:0 auto;padding:16px 22px 0;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro .card{padding:16px 18px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+code,.mono{font-family:var(--fontMono);}
+.route{font-family:var(--fontMono);font-size:10.5px;color:var(--info);background:var(--infoSoft);padding:1px 6px;border-radius:6px;white-space:nowrap;}
+
+/* control bar */
+.controlbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0;}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r999);padding:3px;gap:2px;}
+.seg button{appearance:none;border:none;background:transparent;font-family:var(--fontSans);font-size:12px;font-weight:600;
+  color:var(--inkDim);padding:6px 13px;border-radius:var(--r999);cursor:pointer;white-space:nowrap;}
+.seg button.on{background:var(--ink);color:var(--surface);}
+.role-chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px 0 4px;border-radius:var(--r999);
+  background:var(--surface);border:1px solid var(--hairline2);font-size:12px;cursor:help;margin-left:auto;position:relative;}
+.role-chip .dot{width:22px;height:22px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);
+  display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;font-family:var(--fontMono);}
+.role-chip b{font-family:var(--fontMono);font-weight:700;}
+.role-pop{display:none;position:absolute;top:36px;right:0;width:320px;background:var(--surface);border:1px solid var(--hairline2);
+  border-radius:var(--r10);box-shadow:var(--shadowLg);padding:12px 13px;z-index:80;font-size:12px;line-height:1.6;color:var(--ink2);text-align:left;}
+.role-chip:hover .role-pop, .role-chip:focus-within .role-pop{display:block;}
+.role-pop .hide-list{margin:6px 0 0;padding-left:16px;color:var(--inkDim);}
+.role-pop .yes{color:var(--good);font-weight:600;}
+.role-pop .no{color:var(--bad);font-weight:600;}
+
+/* stat strip */
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.stat{position:relative;overflow:hidden;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowSm);padding:13px 14px;}
+.stat .strip{position:absolute;left:0;right:0;top:0;height:3px;}
+.stat .lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--inkMute);}
+.stat .val{margin-top:6px;font-size:27px;line-height:1;font-weight:500;color:var(--ink);font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.stat .sub{margin-top:6px;font-size:11.5px;color:var(--inkDim);}
+.stat .route{display:block;margin-top:8px;width:fit-content;}
+
+@media (max-width:900px){.stat-strip{grid-template-columns:repeat(2,1fr);}}
+
+/* needs a person lane */
+.lane-head{display:flex;align-items:baseline;gap:8px;margin:22px 0 10px;}
+.lane-head h3{font-size:13.5px;margin:0;font-weight:700;}
+.lane-head .n{font-size:11.5px;color:var(--inkMute);}
+.needs-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;}
+.need-card{flex:0 0 260px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--warn);
+  border-radius:var(--r10);padding:12px 13px;box-shadow:var(--shadowSm);}
+.need-card .kind{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--warnText);}
+.need-card .who{margin-top:5px;font-size:13.5px;font-weight:600;}
+.need-card .what{margin-top:2px;font-size:12px;color:var(--inkDim);line-height:1.5;}
+.need-card .row{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.m4tag{font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:6px;background:var(--neutralSoft);color:var(--ink2);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:0 11px;
+  font-size:12px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+  white-space:nowrap;border:1px solid transparent;}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn[disabled]{opacity:.5;cursor:not-allowed;}
+
+/* day board cards */
+.board{display:flex;flex-direction:column;gap:10px;}
+.dcard{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--hairline2);
+  border-radius:var(--r12);padding:13px 15px;box-shadow:var(--shadowSm);cursor:pointer;transition:box-shadow .12s ease;}
+.dcard:hover{box-shadow:var(--shadowMd);}
+.dcard .urg{flex:0 0 44px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.urg-num{font-family:var(--fontMono);font-size:18px;font-weight:700;}
+.urg-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.dcard .body{flex:1;min-width:0;}
+.dcard .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.dcard .title{font-size:13.5px;font-weight:700;}
+.dcard .desc{margin-top:3px;font-size:12.5px;color:var(--ink2);line-height:1.55;}
+.dcard .meta{margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--inkMute);font-family:var(--fontMono);}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:10.5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.section-eb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);
+  font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin:24px 0 10px;}
+.section-eb .grow{flex:1;border-bottom:1px solid var(--hairline);}
+.fix-note{margin-top:10px;background:var(--goodSoft);border:1px solid var(--good);border-left:3px solid var(--good);
+  border-radius:var(--r10);padding:10px 13px;font-size:12px;color:var(--ink2);line-height:1.6;}
+.fix-note b{color:var(--good);}
+.fix-note .old{color:var(--bad);text-decoration:line-through;font-family:var(--fontMono);}
+.fix-note .new{color:var(--good);font-weight:700;font-family:var(--fontMono);}
+
+/* side panel */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:90;display:none;}
+.scrim.open{display:block;animation:fade .14s ease;}
+.panel{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;background:var(--surface);
+  border-left:1px solid var(--hairline2);box-shadow:var(--shadowLg);z-index:95;transform:translateX(100%);transition:transform .18s ease;
+  display:flex;flex-direction:column;}
+.panel.open{transform:translateX(0);}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:10px;}
+.panel-head h4{margin:0;font-size:14.5px;font-weight:700;flex:1;}
+.panel-x{appearance:none;border:none;background:var(--surface3);width:28px;height:28px;border-radius:99px;cursor:pointer;font-size:14px;color:var(--inkDim);}
+.panel-body{padding:16px;overflow-y:auto;flex:1;}
+.pfield{margin-bottom:12px;}
+.pfield .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.pfield .v{margin-top:2px;font-size:13.5px;color:var(--ink);}
+.pfield .v.mono{font-family:var(--fontMono);}
+.panel-foot{padding:12px 16px;border-top:1px solid var(--hairline);font-size:11px;color:var(--inkMute);font-family:var(--fontMono);}
+
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+@media (max-width:640px){
+  .doc-head{padding:11px 14px;}
+  .stage,.intro{padding-left:12px;padding-right:12px;}
+  .stat-strip{grid-template-columns:1fr 1fr;}
+  .panel{width:100vw;}
+}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>HR Overview — Concept A: Day Board</h1>
+    <div class="sub">Track 3 · M1 read-only · reads <b>GET /api/hr/employees</b>, <b>/compliance/expiring</b>, <b>/incidents</b>, <b>/calloffs</b></div>
+  </div>
+  <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+</div>
+
+<div class="intro">
+  <div class="card">
+    <div class="eyebrow">The idea</div>
+    <h2>Overview answers "what needs a look today," ordered by urgency — not a directory.</h2>
+    <p>Everything on this screen is a card ranked by how soon it needs a human, not a table you scan top-to-bottom. The four numbers up top are a thin summary strip, not the point of the page. Clicking any card opens the same drill-down side panel — the list never grows past what fits without scrolling, because low-urgency items simply don't get a card.</p>
+    <p class="small-note">Every name and number below comes from <code>qa/fixtures/hr/*.json</code> — the same fixtures <code>qa/hr_airtable_stub.py</code> serves in tests. Nothing here is invented. M1 is read-only: every action button in the "needs a person" lane is disabled and tagged <span class="m4tag">M4</span> because approve/reveal/escalate are write actions that ship later.</p>
+  </div>
+</div>
+
+<div class="stage">
+
+  <div class="controlbar">
+    <div class="seg" id="entitySeg">
+      <button class="on" data-entity="all">All entities</button>
+      <button data-entity="highest-craft">Highest Craft</button>
+      <button data-entity="circle-city">Circle City</button>
+    </div>
+    <div class="role-chip" tabindex="0">
+      <span class="dot">HR</span> scope: <b>hr:read</b>
+      <div class="role-pop">
+        <div><b>What <code>hr:read</code> sees</b></div>
+        <ul class="hide-list">
+          <li><span class="yes">Visible</span> — names, roles, entity/store, document status flags, incident &amp; call-off summaries, aggregate counts.</li>
+          <li><span class="no">Never returned</span> — SSN, driver's license, passport, home address, emergency contact. These never leave the server for <em>any</em> role on this route (excluded by construction in <code>airtable_read.py</code>'s field allowlist, not filtered after the fact).</li>
+          <li><span class="no">Hidden here</span> — email/phone (internal-class). Detail view only, not this screen.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-strip" id="statStrip"></div>
+
+  <div class="lane-head">
+    <h3>Needs a person</h3>
+    <span class="n">— items awaiting a manager decision. M1 renders these disabled; the actions ship in M4.</span>
+  </div>
+  <div class="needs-row" id="needsRow"></div>
+
+  <div class="section-eb"><span>Today's board, most urgent first</span><span class="grow"></span></div>
+  <div class="board" id="board"></div>
+
+  <div class="fix-note" id="fixNote"></div>
+
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="panel" id="panel">
+  <div class="panel-head">
+    <h4 id="panelTitle">Detail</h4>
+    <button class="panel-x" id="panelClose" type="button">✕</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="panel-foot" id="panelFoot"></div>
+</div>
+
+<script>
+/* ------------------------------------------------------------------------
+   Fixture data, shaped exactly as wmdemo/hr/api.py's contract mappers
+   (to_hr_employee / to_incident / to_calloff / list_expiring_documents)
+   return it. Source: qa/fixtures/hr/{employees,documents,incidents,calloffs}.json.
+   Field IDs in the raw fixtures are resolved here to the readable names
+   wmdemo/hr/airtable_read.py's _EMP_FIELD_IDS / _INC_FIELD_IDS / _CO_FIELD_IDS
+   already map them to — this is what the client actually receives, not the
+   raw Airtable payload.
+   ------------------------------------------------------------------------ */
+const EMPLOYEES = [
+  {person_id:'rec_emp_001', entity_id:'highest-craft', display_name:'Ava Torres', status:'active', title:['budtender'], location:'Highest Craft Store', tenure_label:'2 yr', accountability_band:'watch', total_incidents:1, writeup_count:1},
+  {person_id:'rec_emp_002', entity_id:'circle-city',   display_name:'Marcus Webb', status:'active', title:['budtender'], location:'Circle City Store', tenure_label:'3 yr', accountability_band:'high_risk', total_incidents:2, writeup_count:0},
+  {person_id:'rec_emp_003', entity_id:'highest-craft', display_name:'Priya Nair', status:'active', title:['shift_lead'], location:'Highest Craft Store', tenure_label:'4 yr', accountability_band:'clean', total_incidents:0, writeup_count:1},
+  {person_id:'rec_emp_004', entity_id:'circle-city',   display_name:'Ethan Cole', status:'active', title:['driver'], location:'Circle City Store', tenure_label:'1 yr', accountability_band:'watch', total_incidents:1, writeup_count:0},
+  {person_id:'rec_emp_005', entity_id:'highest-craft', display_name:'Sofia Reyes', status:'active', title:['budtender'], location:'Highest Craft Store', tenure_label:'2 yr', accountability_band:'high_risk', total_incidents:2, writeup_count:1},
+  {person_id:'rec_emp_006', entity_id:'circle-city',   display_name:'Diego Marin', status:'active', title:['driver'], location:'Circle City Store', tenure_label:'3 yr', accountability_band:'clean', total_incidents:0, writeup_count:0},
+  {person_id:'rec_emp_007', entity_id:'highest-craft', display_name:'Nadia Farouk', status:'on_leave', title:['manager'], location:'Highest Craft Store', tenure_label:'4 yr', accountability_band:'watch', total_incidents:1, writeup_count:1},
+  {person_id:'rec_emp_008', entity_id:'circle-city',   display_name:'Leo Bianchi', status:'active', title:['budtender'], location:'Circle City Store', tenure_label:'1 yr', accountability_band:'high_risk', total_incidents:2, writeup_count:0},
+  {person_id:'rec_emp_009', entity_id:'highest-craft', display_name:'Grace Kim', status:'active', title:['shift_lead'], location:'Highest Craft Store', tenure_label:'2 yr', accountability_band:'clean', total_incidents:0, writeup_count:1},
+  {person_id:'rec_emp_010', entity_id:'circle-city',   display_name:'Owen Patel', status:'active', title:['driver'], location:'Circle City Store', tenure_label:'3 yr', accountability_band:'watch', total_incidents:1, writeup_count:0},
+  {person_id:'rec_emp_011', entity_id:'highest-craft', display_name:'Isla Novak', status:'active', title:['budtender'], location:'Highest Craft Store', tenure_label:'4 yr', accountability_band:'high_risk', total_incidents:2, writeup_count:1},
+  {person_id:'rec_emp_012', entity_id:'circle-city',   display_name:'Tariq Rahman', status:'terminated', title:['manager'], location:'Circle City Store', tenure_label:'1 yr', accountability_band:'clean', total_incidents:0, writeup_count:0, separation_date:'2026-08-01'},
+];
+
+// Table A rows -- GET /api/hr/compliance/expiring?days=30 fixed doc-expiry logic
+// (wmdemo/hr/airtable_read.py compute_doc_status): computed ONLY from RENEWAL_DATE,
+// never Table A's own stale STATUS column. table_a_status is shown here purely to
+// demonstrate the false-positive fix side by side -- the route itself never returns it.
+const DOCS = [
+  {id:'rec_doc_001', person_id:'rec_emp_001', doc_type:'food_handler_card', renewal_date:'2026-08-01', table_a_status:'Current'},
+  {id:'rec_doc_002', person_id:'rec_emp_002', doc_type:'cannabis_handler_permit', renewal_date:'2026-09-30', table_a_status:'Expired'},
+  {id:'rec_doc_003', person_id:'rec_emp_003', doc_type:'drivers_license', renewal_date:'2027-06-01', table_a_status:'Expired'},
+  {id:'rec_doc_004', person_id:'rec_emp_004', doc_type:'vehicle_insurance', renewal_date:null, table_a_status:'Current'},
+  {id:'rec_doc_005', person_id:'rec_emp_007', doc_type:'food_handler_card', renewal_date:'2026-07-15', table_a_status:'Current'},
+  {id:'rec_doc_006', person_id:'rec_emp_008', doc_type:'cannabis_handler_permit', renewal_date:'2026-09-25', table_a_status:'Current'},
+  {id:'rec_doc_007', person_id:'rec_emp_009', doc_type:'drivers_license', renewal_date:'2028-01-01', table_a_status:'Current'},
+  {id:'rec_doc_008', person_id:'rec_emp_010', doc_type:'food_handler_card', renewal_date:'2026-09-18', table_a_status:'Expired'},
+];
+
+const INCIDENTS = [
+  {id:'rec_inc_001', person_id:'rec_emp_001', type:'customer_complaint', severity:'medium', status:'open', created_at:'2026-09-02', escalate_to_writeup:false},
+  {id:'rec_inc_002', person_id:'rec_emp_002', type:'wrong_order_items', severity:'high', status:'closed', created_at:'2026-09-03', escalate_to_writeup:false},
+  {id:'rec_inc_003', person_id:'rec_emp_003', type:'late_delivery', severity:'low', status:'open', created_at:'2026-09-04', escalate_to_writeup:true},
+  {id:'rec_inc_004', person_id:'rec_emp_004', type:'poor_customer_service', severity:'medium', status:'closed', created_at:'2026-09-05', escalate_to_writeup:false},
+  {id:'rec_inc_005', person_id:'rec_emp_005', type:'over_under_charged', severity:'high', status:'open', created_at:'2026-09-06', escalate_to_writeup:false},
+  {id:'rec_inc_006', person_id:'rec_emp_006', type:'inappropriate_behavior', severity:'low', status:'closed', created_at:'2026-09-07', escalate_to_writeup:false},
+];
+
+const CALLOFFS = [
+  {id:'rec_co_001', person_id:'rec_emp_001', type:'late', reason:'personal', status:'pending_review', created_at:'2026-09-03'},
+  {id:'rec_co_002', person_id:'rec_emp_002', type:'no_call_no_show', reason:'car_trouble', status:'pending_review', created_at:'2026-09-04'},
+  {id:'rec_co_003', person_id:'rec_emp_003', type:'sick', reason:'appointment', status:'pending_review', created_at:'2026-09-05'},
+  {id:'rec_co_004', person_id:'rec_emp_004', type:'absent', reason:'sick', status:'pending_review', created_at:'2026-09-06'},
+  {id:'rec_co_005', person_id:'rec_emp_005', type:'late', reason:'personal', status:'pending_review', created_at:'2026-09-07'},
+  {id:'rec_co_006', person_id:'rec_emp_006', type:'no_call_no_show', reason:'car_trouble', status:'pending_review', created_at:'2026-09-08'},
+];
+
+// Reference "today" for doc-expiry math == the real date this mockup was built on.
+// Reference window for the incident/call-off "last 7 days" / "today" cards == the
+// fixture's own latest activity date, since every fixture timestamp predates the
+// real today by more than a week (labeled everywhere it's used, never silently
+// substituted for wall-clock "now").
+const TODAY = '2026-09-16';
+const FIXTURE_ASOF = '2026-09-08';
+
+// Mirrors wmdemo/hr/airtable_read.py:compute_doc_status exactly (current / expiring_soon
+// / expired / missing), computed only from RENEWAL_DATE -- this IS the M1 fix.
+function computeDocStatus(renewalISO, days, now){
+  if(!renewalISO) return 'missing';
+  const renewal = new Date(renewalISO+'T00:00:00Z');
+  const nowD = new Date(now+'T00:00:00Z');
+  const horizon = new Date(nowD.getTime() + days*86400000);
+  if(renewal < nowD) return 'expired';
+  if(renewal <= horizon) return 'expiring_soon';
+  return 'current';
+}
+function empByRoute(entityFilter){
+  return EMPLOYEES.filter(e => entityFilter==='all' || e.entity_id===entityFilter);
+}
+function daysBetween(a,b){ return Math.round((new Date(b+'T00:00:00Z') - new Date(a+'T00:00:00Z'))/86400000); }
+function findEmp(id){ return EMPLOYEES.find(e=>e.person_id===id); }
+
+let currentEntity = 'all';
+
+function computeExpiring(entityFilter){
+  // GET /api/hr/compliance/expiring?days=30 -- list_expiring_documents()
+  return DOCS.map(d => ({...d, computed:computeDocStatus(d.renewal_date, 30, TODAY), emp:findEmp(d.person_id)}))
+    .filter(d => d.emp && (entityFilter==='all' || d.emp.entity_id===entityFilter))
+    .filter(d => d.computed==='expiring_soon' || d.computed==='expired');
+}
+
+function render(){
+  const entityFilter = currentEntity;
+  const emps = empByRoute(entityFilter);
+  const activeCount = emps.filter(e=>e.status==='active').length;
+  const onLeave = emps.filter(e=>e.status==='on_leave').length;
+  const terminated = emps.filter(e=>e.status==='terminated').length;
+  const expiring = computeExpiring(entityFilter);
+  const incInWindow = INCIDENTS.filter(i => findEmp(i.person_id) && (entityFilter==='all'||findEmp(i.person_id).entity_id===entityFilter) && i.created_at>='2026-09-01' && i.created_at<=FIXTURE_ASOF);
+  const openIncidents = incInWindow.filter(i=>i.status==='open');
+  const callToday = CALLOFFS.filter(c => findEmp(c.person_id) && (entityFilter==='all'||findEmp(c.person_id).entity_id===entityFilter) && c.created_at===FIXTURE_ASOF);
+
+  // ---- stat strip ----
+  const stats = [
+    {lbl:'Active people', val:activeCount, sub:onLeave||terminated ? `${onLeave} on leave · ${terminated} terminated (not counted)` : 'no exceptions in scope', hue:'good', route:'GET /api/hr/employees'},
+    {lbl:'Docs expiring · 30d', val:expiring.length, sub:'computed from RENEWAL_DATE, not the old status column', hue:'warn', route:'GET /api/hr/compliance/expiring?days=30'},
+    {lbl:'Open incidents', val:openIncidents.length, sub:`since ${FIXTURE_ASOF==='2026-09-08'?'2026-09-01':''} (fixture window ${FIXTURE_ASOF})`, hue:'bad', route:'GET /api/hr/incidents?since=2026-09-01'},
+    {lbl:'Call-offs · that day', val:callToday.length, sub:`fixture day ${FIXTURE_ASOF} — no calloffs fall on real "today"`, hue:'info', route:'GET /api/hr/calloffs?since='+FIXTURE_ASOF},
+  ];
+  const hueVar = {good:'var(--good)', warn:'var(--warn)', bad:'var(--bad)', info:'var(--info)'};
+  document.getElementById('statStrip').innerHTML = stats.map(s => `
+    <div class="stat">
+      <div class="strip" style="background:${hueVar[s.hue]}"></div>
+      <div class="lbl">${s.lbl}</div>
+      <div class="val">${s.val}</div>
+      <div class="sub">${s.sub}</div>
+      <span class="route" style="display:inline-block;margin-top:8px;">${s.route}</span>
+    </div>`).join('');
+
+  // ---- needs a person lane ----
+  const escalateCandidate = INCIDENTS.find(i=>i.escalate_to_writeup && (entityFilter==='all'||findEmp(i.person_id).entity_id===entityFilter));
+  const approveCandidate = CALLOFFS.find(c=>c.type==='no_call_no_show' && (entityFilter==='all'||findEmp(c.person_id).entity_id===entityFilter));
+  const revealCandidate = emps.find(e=>e.accountability_band==='high_risk');
+  const needs = [];
+  if(escalateCandidate){ const e=findEmp(escalateCandidate.person_id); needs.push({kind:'Escalate', who:e.display_name, what:`Incident flagged for write-up: "${escalateCandidate.type.replace(/_/g,' ')}" (${escalateCandidate.severity} severity)`, action:'Escalate to write-up', route:'POST /api/hr/writeups (M4)'}); }
+  if(approveCandidate){ const e=findEmp(approveCandidate.person_id); needs.push({kind:'Approve', who:e.display_name, what:`Call-off pending review: ${approveCandidate.type.replace(/_/g,' ')}, ${approveCandidate.reason}`, action:'Approve', route:'POST /api/hr/calloffs/{id}/decision (M4)'}); }
+  if(revealCandidate){ needs.push({kind:'Reveal', who:revealCandidate.display_name, what:'SSN reveal requested for accountability review — value is never shown here; every reveal is logged (who looked, not what they saw).', action:'Reveal SSN', route:'POST /api/hr/employees/{id}/reveal-ssn (M4, PIN step-up)'}); }
+  document.getElementById('needsRow').innerHTML = needs.length ? needs.map(n => `
+    <div class="need-card">
+      <div class="kind">${n.kind}</div>
+      <div class="who">${n.who}</div>
+      <div class="what">${n.what}</div>
+      <div class="row">
+        <button class="btn btn-secondary" disabled>${n.action}</button>
+        <span class="m4tag">M4</span>
+      </div>
+      <div class="small-note" style="margin-top:8px;">${n.route}</div>
+    </div>`).join('') : `<div class="small-note">Nothing awaiting a manager for this entity.</div>`;
+
+  // ---- day board cards, urgency-ordered ----
+  const cards = [];
+  expiring.filter(d=>d.computed==='expired').forEach(d => cards.push({
+    urgency:1, title:`${d.doc_type.replace(/_/g,' ')} expired — ${d.emp.display_name}`,
+    desc:`Renewal date ${d.renewal_date} has passed. Computed from RENEWAL_DATE (Table A), not the status column.`,
+    meta:[d.emp.entity_id, d.emp.location, 'GET /api/hr/compliance/expiring'], pill:{t:'pill-bad', l:'Expired'},
+    detail:{Employee:d.emp.display_name, Entity:d.emp.entity_id, Document:d.doc_type, 'Renewal date':d.renewal_date, 'Computed status':'expired', 'Table A status column (not used)':d.table_a_status, Route:'GET /api/hr/compliance/expiring?days=30'}
+  }));
+  openIncidents.filter(i=>i.severity==='high').forEach(i => { const e=findEmp(i.person_id); cards.push({
+    urgency:2, title:`High-severity incident open — ${e.display_name}`,
+    desc:`${i.type.replace(/_/g,' ')}, opened ${i.created_at}, still open.`,
+    meta:[e.entity_id, e.location, 'GET /api/hr/incidents'], pill:{t:'pill-bad', l:'High'},
+    detail:{Employee:e.display_name, Entity:e.entity_id, Type:i.type, Severity:i.severity, Status:i.status, 'Opened':i.created_at, Route:'GET /api/hr/incidents?since=2026-09-01'}
+  }); });
+  expiring.filter(d=>d.computed==='expiring_soon').forEach(d => cards.push({
+    urgency:3, title:`${d.doc_type.replace(/_/g,' ')} expiring soon — ${d.emp.display_name}`,
+    desc:`Renews ${d.renewal_date}, ${daysBetween(TODAY,d.renewal_date)} days out.`,
+    meta:[d.emp.entity_id, d.emp.location, 'GET /api/hr/compliance/expiring'], pill:{t:'pill-warn', l:'Expiring soon'},
+    detail:{Employee:d.emp.display_name, Entity:d.emp.entity_id, Document:d.doc_type, 'Renewal date':d.renewal_date, 'Computed status':'expiring_soon', 'Table A status column (not used)':d.table_a_status, Route:'GET /api/hr/compliance/expiring?days=30'}
+  }));
+  CALLOFFS.filter(c=>c.type==='no_call_no_show' && findEmp(c.person_id) && (entityFilter==='all'||findEmp(c.person_id).entity_id===entityFilter)).forEach(c => { const e=findEmp(c.person_id); cards.push({
+    urgency:2, title:`No-call/no-show — ${e.display_name}`,
+    desc:`${c.reason}, reported ${c.created_at}. Pending review.`,
+    meta:[e.entity_id, e.location, 'GET /api/hr/calloffs'], pill:{t:'pill-bad', l:'No-call'},
+    detail:{Employee:e.display_name, Entity:e.entity_id, Type:c.type, Reason:c.reason, Status:c.status, Reported:c.created_at, Route:'GET /api/hr/calloffs?since=2026-09-01'}
+  }); });
+  openIncidents.filter(i=>i.severity!=='high').forEach(i => { const e=findEmp(i.person_id); cards.push({
+    urgency:4, title:`Open incident — ${e.display_name}`,
+    desc:`${i.type.replace(/_/g,' ')}, ${i.severity} severity, opened ${i.created_at}.`,
+    meta:[e.entity_id, e.location, 'GET /api/hr/incidents'], pill:{t:'pill-warn', l:i.severity},
+    detail:{Employee:e.display_name, Entity:e.entity_id, Type:i.type, Severity:i.severity, Status:i.status, Opened:i.created_at, Route:'GET /api/hr/incidents?since=2026-09-01'}
+  }); });
+  cards.sort((a,b)=>a.urgency-b.urgency);
+
+  document.getElementById('board').innerHTML = cards.length ? cards.map((c,idx) => `
+    <div class="dcard" data-idx="${idx}">
+      <div class="urg"><div class="urg-num">${idx+1}</div><div class="urg-lbl">rank</div></div>
+      <div class="body">
+        <div class="top"><span class="title">${c.title}</span><span class="pill ${c.pill.t}">${c.pill.l}</span></div>
+        <div class="desc">${c.desc}</div>
+        <div class="meta">${c.meta.map(m=>`<span>${m}</span>`).join('<span>·</span>')}</div>
+      </div>
+    </div>`).join('') : `<div class="small-note">Nothing needs attention for this entity today.</div>`;
+
+  window.__CARDS = cards;
+  document.querySelectorAll('.dcard').forEach(el => el.addEventListener('click', () => openPanel(window.__CARDS[+el.dataset.idx])));
+
+  // ---- false positive callout ----
+  const demo = DOCS.find(d=>d.id==='rec_doc_003');
+  const demoEmp = findEmp(demo.person_id);
+  if(entityFilter==='all' || demoEmp.entity_id===entityFilter){
+    document.getElementById('fixNote').style.display='block';
+    document.getElementById('fixNote').innerHTML = `<b>Table-A doc-expiry fix, shown live:</b> ${demoEmp.display_name}'s ${demo.doc_type.replace(/_/g,' ')} renews <b>${demo.renewal_date}</b> — almost a year out. The old HR Dashboard read Table A's own status column directly and would have shown <span class="old">${demo.table_a_status}</span> (never repatched after the 2026-07-12 backfill). This screen computes <span class="new">current</span> from the renewal date instead, so the row does not appear anywhere above — see <code>HR-DASHBOARD-INVENTORY.md</code> §4 (13 of 18 "Expired" rows were false positives).`;
+  } else {
+    document.getElementById('fixNote').style.display='none';
+  }
+}
+
+function openPanel(c){
+  document.getElementById('panelTitle').textContent = c.title;
+  document.getElementById('panelBody').innerHTML = Object.entries(c.detail).map(([k,v])=>`
+    <div class="pfield"><div class="l">${k}</div><div class="v ${k==='Route'?'mono':''}">${v}</div></div>`).join('');
+  document.getElementById('panelFoot').textContent = 'M1 is read-only — this panel has no action buttons because none exist yet.';
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+}
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('scrim').classList.remove('open');
+}
+document.getElementById('panelClose').addEventListener('click', closePanel);
+document.getElementById('scrim').addEventListener('click', closePanel);
+
+document.getElementById('entitySeg').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-entity]');
+  if(!btn) return;
+  currentEntity = btn.dataset.entity;
+  document.querySelectorAll('#entitySeg button').forEach(b=>b.classList.toggle('on', b===btn));
+  render();
+});
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
+});
+
+render();
+</script>
+</body>
+</html>
