@@ -149,9 +149,7 @@ start an item marked "lead session only".
    idempotent (natural key: licence, business day, package tag, kind) and add a per-store wall-clock
    cap to `pull_packages`. Add ≥ 6 probe checks. Read-only module: no HTTP verb other than GET may
    ever exist in `wmdemo/metrc/`.
-3. **Dispatch default**: owner chose "only the CURRENT stop is locked". In
-   `platform/modules/dispatch/config.ts` change the `frozenStopCount` default from 2 to 1, update
-   README and the tests that pin the default. Nothing else in that module.
+3. *(withdrawn — the lead session is fixing the dispatch core and restock modules on `main` right now; do NOT touch `platform/modules/dispatch/**`, `platform/modules/restock/**`, `wmdemo/inventory_api.py` restock functions or `qa/pick_slip_probe.py` / `qa/restock_api_probe.py`.)*
 4. **TS port of the tax audit-by-sale read** (`GET /api/tax/audit/sale/{order_id}`, store-scoped,
    same 404 body for foreign and missing) into `platform/modules/tax/` with goldens
    (extend `qa/record_differential_tax.py`; three identical recordings; replay green).
@@ -179,7 +177,7 @@ start an item marked "lead session only".
    only; outbound via the existing jobs/outbound pattern; signed webhooks with replay window;
    idempotency keys). No live calls. Do not change existing Engage points math.
 
-**Lead session only (do not start)**: anything in AWS or IAM; pushing/deploying; sale-lines and any
+**Lead session only (do not start)**: the dispatch core and restock modules (being fixed after an adversarial review); anything in AWS or IAM (the access template FAILED its security review and is being rewritten); pushing/deploying; sale-lines and any
 change to the sale/promotions/tax/register money paths; swap-recovery backend; discrepancy/scoreboard
 backend; changes to auth/route-policy/sessions/reqcheck/signed-links; the nav rail or any real screen
 build that depends on a concept the owner has not picked; anything the owner's open questions decide.

@@ -58,8 +58,8 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | B18 | DONE — driver assignment model; finding: the live `swiftAssign` ranking engine is NOT in the repos we hold (ask devs; eight admin screens to screenshot) | done |
 | B19 | DONE — tap-target mockups + review round; waiting on JT's approval (A4) | done |
 
-| B20 | Security review of the AWS access template update + dev templates (bucket-prefix overlap with live `hyperwolf-*` buckets is the first thing checked) | refuter running — gate for A7 |
-| B21 | Refute dispatch core + restock TS port (both committed in wave 4, unreviewed) | refuter running |
+| B20 | **AWS access template FAILED security review** (CloudFront mutate on `*`, role-attachment escalation to the boundary ceiling, boundary too wide for S3 objects/secrets, tag forging). Fix agent running → independent re-review → only then A7. **JT asked to set `EnableDeployRoleDev=false` until then.** | fixing |
+| B21 | Dispatch core FAILED review (promised-window rule unenforced, frozen default 2→1, budget race, time-box misses construction: 900 ms vs 150 ms target, hold hijack) and restock had a cross-store slip leak + overlapping-window double give (Python AND TS). Two fix agents running → re-refute | fixing |
 | B22 | Swap recovery flow build (backend does not exist; POS support SwapPanel has 3 bugs; logistics swap picker is ungoverned) — plan `SWAP-RECOVERY-FLOW-PLAN-2026-09-17.md` | after owner questions |
 | B23 | Discrepancy attribution + employee scoreboard — plan `DISCREPANCY-ATTRIBUTION-AND-SCOREBOARD-PLAN-2026-09-17.md`; handover-acceptance scan and box-placement check do not exist anywhere yet | after owner questions |
 | B24 | Push + deploy wave 4 (wm-demo `3a707e2`, POS-Admin `dc6d942`+) — buttons to JT after B15/B21 | pending |
