@@ -220,6 +220,7 @@ test('apply() error path returns empty outcome arrays, not undefined', async () 
   assert.equal(res.ok, false);
   assert.equal(res.status, 422);
   assert.equal(res.error, 'not a contract Plan');
+  assert.equal(res.conflictKind, null);
   assert.deepEqual(res.applied, []);
   assert.deepEqual(res.skipped, []);
   assert.deepEqual(res.adjusted, []);
@@ -292,4 +293,86 @@ test('the module is idempotent against a second script tag in the same context',
   const first = windowObj.HWRestock;
   vm.runInContext(SRC, context, { filename: 'hw-restock.js#2' });
   assert.equal(windowObj.HWRestock, first, 'a second load must not replace the armed module');
+});
+
+// 409 classification is display-only, using successful applies in this module instance.
+const conflict = { ok: false, code: 409, error: { code: 'conflict', message: 'unstructured opaque wording' } };
+const success = { ok: true, code: 200, body: { applied: [], skipped: [], adjusted: [], movements: [] } };
+function scopedPlan(extra = {}) { return { ...samplePlan(), store_id: 'corona', ...extra }; }
+
+test('apply() same or earlier window after own success is repeat; later is overlap', async () => {
+  let response = success;
+  const live = fakeLive({ postRes: () => response }); const api = loadModule(live);
+  await api.apply({ plan: scopedPlan(), actor: 'picker' }); response = conflict;
+  for (const since of ['2026-09-16T08:00:00Z', '2026-09-16T07:00:00Z', '2026-09-16T01:00:00-07:00']) {
+    assert.equal((await api.apply({ plan: scopedPlan({ since }), actor: 'picker' })).conflictKind, 'repeat');
+  }
+  assert.equal((await api.apply({ plan: scopedPlan({ since: '2026-09-16T09:00:00Z' }), actor: 'picker' })).conflictKind, 'overlap');
+  assert.equal(live.calls.post.length, 5, 'one post per manual apply, no automatic retry');
+});
+
+test('apply() fresh module conflict is overlap and failures never create success memory', async () => {
+  const live = fakeLive({ postRes: conflict }); const api = loadModule(live);
+  for (let i = 0; i < 2; i++) {
+    const res = await api.apply({ plan: scopedPlan(), actor: 'picker' });
+    assert.equal(res.conflictKind, 'overlap'); assert.equal(res.status, 409);
+    assert.equal(res.error, conflict.error.message); assert.deepEqual(res.applied, []);
+  }
+  assert.equal(live.calls.post.length, 2);
+});
+
+test('apply() remembered windows are isolated by both store and shelf, without tuple collisions', async () => {
+  let response = success;
+  const api = loadModule(fakeLive({ postRes: () => response }));
+  await api.apply({ plan: scopedPlan({ store_id: 'a::b', shelf_location_id: 'c' }), actor: 'picker' });
+  await api.apply({ plan: scopedPlan(), actor: 'picker' }); response = conflict;
+  for (const extra of [{ store_id: 'elsinore' }, { shelf_location_id: 'f2' }, { store_id: 'a', shelf_location_id: 'b::c' }]) {
+    assert.equal((await api.apply({ plan: scopedPlan(extra), actor: 'picker' })).conflictKind, 'overlap');
+  }
+});
+
+test('apply() classification requires both HTTP 409 and structured conflict code', async () => {
+  for (const response of [
+    { ok: false, code: 409, error: { code: 'other', message: 'conflict' } },
+    { ok: false, code: 409, error: 'conflict' },
+    { ok: false, code: 422, error: { code: 'conflict', message: 'conflict' } }
+  ]) {
+    const api = loadModule(fakeLive({ postRes: response }));
+    assert.equal((await api.apply({ plan: scopedPlan(), actor: 'picker' })).conflictKind, null);
+  }
+});
+
+test('apply() full module reload loses local memory and shows overlap', async () => {
+  let response = success; const live = fakeLive({ postRes: () => response });
+  await loadModule(live).apply({ plan: scopedPlan(), actor: 'picker' }); response = conflict;
+  assert.equal((await loadModule(live).apply({ plan: scopedPlan(), actor: 'picker' })).conflictKind, 'overlap');
+});
+
+test('apply() snapshots the posted window before asynchronous caller mutation', async () => {
+  let finish; const live = fakeLive();
+  live.post = () => new Promise(resolve => { finish = resolve; });
+  const api = loadModule(live), plan = scopedPlan();
+  const pending = api.apply({ plan, actor: 'picker' }); plan.store_id = 'changed'; plan.since = '2099-01-01T00:00:00Z';
+  finish(success); await pending; live.post = () => Promise.resolve(conflict);
+  assert.equal((await api.apply({ plan: scopedPlan(), actor: 'picker' })).conflictKind, 'repeat');
+  assert.equal((await api.apply({ plan, actor: 'picker' })).conflictKind, 'overlap');
+});
+
+test('apply() invalid window cannot manufacture repeat history; local failure carries null', async () => {
+  let response = success; const api = loadModule(fakeLive({ postRes: () => response }));
+  const bad = scopedPlan({ since: 'not-a-date' });
+  await api.apply({ plan: bad, actor: 'picker' }); response = conflict;
+  assert.equal((await api.apply({ plan: bad, actor: 'picker' })).conflictKind, 'overlap');
+  assert.equal((await api.apply({ actor: 'picker' })).conflictKind, null);
+});
+
+test('apply() late older success does not discard a newer successfully applied window', async () => {
+  const pending = []; const live = fakeLive();
+  live.post = () => new Promise(resolve => pending.push(resolve)); const api = loadModule(live);
+  const old = api.apply({ plan: scopedPlan(), actor: 'picker' });
+  const newerPlan = scopedPlan({ since: '2026-09-16T09:00:00Z' });
+  const newer = api.apply({ plan: newerPlan, actor: 'picker' });
+  pending[1](success); await newer; pending[0](success); await old;
+  live.post = () => Promise.resolve(conflict);
+  assert.equal((await api.apply({ plan: newerPlan, actor: 'picker' })).conflictKind, 'repeat');
 });

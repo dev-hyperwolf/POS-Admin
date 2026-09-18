@@ -50,6 +50,21 @@
   var W = window;
   if (W.HWRestock && W.HWRestock.__armed) { return; }   // idempotent: two script tags, one module
 
+  // Display-only heuristic, never authority to skip/retry/resubmit a write.
+  // Other tabs/devices (or a full reload) have no local success memory, so a
+  // real-world repeat there appears as overlap. Never parse server error prose.
+  var _lastAppliedSince = Object.create(null);
+
+  function applyWindow(plan) {
+    if (typeof plan.store_id !== 'string' || !plan.store_id ||
+        typeof plan.shelf_location_id !== 'string' || !plan.shelf_location_id ||
+        typeof plan.since !== 'string') { return null; }
+    var since = Date.parse(plan.since);
+    if (!isFinite(since)) { return null; }
+    // Tuple encoding avoids collisions when either id contains a delimiter.
+    return { key: JSON.stringify([plan.store_id, plan.shelf_location_id]), since: since };
+  }
+
   function live() { return W.HW_LIVE; }
 
   function missingFieldsError(fields, given) {
@@ -127,21 +142,35 @@
   // act on immediately (mark the line hand_counted, or read more tags, and re-submit).
   function apply(args) {
     args = args || {};
-    if (!args.plan) { return localError('plan is required'); }
-    if (!args.actor) { return localError('actor is required'); }
+    if (!args.plan || !args.actor) {
+      return localError(!args.plan ? 'plan is required' : 'actor is required').then(function (res) {
+        res.conflictKind = null; return res;
+      });
+    }
     var body = { plan: cloneJson(args.plan), actor: args.actor };
+    var attempted = applyWindow(body.plan); // snapshot before asynchronous completion
     if (args.station_id !== undefined && args.station_id !== null && args.station_id !== '') {
       body.station_id = args.station_id;
     }
     if (args.read !== undefined && args.read !== null) { body.read = cloneJson(args.read); }
     return live().post('/api/inventory/restock/apply', body).then(function (res) {
       if (!res.ok) {
-        return { ok: false, status: res.code, error: errorText(res), applied: [], skipped: [], adjusted: [], movements: [], handCountRequired: [] };
+        var conflictKind = null;
+        if (res.code === 409 && res.error && res.error.code === 'conflict') {
+          conflictKind = attempted && _lastAppliedSince[attempted.key] !== undefined &&
+            attempted.since <= _lastAppliedSince[attempted.key] ? 'repeat' : 'overlap';
+        }
+        return { ok: false, status: res.code, error: errorText(res), conflictKind: conflictKind, applied: [], skipped: [], adjusted: [], movements: [], handCountRequired: [] };
+      }
+      if (attempted) {
+        // Late completion of an older request must not erase a newer success.
+        var previous = _lastAppliedSince[attempted.key];
+        _lastAppliedSince[attempted.key] = previous === undefined ? attempted.since : Math.max(previous, attempted.since);
       }
       var b = res.body || {};
       var skipped = b.skipped || [];
       return {
-        ok: true, status: res.code, error: null,
+        ok: true, status: res.code, error: null, conflictKind: null,
         applied: b.applied || [],
         skipped: skipped,
         adjusted: b.adjusted || [],

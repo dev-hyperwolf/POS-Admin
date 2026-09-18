@@ -217,10 +217,17 @@
       </Card>);
   }
 
-  function OutcomePanel({ result, onRetryHandCounted, retryBusy }) {
+  function OutcomePanel({ result, onRetryHandCounted, retryBusy, onRefresh }) {
     const P = useP();
     if (!result) { return null; }
     if (!result.ok) {
+      // Local history suggests a cause; the server does not distinguish these conflicts.
+      if (result.conflictKind === 'repeat' || result.conflictKind === 'overlap') {
+        const message = result.conflictKind === 'repeat'
+          ? 'This window appears to repeat an earlier apply from this browser. Refresh to see the current state.'
+          : 'Another restock may overlap this window. Refresh to see the current state before trying again.';
+        return <window.ErrorState title="Move to floor did not apply" body={message} onRetry={onRefresh} />;
+      }
       return <window.ErrorState title="Move to floor did not apply" body={result.error || 'The server refused this apply.'} />;
     }
     return (
@@ -411,7 +418,7 @@
               <PBtn variant="primary" size="lg" style={{ marginLeft: 'auto' }} busy={committing} disabled={!canCommit} onClick={commit}>Move to floor</PBtn>
             </div>
 
-            <OutcomePanel result={applyResult} onRetryHandCounted={retryHandCounted} retryBusy={retrying} />
+            <OutcomePanel result={applyResult} onRetryHandCounted={retryHandCounted} retryBusy={retrying} onRefresh={loadPreview} />
           </React.Fragment>
         )}
       </div>);
