@@ -1,0 +1,83 @@
+{
+  "$id": "SaleLine",
+  "contract": "0.5.3",
+  "type": "object",
+  "required": [
+    "order_id",
+    "line_no",
+    "store_id",
+    "quantity",
+    "discount",
+    "priced_by",
+    "resolution_path",
+    "created_at"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "line_no": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "store_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sku": {
+      "type": "string",
+      "nullable": true
+    },
+    "product_name": {
+      "type": "string",
+      "nullable": true
+    },
+    "quantity": {
+      "type": "number"
+    },
+    "unit_price": {
+      "$ref": "Money",
+      "nullable": true
+    },
+    "line_gross": {
+      "$ref": "Money",
+      "nullable": true
+    },
+    "discount": {
+      "$ref": "Money"
+    },
+    "tax": {
+      "$ref": "Money",
+      "nullable": true
+    },
+    "priced_by": {
+      "type": "string",
+      "$enum": "SaleLinePricedBy"
+    },
+    "batch_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "unit_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "nullable": true
+    },
+    "location_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "resolution_path": {
+      "type": "string",
+      "$enum": "SaleLineResolutionPath"
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    }
+  }
+}

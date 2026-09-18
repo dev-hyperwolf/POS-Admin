@@ -505,6 +505,10 @@ checkFixtureDomain('region', 4, 4);
 // Metrc Phase 1 (READ-ONLY foundation, METRC-PROGRAM-PLAN-2026-09-17.md §5): MetrcPackage/
 // MetrcLedgerLine/MetrcReconVariance, 3 shapes x (2 valid + 3 invalid).
 checkFixtureDomain('metrc', 6, 9);
+// SaleLine (docs/SALES.md, wmdemo/pos_sale_lines.py): the line-grain sale ledger. 4 valid
+// (fefo_bulk, not_tracked minimal, unit_tracked, a void's negated quantity) + 4 invalid
+// (missing required, bad resolution_path, bad priced_by, negative line_no).
+checkFixtureDomain('sales', 2, 3);
 
 test('HrEmployee is the over-posting guard for HrEmployeeRestricted: restricted PII on an HrEmployee record is rejected', () => {
   const withSsn = { source_ref: { base: 'app8mI9K1lS1D3Uhk', table: 'tblDtY9WsQGQOgHgw', record_id: 'recX' },

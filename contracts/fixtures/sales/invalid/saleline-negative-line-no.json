@@ -1,0 +1,14 @@
+{
+  "shape": "SaleLine",
+  "record": {
+    "order_id": "ord_00000008",
+    "line_no": -1,
+    "store_id": "elsinore",
+    "sku": "sku-blue-dream-eighth",
+    "quantity": 1,
+    "discount": { "cents": 0, "currency": "USD", "basis": "ex_tax_gross" },
+    "priced_by": "catalog",
+    "resolution_path": "fefo_bulk",
+    "created_at": "2026-09-17T20:24:00Z"
+  }
+}

@@ -27,7 +27,11 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.5.2'; // 0.5.2 (additive): MetrcPackage/MetrcLedgerLine/MetrcReconVariance +
+  var VERSION = '0.5.3'; // 0.5.3 (additive): SaleLine + SaleLineResolutionPath/SaleLinePricedBy
+  // (docs/SALES.md) -- the line-grain sibling pos_sales.py's own header always said was missing:
+  // batch/unit/location resolution and server-side unit-price/tax authority for one cart line,
+  // append-only. No prior shape changed.
+  // 0.5.2 (additive): MetrcPackage/MetrcLedgerLine/MetrcReconVariance +
   // MetrcResolutionPath/MetrcVarianceKind/MetrcExceptionState (METRC-PROGRAM-PLAN-2026-09-17.md
   // §5 Phase 1, READ-ONLY foundation -- no submit shape exists yet because nothing submits).
   // No prior shape changed.
@@ -332,6 +336,23 @@
     // three states for both (plan §3: "open -> acknowledged -> resolved").
     MetrcExceptionState: { values: ['open', 'acknowledged', 'resolved'],
       source: 'METRC-PROGRAM-PLAN-2026-09-17.md §3 exception queue design; wmdemo/metrc/exceptions.py' },
+    // 0.5.3 -- SaleLine (docs/SALES.md). How ONE cart line's batch/unit resolution actually went:
+    // 'fefo_bulk' (a real on-hand batch/location covered it, no per-unit tags involved),
+    // 'unit_tracked' (same, but specific RFID/tag units were selected and marked sold),
+    // 'not_tracked' (the sku has never been received into wmdemo/inventory.py's ledger at all --
+    // the common case for most demo/catalog skus, never a refusal), 'fractional_qty_skipped'
+    // (a bulk-by-weight line; this ledger decrements discrete units, not deciweights).
+    SaleLineResolutionPath: { values: ['fefo_bulk', 'unit_tracked', 'not_tracked',
+      'fractional_qty_skipped'],
+      source: 'docs/SALES.md; wmdemo/pos_sale_lines.py' },
+    // SaleLinePricedBy: whether unit_price/line_gross on a SaleLine is server-authoritative
+    // (resolved against the live catalog product) or the client's own stated figure (no catalog
+    // match at all -- an older client, a non-catalog "custom item" line, or a qa fixture sku).
+    // 'catalog_fractional_qty': catalog-priced per unit, but the line's own gross falls back to
+    // the client figure because the quantity is not a whole number (see SaleLineResolutionPath's
+    // 'fractional_qty_skipped' -- the two are reported together but are independent facts).
+    SaleLinePricedBy: { values: ['catalog', 'catalog_fractional_qty', 'client'],
+      source: 'docs/SALES.md; wmdemo/pos_sale_lines.py' },
   };
   var HTTP_STATUS = { bad_request: 400, unauthorized: 401, forbidden: 403, not_found: 404,
     conflict: 409, unprocessable: 422, rate_limited: 429, internal: 500, not_built: 501 };
@@ -1186,6 +1207,31 @@
         acknowledged_by: { type: 'string', nullable: true }, acknowledged_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
         resolved_by: { type: 'string', nullable: true }, resolved_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
         resolution_note: { type: 'string', nullable: true } } },
+    // 0.5.3 -- SaleLine (docs/SALES.md). The line-grain sibling `pos_sales.py`'s header always
+    // said was missing: one row per (order_id, line_no), APPEND-ONLY -- a void/return is a NEW
+    // row under a NEW order_id with quantity/line_gross/discount/tax NEGATED, never an UPDATE of
+    // an earlier row (wmdemo/pos_sale_lines.py enforces this at the DB layer; this shape is the
+    // wire/read side of that same row, same posture as MetrcLedgerLine). `batch_id`/`unit_ids`/
+    // `location_id` are null together when `resolution_path` is 'not_tracked' or
+    // 'fractional_qty_skipped' -- see SaleLineResolutionPath's own comment for what each value
+    // means and wmdemo/pos_sale_lines.py's module docstring for the money-authority scope
+    // (`priced_by` says whether `unit_price`/`line_gross` came from the catalog or the client).
+    SaleLine: { type: 'object',
+      required: ['order_id', 'line_no', 'store_id', 'quantity', 'discount', 'priced_by',
+        'resolution_path', 'created_at'],
+      additionalProperties: true,
+      properties: {
+        order_id: ID, line_no: { type: 'integer', minimum: 0 }, store_id: ID,
+        sku: { type: 'string', nullable: true }, product_name: { type: 'string', nullable: true },
+        quantity: { type: 'number' },
+        unit_price: { $ref: 'Money', nullable: true }, line_gross: { $ref: 'Money', nullable: true },
+        discount: { $ref: 'Money' }, tax: { $ref: 'Money', nullable: true },
+        priced_by: { type: 'string', $enum: 'SaleLinePricedBy' },
+        batch_id: { type: 'string', nullable: true },
+        unit_ids: { type: 'array', items: { type: 'string' }, nullable: true },
+        location_id: { type: 'string', nullable: true },
+        resolution_path: { type: 'string', $enum: 'SaleLineResolutionPath' },
+        created_at: ISO } },
   };
 
   function typeOf(v) {

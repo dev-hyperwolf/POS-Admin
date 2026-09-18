@@ -1,0 +1,21 @@
+{
+  "shape": "SaleLine",
+  "record": {
+    "order_id": "ord_00000003",
+    "line_no": 1,
+    "store_id": "corona",
+    "sku": "sku-rfid-cart",
+    "product_name": "Vape Cart 1g",
+    "quantity": 1,
+    "unit_price": { "cents": 4500, "currency": "USD", "basis": "ex_tax_gross" },
+    "line_gross": { "cents": 4500, "currency": "USD", "basis": "ex_tax_gross" },
+    "discount": { "cents": 500, "currency": "USD", "basis": "ex_tax_gross" },
+    "tax": { "cents": 380, "currency": "USD", "basis": "ex_tax_gross" },
+    "priced_by": "catalog",
+    "batch_id": "batch-rfid-9",
+    "unit_ids": ["TAG-0001"],
+    "location_id": "loc-corona-floor",
+    "resolution_path": "unit_tracked",
+    "created_at": "2026-09-17T20:16:40Z"
+  }
+}

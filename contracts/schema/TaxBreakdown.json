@@ -1,6 +1,6 @@
 {
   "$id": "TaxBreakdown",
-  "contract": "0.5.2",
+  "contract": "0.5.3",
   "type": "object",
   "required": [
     "lines",

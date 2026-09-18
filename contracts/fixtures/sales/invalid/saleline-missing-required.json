@@ -1,0 +1,12 @@
+{
+  "shape": "SaleLine",
+  "record": {
+    "order_id": "ord_00000005",
+    "line_no": 0,
+    "sku": "sku-blue-dream-eighth",
+    "quantity": 1,
+    "priced_by": "catalog",
+    "resolution_path": "fefo_bulk",
+    "created_at": "2026-09-17T20:21:00Z"
+  }
+}

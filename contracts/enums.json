@@ -1,5 +1,5 @@
 {
-  "contract": "0.5.2",
+  "contract": "0.5.3",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -968,6 +968,17 @@
       "open",
       "acknowledged",
       "resolved"
+    ],
+    "SaleLineResolutionPath": [
+      "fefo_bulk",
+      "unit_tracked",
+      "not_tracked",
+      "fractional_qty_skipped"
+    ],
+    "SaleLinePricedBy": [
+      "catalog",
+      "catalog_fractional_qty",
+      "client"
     ]
   }
 }
