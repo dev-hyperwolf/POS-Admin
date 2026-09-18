@@ -131,6 +131,52 @@ padding:12px 14px;font-family:var(--fontMono);font-size:11.5px;line-height:1.6;c
   .card-head{padding:11px 12px;}
   .card-body{padding:12px;}
 }
+
+/* ---- device toggle + phone frame (step-by-step wizard with chips) ---- */
+[hidden]{display:none !important;}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:6px;}
+.device-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.device-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:var(--r999);cursor:pointer;}
+.device-toggle button.on{background:var(--accent);color:var(--accentInk);}
+.phone-wrap{display:flex;justify-content:center;padding:26px 10px 60px;background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);min-height:calc(100vh - 58px);}
+.phone{width:390px;max-width:100%;background:#13130F;border-radius:46px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{background:var(--bg2);border-radius:34px;overflow:hidden;height:844px;max-height:82vh;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 auto;height:32px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:12px;font-weight:700;color:var(--ink);}
+.p-topbar{flex:0 0 auto;padding:2px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-topbar h2{margin:0 0 8px;font-size:15px;}
+.p-ruleseg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+.p-ruleseg button{flex:0 0 auto;min-height:32px;max-width:200px;padding:0 12px;border-radius:999px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);font-size:11px;font-weight:600;font-family:var(--fontSans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.p-ruleseg button.on{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+.p-steps{display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid var(--hairline2);background:var(--surface2);}
+.p-steps .s{flex:1;text-align:center;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--inkFaint);padding-bottom:6px;border-bottom:3px solid var(--hairline2);cursor:pointer;}
+.p-steps .s.on{color:var(--ink);border-color:var(--info);}
+.p-canvas{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch;}
+.p-wiz-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r14);padding:14px 15px;box-shadow:var(--shadowSm);}
+.p-wiz-card h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
+.p-sentence{font-size:14.5px;line-height:2.3;color:var(--ink2);}
+.p-chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--info);color:var(--info);border-radius:999px;padding:6px 12px;margin:3px 3px;min-height:32px;font-size:12.5px;font-weight:600;font-family:var(--fontMono);cursor:pointer;}
+.p-add-cond{margin-top:12px;min-height:44px;width:100%;border-radius:var(--r10);border:1px dashed var(--hairline3);background:var(--surface2);color:var(--ink2);font-weight:600;font-size:12.5px;cursor:pointer;}
+.p-kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--hairline);}
+.p-kv:last-child{border-bottom:0;}
+.p-kv .k{color:var(--inkDim);}
+.p-kv .v{font-weight:600;font-family:var(--fontMono);text-align:right;}
+.p-wiz-nav{display:flex;gap:10px;padding:10px 14px 14px;flex:0 0 auto;border-top:1px solid var(--hairline2);background:var(--surface);}
+.p-wiz-nav button{flex:1;min-height:44px;border-radius:var(--r10);font-weight:700;font-size:13px;cursor:pointer;border:1px solid var(--hairline3);background:var(--surface2);color:var(--ink);}
+.p-wiz-nav button.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme="dark"] .p-wiz-nav button.primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.p-wiz-nav button:disabled{opacity:.4;cursor:not-allowed;}
+.p-sheet-scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:60;}
+.p-sheet-scrim.open{opacity:1;pointer-events:auto;}
+.p-sheet{position:absolute;left:0;right:0;bottom:0;max-height:70%;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);transform:translateY(100%);transition:transform .18s ease;z-index:70;display:flex;flex-direction:column;}
+.p-sheet.open{transform:translateY(0);}
+.p-sheet-grip{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 2px;flex:0 0 auto;}
+.p-sheet-head{display:flex;align-items:center;padding:6px 16px 10px;flex:0 0 auto;}
+.p-sheet-head h4{font-size:14px;margin:0;flex:1;}
+.p-sheet-close{width:44px;height:44px;border-radius:99px;background:var(--surface2);border:1px solid var(--hairline2);cursor:pointer;color:var(--inkDim);}
+.p-sheet-body{overflow-y:auto;padding:4px 16px 24px;-webkit-overflow-scrolling:touch;}
+.p-sheet-body .field{margin-bottom:12px;}
+.p-sheet-body label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);font-weight:700;display:block;margin-bottom:4px;}
+.p-sheet-body select,.p-sheet-body input{width:100%;min-height:44px;font-family:var(--fontSans);font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--hairline3);background:var(--field);color:var(--ink);}
 </style>
 </head>
 <body>
@@ -139,9 +185,14 @@ padding:12px 14px;font-family:var(--fontMono);font-size:11.5px;line-height:1.6;c
     <h1>Promo Rules — Concept A: Sentence Builder</h1>
     <div class="sub">Team 1d · reads as English, edits as chips · <b>hw.rule.v1</b> underneath</div>
   </div>
+  <div class="device-toggle" id="deviceToggle" role="group" aria-label="Preview device">
+    <button class="on" data-d="desktop" type="button">Desktop</button>
+    <button data-d="mobile" type="button">Mobile</button>
+  </div>
   <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
 </div>
 
+<div id="desktopView">
 <div class="intro">
   <div class="card">
     <div class="eyebrow">The idea</div>
@@ -167,6 +218,36 @@ padding:12px 14px;font-family:var(--fontMono);font-size:11.5px;line-height:1.6;c
   </div>
 
   <div class="stack" id="rules"></div>
+</div>
+</div>
+
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-topbar">
+        <h2>Rule Builder</h2>
+        <div class="p-ruleseg" id="pRuleSeg"></div>
+      </div>
+      <div class="p-steps" id="pSteps">
+        <div class="s on" data-step="0">Conditions</div>
+        <div class="s" data-step="1">Reward</div>
+        <div class="s" data-step="2">Scope</div>
+        <div class="s" data-step="3">Preview</div>
+      </div>
+      <div class="p-canvas" id="pCanvas"></div>
+      <div class="p-wiz-nav">
+        <button id="pWizPrev" type="button">Back</button>
+        <button class="primary" id="pWizNext" type="button">Next</button>
+      </div>
+      <div class="p-sheet-scrim" id="pSheetScrim"></div>
+      <div class="p-sheet" id="pSheet" role="dialog" aria-modal="true" aria-label="Edit condition">
+        <div class="p-sheet-grip"></div>
+        <div class="p-sheet-head"><h4>Edit condition</h4><button class="p-sheet-close" id="pSheetClose" aria-label="Close">✕</button></div>
+        <div class="p-sheet-body" id="pSheetBody"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -331,6 +412,7 @@ function renderRule(rule){
       </div>
     </div>`;
   document.getElementById('json-' + rule.id).textContent = JSON.stringify(rule.__raw ? rule.__raw() : stripRule(rule), null, 2);
+  if (typeof renderPhone === 'function') renderPhone();
 }
 
 function stripRule(rule){
@@ -339,6 +421,9 @@ function stripRule(rule){
 }
 
 function renderAll(){ rules.forEach(renderRule); }
+
+let pRuleIdx = 0, pStep = 0;
+const STEP_NAMES = ['Conditions','Reward','Scope','Preview'];
 
 document.getElementById('rules').innerHTML = rules.map(r => `<div class="card" id="card-${r.id}"></div>`).join('');
 renderAll();
@@ -405,6 +490,145 @@ document.getElementById('themeBtn').addEventListener('click', () => {
   html.setAttribute('data-theme', next);
   document.getElementById('themeBtn').textContent = next === 'light' ? 'Dark mode' : 'Light mode';
 });
+
+/* ---------------------------------------------------------------------
+   PHONE VIEW — a step-by-step wizard (Conditions → Reward → Scope →
+   Preview) built from the same `rules` array the desktop sentence cards
+   use. Conditions render as tappable chips; tapping one opens a bottom
+   sheet with the real field/op/value selects, writing into the exact
+   same rule.if tree renderNode() reads from.
+--------------------------------------------------------------------- */
+function pFlatConds(node, path, out){
+  ['all','any','not'].forEach(key => {
+    (node[key]||[]).forEach((item,i) => {
+      if (item.field) out.push({ cond:item, path:[...path,key,i] });
+      else pFlatConds(item, [...path,key,i], out);
+    });
+  });
+  return out;
+}
+function renderPhone(){
+  document.getElementById('pRuleSeg').innerHTML = rules.map((r,i)=>`<button data-i="${i}" class="${i===pRuleIdx?'on':''}">${r.name}</button>`).join('');
+  document.querySelectorAll('#pRuleSeg button').forEach(b=>b.addEventListener('click', ()=>{ pRuleIdx = +b.dataset.i; renderPhone(); }));
+  document.querySelectorAll('#pSteps .s').forEach(s=>s.classList.toggle('on', +s.dataset.step===pStep));
+  const rule = rules[pRuleIdx];
+  const canvas = document.getElementById('pCanvas');
+  if (pStep === 0) {
+    const conds = pFlatConds(rule.if, [], []);
+    canvas.innerHTML = `<div class="p-wiz-card"><h3>Batches where…</h3>
+      <div class="p-sentence">${conds.map((c,i)=>`<span class="p-chip" data-i="${i}">${c.cond.field} ${c.cond.op} ${Array.isArray(c.cond.value)?'['+c.cond.value.join(',')+']':c.cond.value}</span>`).join(' <span class="joiner">and</span> ') || '<span class="everything-note">matches everything</span>'}</div>
+      <button class="p-add-cond" id="pAddCond" type="button">+ Add condition</button>
+    </div>`;
+    canvas.querySelectorAll('.p-chip').forEach(chip => chip.addEventListener('click', ()=> openCondSheet(rule, conds[+chip.dataset.i].path)));
+    document.getElementById('pAddCond').addEventListener('click', ()=>{ rule.if.all.push({field:'batch.thc_pct', op:'gte', value:30}); renderRule(rule); });
+  } else if (pStep === 1) {
+    const t = rule.then;
+    canvas.innerHTML = `<div class="p-wiz-card"><h3>Then</h3><div class="p-sentence">${thenSentence(rule)}</div>
+      <div style="margin-top:10px;">
+        <div class="p-kv"><span class="k">kind</span><span class="v">${t.kind}</span></div>
+        <div class="p-kv"><span class="k">value</span><span class="v">${t.value}</span></div>
+        <div class="p-kv"><span class="k">applies_to</span><span class="v">${t.applies_to}</span></div>
+        <div class="p-kv"><span class="k">cap_cents</span><span class="v">${t.cap_cents ?? 'null'}</span></div>
+        <div class="p-kv"><span class="k">max_per_order</span><span class="v">${t.max_per_order ?? 'null'}</span></div>
+      </div></div>`;
+  } else if (pStep === 2) {
+    canvas.innerHTML = `<div class="p-wiz-card"><h3>Scope &amp; window</h3>
+      <div class="p-kv"><span class="k">store_ids</span><span class="v">${rule.scope.store_ids.length?rule.scope.store_ids.join(', '):'every store'}</span></div>
+      <div class="p-kv"><span class="k">channels</span><span class="v">${rule.scope.channels.length?rule.scope.channels.join(', '):'every channel'}</span></div>
+      <div class="p-kv"><span class="k">stackable</span><span class="v">${rule.stackable}</span></div>
+      <div class="p-kv"><span class="k">priority</span><span class="v">${rule.priority}</span></div>
+      <div class="p-kv"><span class="k">starts_at</span><span class="v">${new Date(rule.window.starts_at).toISOString().slice(0,10)}</span></div>
+      <div class="p-kv"><span class="k">ends_at</span><span class="v">${rule.window.ends_at ? new Date(rule.window.ends_at).toISOString().slice(0,10) : '—'}</span></div>
+    </div>`;
+  } else {
+    const sourceTag = rule.meta.source==='agent' ? '<span class="agent-note">needs promos:activate — a person</span>' : '';
+    canvas.innerHTML = `<div class="p-wiz-card"><h3>Live preview</h3>
+      <div class="preview-box"><span class="pv-num">${rule.preview.batches}</span> batches · <span class="pv-num">${rule.preview.lines}</span> lines match
+        <div class="pv-bind">POST /api/promos/rules/${rule.id}/preview</div></div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">${activateControl(rule)}${sourceTag}</div>
+      <div class="meta-bits" style="margin-top:10px;">author: ${rule.meta.author} · v${rule.meta.version}${rule.meta.prompt ? ' · prompt: "'+rule.meta.prompt+'"' : ''}</div>
+    </div>`;
+    canvas.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+      rule.status = b.getAttribute('data-act')==='activate' ? 'active' : 'paused';
+      renderRule(rule);
+    }));
+  }
+  document.getElementById('pWizPrev').disabled = pStep===0;
+  document.getElementById('pWizNext').textContent = pStep===3 ? 'Done' : 'Next';
+}
+function openCondSheet(rule, path){
+  const cond = getAtPath(rule.if, path);
+  const fieldOpts = RULE_FIELDS.map(f=>`<option value="${f}" ${f===cond.field?'selected':''}>${f}</option>`).join('');
+  const opOpts = opsFor(cond.field).map(o=>`<option value="${o}" ${o===cond.op?'selected':''}>${o}</option>`).join('');
+  const dispVal = Array.isArray(cond.value) ? cond.value.join(',') : cond.value;
+  document.getElementById('pSheetBody').innerHTML = `
+    <div class="field"><label>Field</label><select id="pCondField">${fieldOpts}</select></div>
+    <div class="field"><label>Operator</label><select id="pCondOp">${opOpts}</select></div>
+    <div class="field"><label>Value</label><input id="pCondVal" type="text" value="${dispVal}"></div>
+    <button class="p-add-cond" id="pCondRemove" type="button" style="border-color:var(--bad);color:var(--bad);">Remove condition</button>`;
+  const apply = () => {
+    const f = document.getElementById('pCondField').value;
+    if (f !== cond.field){ cond.field = f; cond.op = opsFor(f)[0]; cond.value = ENUM_VALUES[f] ? ENUM_VALUES[f][0] : (fieldType(f)==='number'?0:''); }
+    else {
+      cond.op = document.getElementById('pCondOp').value;
+      const v = document.getElementById('pCondVal').value;
+      cond.value = ['in','not_in'].includes(cond.op) ? v.split(',').map(s=>s.trim()) : (fieldType(cond.field)==='number' ? Number(v) : v);
+    }
+    renderRule(rule);
+    openCondSheet(rule, path);
+  };
+  document.getElementById('pCondField').addEventListener('change', apply);
+  document.getElementById('pCondOp').addEventListener('change', apply);
+  document.getElementById('pCondVal').addEventListener('change', apply);
+  document.getElementById('pCondRemove').addEventListener('click', ()=>{
+    const idx = path[path.length-1];
+    const parentArr = getAtPath(rule.if, path.slice(0,-2))[path[path.length-2]];
+    parentArr.splice(idx,1);
+    renderRule(rule);
+    closeCondSheet();
+  });
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function closeCondSheet(){
+  document.getElementById('pSheet').classList.remove('open');
+  document.getElementById('pSheetScrim').classList.remove('open');
+}
+document.getElementById('pWizPrev').addEventListener('click', ()=>{ if(pStep>0){ pStep--; renderPhone(); } });
+document.getElementById('pWizNext').addEventListener('click', ()=>{ if(pStep<3){ pStep++; renderPhone(); } });
+document.getElementById('pSteps').addEventListener('click', (e)=>{ const s=e.target.closest('.s'); if(!s) return; pStep=+s.dataset.step; renderPhone(); });
+document.getElementById('pSheetClose').addEventListener('click', closeCondSheet);
+document.getElementById('pSheetScrim').addEventListener('click', closeCondSheet);
+
+/* ---- device toggle ---- */
+function setDevice(mode){
+  document.getElementById('desktopView').hidden = mode !== 'desktop';
+  document.getElementById('phoneView').hidden = mode !== 'mobile';
+  document.querySelectorAll('#deviceToggle button').forEach(b=>b.classList.toggle('on', b.dataset.d===mode));
+  if (mode === 'mobile') renderPhone();
+}
+document.getElementById('deviceToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-d]'); if(!btn) return;
+  setDevice(btn.dataset.d);
+});
+
+/* ---- query params: ?device=desktop|mobile  ?open=1|0  ?theme=light|dark ---- */
+(function applyQueryParams(){
+  try{
+    const qp = new URLSearchParams(location.search);
+    const theme = qp.get('theme');
+    if(theme==='dark' || theme==='light'){
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('themeBtn').textContent = theme==='dark' ? 'Light mode' : 'Dark mode';
+    }
+    const device = qp.get('device');
+    if(device==='mobile' || device==='desktop') setDevice(device);
+    if(qp.get('open')==='1'){
+      const conds = pFlatConds(rules[pRuleIdx].if, [], []);
+      if (conds.length) openCondSheet(rules[pRuleIdx], conds[0].path);
+    }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

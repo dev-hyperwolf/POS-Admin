@@ -206,7 +206,7 @@ table.board tr:hover td{background:var(--surface2);}
   .rail .lbl{display:none;}
   .kpirow{grid-template-columns:repeat(2,1fr);}
   table.board{font-size:11px;}
-  .drawer{width:100vw;}
+  .drawer{width:100%;max-width:100%;box-sizing:border-box;}
 }
 
 /* ============================================================================
@@ -215,6 +215,11 @@ table.board tr:hover td{background:var(--surface2);}
    case detail as the desktop board. Toggled by #deviceSeg / ?device= param.
    ========================================================================= */
 [hidden]{display:none !important;}
+.pbar{position:sticky;top:0;z-index:120;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow-x:auto;padding:8px 16px;background:var(--rail);border-bottom:1px solid var(--railHair);}
+.pbar-title{font-size:12px;font-weight:700;color:var(--railBright);flex:0 0 auto;white-space:nowrap;}
+.pbar>.viewassel,.pbar>.deviceseg,.pbar>.iconbtn,.pbar>.rolegroup{flex:0 0 auto;white-space:nowrap;}
+.pbar .rg-label{color:var(--railInk);}
+.pbar .p-iconbtn{background:rgba(255,255,255,.06);border-color:var(--railHair);color:var(--railInk);}
 .deviceseg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:999px;padding:2px;gap:2px;}
 .deviceseg button{appearance:none;border:none;background:transparent;font-size:11.5px;font-weight:700;color:var(--inkDim);padding:6px 11px;border-radius:999px;cursor:pointer;}
 .deviceseg button.on{background:var(--ink);color:var(--surface);}
@@ -258,6 +263,25 @@ html[data-theme="dark"] .p-daychip.on{background:var(--accent);color:var(--accen
 </style>
 </head>
 <body>
+<div class="pbar" id="pbar">
+  <span class="pbar-title">LP Triage — Concept C — By Day</span>
+  <div class="rolegroup">
+    <span class="rg-label">Viewing as</span>
+    <div class="roleseg" id="roleseg">
+      <button data-role="lp" class="on">lp</button>
+      <button data-role="manager">manager</button>
+      <button data-role="hr">hr</button>
+      <button data-role="admin">admin</button>
+    </div>
+  </div>
+  <div class="deviceseg" id="deviceSeg" role="group" aria-label="Preview device">
+    <button class="on" data-d="desktop" type="button">Desktop</button>
+    <button data-d="mobile" type="button">Mobile</button>
+  </div>
+  <button class="p-iconbtn" id="cThemeToggle" title="Toggle light / dark" aria-label="Toggle theme">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+  </button>
+</div>
 <div class="app" id="desktopView">
 
   <nav class="rail">
@@ -281,22 +305,6 @@ html[data-theme="dark"] .p-daychip.on{background:var(--accent);color:var(--accen
         <button aria-label="Next day">›</button>
       </div>
       <div class="routecap">GET <b>/api/lp/closer-reports?since=2026-09-15</b> — proposed</div>
-      <div class="rolegroup">
-        <span class="rg-label">Viewing as</span>
-        <div class="roleseg" id="roleseg">
-          <button data-role="lp" class="on">lp</button>
-          <button data-role="manager">manager</button>
-          <button data-role="hr">hr</button>
-          <button data-role="admin">admin</button>
-        </div>
-      </div>
-      <div class="deviceseg" id="deviceSeg" role="group" aria-label="Preview device">
-        <button class="on" data-d="desktop" type="button">Desktop</button>
-        <button data-d="mobile" type="button">Mobile</button>
-      </div>
-      <button class="p-iconbtn" id="cThemeToggle" title="Toggle light / dark" aria-label="Toggle theme" style="margin-left:4px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
-      </button>
     </div>
 
     <div class="examplebanner">⚠ EXAMPLE DATA — every driver, store total and dollar figure below is invented for this mockup, not a real Hyperwolf record.</div>

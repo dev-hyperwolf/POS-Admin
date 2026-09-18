@@ -26,7 +26,7 @@
   --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
     --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
     --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
     --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
@@ -42,6 +42,22 @@
     --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
     --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
   }
+}
+:root[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg2);color:var(--ink);font-family:var(--fontSans);}
@@ -123,14 +139,76 @@ html,body{margin:0;padding:0;background:var(--bg2);color:var(--ink);font-family:
 .kbfooter kbd{font-family:var(--fontMono);background:var(--surface);border:1px solid var(--hairline3);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--ink);}
 
 .route-foot{padding:8px 14px 14px;font-size:10px;color:var(--inkFaint);text-align:center;}
+
+/* ---- theme + device toggle, phone frame (threaded-by-person list, swipe actions) ---- */
+[hidden]{display:none !important;}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:6px;}
+.theme-btn{appearance:none;border:1px solid var(--hairline2);background:var(--surface);color:var(--ink);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:12.5px;flex:0 0 auto;}
+.device-toggle{display:inline-flex;background:var(--surface3);border:1px solid var(--hairline2);border-radius:999px;padding:2px;gap:2px;flex:0 0 auto;}
+.device-toggle button{border:none;background:transparent;padding:5px 10px;border-radius:999px;font-size:10.5px;font-weight:700;color:var(--inkDim);cursor:pointer;font-family:var(--fontSans);white-space:nowrap;}
+.device-toggle button.active{background:var(--ink);color:var(--bg);}
+.phone-wrap{display:flex;justify-content:center;padding:26px 10px 60px;background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);min-height:calc(100vh - 20px);}
+.phone{width:390px;max-width:100%;background:#13130F;border-radius:46px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{background:var(--bg2);border-radius:34px;overflow:hidden;height:844px;max-height:88vh;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 auto;height:32px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:12px;font-weight:700;color:var(--ink);}
+.p-topbar{flex:0 0 auto;padding:2px 14px 8px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-topbar h2{margin:0 0 6px;font-size:15px;}
+.p-entseg{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;}
+.p-entseg button{flex:0 0 auto;min-height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);font-size:11px;font-weight:600;font-family:var(--fontSans);white-space:nowrap;}
+.p-entseg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.p-folders{display:flex;gap:6px;overflow-x:auto;}
+.p-folders button{flex:0 0 auto;min-height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--hairline2);background:var(--surface3);color:var(--inkDim);font-size:11px;font-weight:600;font-family:var(--fontSans);white-space:nowrap;}
+.p-folders button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.p-folders .badge{font-family:var(--fontMono);font-size:9.5px;font-weight:700;margin-left:4px;}
+.p-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.p-thread-wrap{position:relative;overflow:hidden;border-bottom:1px solid var(--hairline);}
+.p-thread-actions{position:absolute;top:0;right:0;bottom:0;display:flex;}
+.p-thread-actions button{width:46px;border:0;color:#fff;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;}
+.p-thread-actions .seen{background:var(--info);}
+.p-thread-actions .waiting{background:var(--warnText);}
+.p-thread-actions .done{background:var(--good);}
+.p-thread{position:relative;display:flex;gap:10px;padding:11px 14px;background:var(--surface);transition:transform .15s ease;touch-action:pan-y;min-height:44px;}
+.p-thread.swiped{transform:translateX(-138px);}
+.p-thread .av{width:34px;height:34px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;font-family:var(--fontMono);flex:0 0 auto;}
+.p-thread .body{flex:1;min-width:0;}
+.p-thread .row1{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.p-thread .who{font-size:13px;font-weight:700;}
+.p-thread .when{font-size:10px;color:var(--inkMute);font-family:var(--fontMono);flex:0 0 auto;}
+.p-thread .preview{font-size:11.5px;color:var(--inkDim);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.p-thread .cnt{font-family:var(--fontMono);font-size:9.5px;font-weight:800;background:var(--infoSoft);color:var(--info);border-radius:99px;padding:1px 6px;flex:0 0 auto;}
+.p-swipe-hint{font-size:9.5px;color:var(--inkFaint);text-align:center;padding:6px 0 2px;}
+.p-needs-fab{position:absolute;right:14px;bottom:14px;min-height:40px;padding:0 14px;border-radius:999px;background:var(--warn);color:#fff;border:0;font-weight:700;font-size:11.5px;box-shadow:var(--shadowMd);cursor:pointer;z-index:40;display:flex;align-items:center;gap:6px;}
+.p-needs-fab .b{background:rgba(0,0,0,.22);border-radius:99px;padding:1px 7px;font-family:var(--fontMono);}
+.p-sheet-scrim{position:absolute;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:60;}
+.p-sheet-scrim.open{opacity:1;pointer-events:auto;}
+.p-sheet{position:absolute;left:0;right:0;bottom:0;max-height:78%;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);transform:translateY(100%);transition:transform .18s ease;z-index:70;display:flex;flex-direction:column;}
+.p-sheet.open{transform:translateY(0);}
+.p-sheet-grip{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 2px;flex:0 0 auto;}
+.p-sheet-head{display:flex;align-items:center;gap:10px;padding:6px 16px 10px;flex:0 0 auto;}
+.p-sheet-head .av{width:34px;height:34px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;font-family:var(--fontMono);}
+.p-sheet-head h4{font-size:14px;margin:0;flex:1;}
+.p-sheet-close{width:44px;height:44px;border-radius:99px;background:var(--surface2);border:1px solid var(--hairline2);cursor:pointer;color:var(--inkDim);}
+.p-sheet-body{overflow-y:auto;padding:4px 16px 24px;-webkit-overflow-scrolling:touch;}
+.p-thread-item{display:flex;gap:8px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--hairline);}
+.p-thread-item:last-child{border-bottom:0;}
+.p-thread-item .ic{flex:0 0 auto;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.p-thread-item .ic.incident{background:var(--badSoft);color:var(--bad);}
+.p-thread-item .ic.calloff{background:var(--warnSoft);color:var(--warnText);}
+.p-thread-item .ic.doc{background:var(--infoSoft);color:var(--info);}
 </style>
 </head>
 <body>
+<div id="desktopView">
 <div class="canvas">
 
   <div class="topbar">
     <div class="topbar-row1">
       <div class="h1">HR Inbox <span class="phase-badge">M1</span></div>
+      <div class="device-toggle" id="deviceToggle" role="group" aria-label="Preview device">
+        <button class="active" data-d="desktop" type="button">Desktop</button>
+        <button data-d="mobile" type="button">Mobile</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" type="button" title="Toggle theme">◐</button>
       <span class="role-chip" title="Server-side scope. Restricted fields are never fetched by this screen's route.">
         <span class="scope">hr:read</span>
       </span>
@@ -170,6 +248,38 @@ html,body{margin:0;padding:0;background:var(--bg2);color:var(--ink);font-family:
     <span><kbd>1‑5</kbd> folder</span>
   </div>
   <div class="route-foot">Data: qa/fixtures/hr/{employees,incidents,calloffs,documents}.json — synthetic, no real PII. Triage state is a local demo only, nothing is written (M1 is GET‑only).</div>
+</div>
+</div>
+
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-topbar">
+        <h2>HR Inbox</h2>
+        <div class="p-entseg" id="pEntSeg">
+          <button class="on" data-entity="all" type="button">All</button>
+          <button data-entity="highest-craft" type="button">Highest Craft</button>
+          <button data-entity="circle-city" type="button">Circle City</button>
+        </div>
+        <div class="p-folders" id="pFolders">
+          <button class="on" data-folder="all" type="button">Threads</button>
+          <button data-folder="incident" type="button">Incidents</button>
+          <button data-folder="calloff" type="button">Call-offs</button>
+          <button data-folder="doc" type="button">Docs</button>
+        </div>
+      </div>
+      <div class="p-list" id="pList"></div>
+      <div class="p-swipe-hint">Swipe a thread left for Seen / Waiting / Done</div>
+      <button class="p-needs-fab" id="pNeedsFab" type="button">Needs a person <span class="b" id="pNeedsBadge">0</span></button>
+      <div class="p-sheet-scrim" id="pSheetScrim"></div>
+      <div class="p-sheet" id="pSheet" role="dialog" aria-modal="true" aria-label="Thread">
+        <div class="p-sheet-grip"></div>
+        <div class="p-sheet-head" id="pSheetHead"></div>
+        <div class="p-sheet-body" id="pSheetBody"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -349,6 +459,7 @@ function renderAll(){
   renderMiniStats();
   renderFolderBadges();
   renderList();
+  renderPhone();
 }
 
 document.getElementById('entitySwitch').addEventListener('click', e => {
@@ -389,7 +500,170 @@ document.addEventListener('keydown', e => {
   }
 });
 
+/* ---------------------------------------------------------------------
+   PHONE VIEW — a threaded-by-person inbox. Same ITEMS/triageState the
+   desktop flat list uses, grouped into one row per person with a swipe
+   gesture (touch drag) revealing Seen/Waiting/Done, applied to every
+   item in that person's thread at once. Tapping a thread opens its full
+   item-by-item detail in a bottom sheet.
+--------------------------------------------------------------------- */
+let pCurFolder = 'all';
+let pOpenSwipeId = null;
+
 renderAll();
+function pVisibleItems(){
+  let list = ITEMS.filter(it => currentEntity==='all' || empById[it.person].entity===currentEntity);
+  if (pCurFolder !== 'all') list = list.filter(i=>i.kind===pCurFolder);
+  return list.map(it => ({...it, triage: triageState[it.id] || it.triage}));
+}
+function pThreads(){
+  const items = pVisibleItems();
+  const byPerson = {};
+  items.forEach(it => { (byPerson[it.person] = byPerson[it.person] || []).push(it); });
+  return Object.keys(byPerson).map(pid => {
+    const its = byPerson[pid].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    return { person: pid, items: its, latest: its[0], unresolved: its.filter(i=>i.triage!=='done').length };
+  }).sort((a,b)=>(b.latest.date||'').localeCompare(a.latest.date||''));
+}
+function renderPhone(){
+  document.querySelectorAll('#pEntSeg button').forEach(b=>b.classList.toggle('on', b.dataset.entity===currentEntity));
+  document.querySelectorAll('#pFolders button').forEach(b=>b.classList.toggle('on', b.dataset.folder===pCurFolder));
+  document.getElementById('pNeedsBadge').textContent = NEEDS_PERSON.filter(n => currentEntity==='all' || !n.person || empById[n.person].entity===currentEntity).length;
+  const threads = pThreads();
+  const listEl = document.getElementById('pList');
+  if(!threads.length){ listEl.innerHTML = '<div class="empty-list">Inbox zero for this filter.</div>'; return; }
+  listEl.innerHTML = threads.map(t => {
+    const emp = empById[t.person];
+    const initials = emp.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="p-thread-wrap" data-pid="${t.person}">
+      <div class="p-thread-actions">
+        <button class="seen" data-act="seen" data-pid="${t.person}">Seen</button>
+        <button class="waiting" data-act="waiting" data-pid="${t.person}">Wait</button>
+        <button class="done" data-act="done" data-pid="${t.person}">Done</button>
+      </div>
+      <div class="p-thread" data-pid="${t.person}">
+        <div class="av">${initials}</div>
+        <div class="body">
+          <div class="row1"><span class="who">${emp.name}</span><span class="when">${t.latest.date||''}</span></div>
+          <div class="preview">${t.latest.title}${t.items.length>1?` +${t.items.length-1} more`:''}</div>
+        </div>
+        ${t.unresolved ? `<span class="cnt">${t.unresolved}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  wireThreadSwipe();
+}
+function wireThreadSwipe(){
+  document.querySelectorAll('.p-thread').forEach(el => {
+    let sx=0, sy=0, dragging=false, moved=false;
+    el.addEventListener('touchstart', e=>{ const t=e.changedTouches[0]; sx=t.clientX; sy=t.clientY; dragging=true; moved=false; }, {passive:true});
+    el.addEventListener('touchmove', e=>{
+      if(!dragging) return; const t=e.changedTouches[0];
+      if(Math.abs(t.clientX-sx) > 8) moved = true;
+    }, {passive:true});
+    el.addEventListener('touchend', e=>{
+      if(!dragging) return; dragging=false;
+      const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+      if(Math.abs(dx)>36 && Math.abs(dx)>Math.abs(dy)){
+        if(dx<0){ closeOpenSwipe(); el.classList.add('swiped'); pOpenSwipeId = el.dataset.pid; }
+        else { el.classList.remove('swiped'); pOpenSwipeId = null; }
+      } else if(!moved){
+        if(el.classList.contains('swiped')){ el.classList.remove('swiped'); pOpenSwipeId = null; }
+        else openThreadSheet(el.dataset.pid);
+      }
+    }, {passive:true});
+  });
+  document.querySelectorAll('.p-thread-actions button').forEach(b => b.addEventListener('click', () => {
+    const pid = b.dataset.pid, act = b.dataset.act;
+    pThreads().find(t=>t.person===pid)?.items.forEach(it => { triageState[it.id] = act; });
+    closeOpenSwipe();
+    renderPhone();
+  }));
+}
+function closeOpenSwipe(){
+  if(pOpenSwipeId){ const el = document.querySelector(`.p-thread[data-pid="${pOpenSwipeId}"]`); if(el) el.classList.remove('swiped'); pOpenSwipeId=null; }
+}
+function openThreadSheet(pid){
+  const emp = empById[pid];
+  const initials = emp.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const items = pVisibleItems().filter(i=>i.person===pid).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  document.getElementById('pSheetHead').innerHTML = `<div class="av">${initials}</div><h4>${emp.name}</h4><button class="p-sheet-close" id="pSheetCloseBtn" aria-label="Close">✕</button>`;
+  document.getElementById('pSheetBody').innerHTML = items.map(it => `
+    <div class="p-thread-item">
+      <div class="ic ${it.kind}">${iconFor(it.kind)}</div>
+      <div class="body" style="flex:1;">
+        <div class="row1"><span class="who">${it.title}</span><span class="when">${it.date||'—'}</span></div>
+        <div class="desc">${it.sub}</div>
+        <div class="metarow"><span class="triage ${it.triage}" data-id="${it.id}">${it.triage}</span></div>
+      </div>
+    </div>`).join('');
+  document.getElementById('pSheetBody').querySelectorAll('.triage').forEach(t => t.addEventListener('click', () => {
+    triageState[t.dataset.id] = cycleTriage(t.textContent.trim());
+    openThreadSheet(pid); renderPhone();
+  }));
+  document.getElementById('pSheetCloseBtn').addEventListener('click', closeThreadSheet);
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function openNeedsSheetPhone(){
+  const rows = NEEDS_PERSON.filter(n => currentEntity==='all' || !n.person || empById[n.person].entity===currentEntity);
+  document.getElementById('pSheetHead').innerHTML = `<h4>Needs a person</h4><button class="p-sheet-close" id="pSheetCloseBtn" aria-label="Close">✕</button>`;
+  document.getElementById('pSheetBody').innerHTML = rows.length ? rows.map(n=>`
+    <div class="np-item" style="margin:8px 0;"><div class="head"><span class="name">${n.name}</span><span class="m4tag">M4</span></div><div class="desc">${n.desc}</div><button disabled>${n.name.split(' ')[0]}</button></div>`).join('')
+    : '<div class="empty-list">Nothing needs a person in this entity.</div>';
+  document.getElementById('pSheetCloseBtn').addEventListener('click', closeThreadSheet);
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function closeThreadSheet(){
+  document.getElementById('pSheet').classList.remove('open');
+  document.getElementById('pSheetScrim').classList.remove('open');
+}
+document.getElementById('pEntSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-entity]'); if(!btn) return;
+  currentEntity = btn.dataset.entity;
+  [...document.querySelectorAll('#entitySwitch button')].forEach(b=>b.classList.toggle('active', b.dataset.entity===currentEntity));
+  renderAll();
+});
+document.getElementById('pFolders').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-folder]'); if(!btn) return;
+  pCurFolder = btn.dataset.folder;
+  renderPhone();
+});
+document.getElementById('pNeedsFab').addEventListener('click', openNeedsSheetPhone);
+document.getElementById('pSheetScrim').addEventListener('click', closeThreadSheet);
+
+/* ---- theme toggle ---- */
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const cur = html.getAttribute('data-theme') || (sysDark ? 'dark' : 'light');
+  html.setAttribute('data-theme', cur==='dark' ? 'light' : 'dark');
+});
+
+/* ---- device toggle ---- */
+function setDevice(mode){
+  document.getElementById('desktopView').hidden = mode !== 'desktop';
+  document.getElementById('phoneView').hidden = mode !== 'mobile';
+  document.querySelectorAll('#deviceToggle button').forEach(b=>b.classList.toggle('active', b.dataset.d===mode));
+  if (mode === 'mobile') renderPhone();
+}
+document.getElementById('deviceToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-d]'); if(!btn) return;
+  setDevice(btn.dataset.d);
+});
+
+/* ---- query params: ?device=desktop|mobile  ?open=1|0  ?theme=light|dark ---- */
+(function applyQueryParams(){
+  try{
+    const qp = new URLSearchParams(location.search);
+    const theme = qp.get('theme');
+    if(theme==='dark' || theme==='light') document.documentElement.setAttribute('data-theme', theme);
+    const device = qp.get('device');
+    if(device==='mobile' || device==='desktop') setDevice(device);
+    if(qp.get('open')==='1'){ const t = pThreads()[0]; if(t) openThreadSheet(t.person); }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
