@@ -19,7 +19,7 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | # | Item | Notes |
 |---|---|---|
 | A1 | **HyperDrive iOS app locked out (URGENT)** — all TestFlight builds expired 2026-09-17, ~39 drivers | Devs upload 1.0.6 build 3 (same version = fast beta review); check the Xcode Cloud tab for a Start Build button; then assign to both tester groups. Permanent fix = unlisted App Store release (B9). |
-| A2 | Owner questions, one at a time, four options. **Routing 8/8 ANSWERED 2026-09-17** (D17–D19 in memory). **Driver assignment 6/6 ANSWERED** (D24: auto-move to prevent a miss and for big gains, receiving driver must hold the items else Swap via support). Earlier note: 4/6 (D21–D23: guard varies by time of day; fairness = keep drivers busy; keep zone promise + logistics flag + team calls customer; NO staging wait). Q5 (hold firmness) folded into the cart specialist plan (B28); Q6 (auto-move) next. Still open after that: 6 Metrc, 5 loyalty, 5 swap recovery, 6 discrepancy/scoreboard, 5 logistics wiring, cart plan questions | in progress |
+| A2 | Owner questions, one at a time, four options. **ANSWERED 2026-09-17: routing 8/8, driver assignment 6/6, Metrc 6/6, loyalty 5/5, swap recovery 3/3 (2 technical picks by PM), scoreboard 4/4 (3 mechanical picks by PM)** — D17–D37 in memory. STILL OPEN: logistics wiring 5, cart 8, purchase limits 6, rewards UX 3, SMS provider 6, Shop at Home 6, Alpine config route 1 | 35 open |
 | A3 | Concept picks — eight review rounds live at `/explorations/review/` | rule builder, HR Overview, LP Triage, Nav Rail, Reports, Tax Rates, Regions, Cash Drawer. Unblocks every Phase-1 screen build. |
 | A4 | Tap-target sizes — **DECIDED 2026-09-17: include Register, but NO change until JT approves before/after designs.** PM owes before/after mockups (POS incl. Register, Driver, back-office; desktop + phone). | Design only until approved. |
 | A5 | Customer Account: pick variant A/B/C; remove the design-review switcher from the live page | Switcher already hidden on phones. |
@@ -29,7 +29,7 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | A9 | From whoever hosts production: read-only MongoDB user for `hw-sync`; who controls `hyperwolf.com` DNS | Production servers are NOT in the company AWS account. |
 | A10 | Mobile apps: driver-app source repo, TestFlight/Play internal access, test accounts, push console | `MOBILE-APP-AUDIT-GROUNDWORK` |
 | A11 | Render env still optional: `HW_BACKUP_S3_*`, `HW_AIRTABLE_KEY`, `HW_CONNECTEAM_API_KEY_*`, `HW_DISCORD_WEBHOOK_*`, `HW_LINK_SIGNING_KEY`, `HW_PII_KEY` | `WM_DEMO_ADMIN_TOKEN` set 2026-09-17. |
-| A12 | Codex queue: six briefs ready — `tools/offload/run_queue.sh` | PM reviews and commits the output. |
+| A12 | Codex: worktrees CREATED by PM 2026-09-17 (`/Users/jt/codex-work/{wm-demo,POS-Admin}` on `codex/handoff`, deps installed). Codex has NOT started; JT must re-prompt it in the ChatGPT app (message in chat). Queue 04–09 | waiting on JT |
 | A13 | Storefront redesign files: where are they? Weedmaps client id rotation call; relaunch the other session's dev server on 8787; GraphHopper plan/credits check | carried from the morning packet |
 | A14 | Counsel to confirm the 24-hour Metrc window for in-store sales | Delivery manifests must be in Metrc before departure (4 CCR §15049.3/§15418). |
 
@@ -68,6 +68,9 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | B28 | Elite cart + checkout specialist (cart holds, stale-cart release settings, swap design verdict) → `CART-AND-CHECKOUT-PLAN-2026-09-17.md` | agent running |
 | B29 | Elite purchase-limits researcher (CA adult-use + medical law, how products count, existing code search across hyper-tech, engine design for cart/checkout/admin/register/swap/transfer) → `PURCHASE-LIMITS-PLAN-2026-09-17.md` | agent running |
 | B30 | Dispatch core follow-up from D24: transfer candidate check = receiving kit holds every line, else raise a swap-recovery case; auto-move for gains with once-per-order + cool-down | queue (lead-only module) |
+| B31 | Plans landed 2026-09-17 evening (all committed): CART-AND-CHECKOUT (swap: approve with changes), PURCHASE-LIMITS (+ dev list 1.9), METRC-API-CONDUCT (wm-demo), ALPINE-CONFIG-READ-OPTIONS, REWARDS-REDEMPTION-UX-AUDIT (ledger built but unwired), SMS-PROVIDER, SHOP-AT-HOME | done |
+| B32 | Sale lines fixes DONE (77 checks; atomic sale, replay-safe, total check, discount authority, refund ref) → re-refuter running; reports_probe fixture updated; RP-17/18/19/20/58 = UTC-midnight day-boundary flake in the fixture (fix: compute days in store-local tz) | refuting |
+| B33 | IAM template third fix DONE (Denies inside the boundary, sts removed, ceiling trimmed to 8 services, 6,049/6,144 chars; template 178 KB → must be uploaded to S3, not inline) → third review running | reviewing |
 | B26 | Metrc recon: rerun creates duplicate exception rows; per-store wall-clock cap on package pulls | queue (with B15) |
 
 ## C. Landed today (2026-09-17) — detail in the master plan §9
