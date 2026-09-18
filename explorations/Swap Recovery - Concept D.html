@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swap Recovery — Concept D: Phone-First Support View</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --scrim:rgba(20,18,12,.42);
+  --lock:#6E6E66; --lockSoft:#ECEAE2;
+}
+[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --scrim:rgba(0,0,0,.62);
+  --lock:#9A968B; --lockSoft:rgba(245,243,234,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+h1,h2,h3,h4{font-family:var(--fontSans)}
+code,.mono{font-family:var(--fontMono);}
+a{color:var(--info)}
+button{font-family:var(--fontSans)}
+::selection{background:var(--accentSoft)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--info);outline-offset:2px;}
+
+.doc-head{position:sticky;top:0;z-index:120;background:var(--rail);color:var(--railBright);
+  padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.theme-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+  font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;}
+.theme-btn:hover{background:var(--railHover);}
+.device-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.device-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;
+  padding:6px 12px;border-radius:var(--r999);cursor:pointer;}
+.device-toggle button.on{background:var(--accent);color:var(--accentInk);}
+
+.intro{max-width:1180px;margin:0 auto;padding:16px 22px 0;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro .card{padding:16px 18px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+
+select,input[type=text],input[type=number],textarea{
+  font-family:var(--fontSans);font-size:12.5px;color:var(--ink);background:var(--field);border:1px solid var(--fieldBorder);
+  border-radius:var(--r8);padding:7px 10px;min-height:44px;}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:10.5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 14px;
+  font-size:13px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r10);cursor:pointer;
+  white-space:nowrap;border:1px solid transparent;background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme="dark"] .btn-primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
+
+.section-eb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);
+  font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin:16px 0 10px;}
+.section-eb .grow{flex:1;border-bottom:1px solid var(--hairline);}
+
+/* This concept is designed phone-first: the "Desktop" toggle centers the SAME one-handed
+   flow in a fixed-width column (labelled), rather than expanding it into a wide grid —
+   the point of the concept is that a support agent working the floor never gets a
+   different, harder-to-reach layout depending on device. */
+.oneCol{max-width:430px;margin:18px auto 90px;padding:0 14px;}
+.floorBar{max-width:430px;margin:0 auto;padding:10px 14px 0;}
+.deskLabel{max-width:430px;margin:12px auto 0;padding:0 14px;font-size:11px;color:var(--inkMute);font-family:var(--fontMono);text-align:center;}
+
+body.frame-phone{background:
+    repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);}
+body.frame-phone .viewport{display:flex;justify-content:center;padding:26px 10px 46px;}
+body.frame-phone #appShell{width:390px;max-width:100%;background:var(--rail);border-radius:46px;
+  padding:14px 12px;box-shadow:var(--shadowLg);}
+body.frame-phone #appShell > .phone-screen{background:var(--bg2);border-radius:32px;overflow-y:auto;overflow-x:hidden;
+  height:844px;max-height:80vh;-webkit-overflow-scrolling:touch;position:relative;}
+body.frame-phone #appShell::before{content:'';display:block;width:120px;height:18px;background:var(--rail);
+  border-radius:999px;margin:2px auto 8px;}
+body:not(.frame-phone) .phone-screen{display:contents;}
+.viewport.is-phone .oneCol,.viewport.is-phone .floorBar,.viewport.is-phone .deskLabel{max-width:100%;}
+.viewport.is-phone .intro{max-width:100%;padding:0 12px;}
+
+/* ---- phone-first support console ---- */
+.queueStrip{display:flex;gap:8px;overflow-x:auto;padding:10px 0;-webkit-overflow-scrolling:touch;}
+.qchip{flex:none;border:1px solid var(--hairline2);border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;background:var(--surface);cursor:pointer;min-height:44px;display:inline-flex;align-items:center;}
+.qchip.on{background:var(--ink);color:var(--surface);}
+.qchip .n{margin-left:6px;font-family:var(--fontMono);}
+.caseCard{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r14);padding:16px;box-shadow:var(--shadowMd);}
+.caseCard h3{margin:0 0 4px;font-size:16px;}
+.caseCard .meta{font-size:12px;color:var(--inkDim);margin-bottom:10px;}
+.bigPhone{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px 14px;margin:10px 0;}
+.bigPhone .num{font-family:var(--fontMono);font-size:16px;font-weight:700;flex:1;}
+.bigPhone button{min-height:44px;min-width:44px;}
+.callBig{background:var(--good);color:#fff;border-radius:99px;border:0;width:48px;height:48px;font-size:18px;}
+.script-card{background:var(--infoSoft);border:1px solid var(--info);border-radius:var(--r12);padding:12px 14px;font-size:13px;color:var(--ink2);line-height:1.7;margin:10px 0;}
+.candidate-card{border:1px solid var(--hairline2);border-radius:var(--r12);padding:13px;background:var(--surface);
+  cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:9px;min-height:60px;}
+.candidate-card.sel{border-color:var(--accentBorder);box-shadow:0 0 0 2px var(--accentSoft) inset;background:var(--accentSoft);}
+.candidate-card .radio{width:20px;height:20px;border-radius:99px;border:2px solid var(--hairline3);flex:none;}
+.candidate-card.sel .radio{border-color:var(--accentText);background:var(--accent);}
+.candidate-card .meta{flex:1;min-width:0;}
+.candidate-card .name{font-weight:700;font-size:13.5px;}
+.candidate-card .sub{font-size:11.5px;color:var(--inkDim);margin-top:2px;}
+.candidate-card .delta{font-family:var(--fontMono);font-size:13px;font-weight:700;white-space:nowrap;}
+.delta.up{color:var(--bad);} .delta.down{color:var(--good);} .delta.even{color:var(--inkMute);}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r999);padding:3px;gap:2px;width:100%;}
+.seg button{appearance:none;border:none;background:transparent;font-family:var(--fontSans);font-size:12px;font-weight:700;
+  color:var(--inkDim);padding:0 8px;border-radius:var(--r999);cursor:pointer;white-space:nowrap;min-height:40px;flex:1;}
+.seg button.on{background:var(--ink);color:var(--surface);}
+.price-decision{display:grid;gap:8px;}
+.price-decision label{display:flex;align-items:flex-start;gap:9px;border:1px solid var(--hairline2);border-radius:var(--r12);
+  padding:12px 13px;cursor:pointer;font-size:13px;font-weight:500;color:var(--ink);background:var(--surface);min-height:44px;}
+.price-decision input{margin-top:2px;width:19px;height:19px;}
+.price-decision label:has(input:checked){border-color:var(--accentBorder);background:var(--accentSoft);}
+.ack-gate{background:var(--warnSoft);border:1px solid var(--warn);border-radius:var(--r12);padding:12px 13px;display:flex;gap:10px;align-items:flex-start;margin-top:10px;}
+.ack-gate input{margin-top:2px;width:20px;height:20px;flex:none;}
+.ack-gate label{font-size:12.5px;color:var(--warnText);line-height:1.5;font-weight:600;}
+.ack-gate.ok{background:var(--goodSoft);border-color:var(--good);}
+.ack-gate.ok label{color:var(--good);}
+.kit-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;}
+.kit-badge.yes{background:var(--goodSoft);color:var(--good);}
+.kit-badge.no{background:var(--badSoft);color:var(--bad);}
+.discrepancy-box{background:var(--infoSoft);border:1px solid var(--info);border-radius:var(--r12);padding:11px 13px;font-size:12px;color:var(--ink2);line-height:1.6;margin-top:10px;}
+.bottomBar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--hairline2);padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  display:flex;gap:8px;box-shadow:0 -6px 18px rgba(0,0,0,.06);margin-top:14px;border-radius:0 0 var(--r14) var(--r14);}
+.bottomBar .btn{flex:1;}
+.audit-item{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:11.5px;}
+.audit-item .t{width:60px;flex:none;color:var(--inkMute);font-family:var(--fontMono);font-size:10px;}
+.audit-item .b{flex:1;color:var(--ink2);}
+
+@media (max-width:640px){ .doc-head{padding:11px 14px;} }
+
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>Swap Recovery — Concept D: Phone-First Support View</h1>
+    <div class="sub">Support agents on the floor · designed one-handed, same flow at every size</div>
+  </div>
+  <div class="hdr-right">
+    <div class="device-toggle" role="group" aria-label="Preview device">
+    <button type="button" id="devDesktop" class="on" aria-pressed="true">Desktop</button>
+    <button type="button" id="devPhone" aria-pressed="false">Phone</button>
+  </div>
+    <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+  </div>
+</div>
+
+<div class="viewport" id="viewport">
+<div id="appShell"><div class="phone-screen">
+
+<div class="intro"><div class="card">
+  <div class="eyebrow">Concept D</div>
+  <h2>Built for a support agent standing on the floor, phone in hand — not sitting at a desk</h2>
+  <p>One case fills the screen at a time: a horizontal queue strip up top to jump between mis-stocks, a big tap-to-call phone block, the call script, then the same governed swap gates (candidates, reason, price decision, acknowledgement, consent) stacked for a thumb, and a fixed action bar at the bottom so Commit is always one reach away. The "Desktop" toggle keeps the identical column, centered — this concept never gets a second, wider layout that behaves differently.</p>
+</div></div>
+
+<div class="deskLabel desktop-only" id="deskLabel">Desktop preview of the same phone-first flow — centered, not widened.</div>
+
+<div class="floorBar">
+  <div class="queueStrip" id="queueStrip"></div>
+</div>
+
+<div class="oneCol" id="mainCol"></div>
+
+</div></div>
+</div>
+
+<script>
+document.getElementById('devDesktop').addEventListener('click', ()=>setDevice('desktop'));
+document.getElementById('devPhone').addEventListener('click', ()=>setDevice('phone'));
+function setDevice(mode){
+  const vp=document.getElementById('viewport');
+  vp.classList.toggle('is-phone', mode==='phone');
+  document.body.classList.toggle('frame-phone', mode==='phone');
+  document.getElementById('devDesktop').classList.toggle('on', mode==='desktop');
+  document.getElementById('devDesktop').setAttribute('aria-pressed', mode==='desktop');
+  document.getElementById('devPhone').classList.toggle('on', mode==='phone');
+  document.getElementById('devPhone').setAttribute('aria-pressed', mode==='phone');
+  document.getElementById('deskLabel').style.display = mode==='phone' ? 'none' : '';
+}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
+});
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&lt;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt$(cents){ const neg=cents<0; const v=(Math.abs(cents)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return (neg?'-$':'$')+v; }
+function fmtDelta(cents){ if(cents===0) return {t:'even $0.00',cls:'even'}; return cents>0 ? {t:'+'+fmt$(cents),cls:'up'} : {t:'-'+fmt$(Math.abs(cents)),cls:'down'}; }
+function maskedPhone(p){ return '('+p.slice(0,3)+') •••-'+p.slice(-4); }
+function fullPhone(p){ return '('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(-4); }
+function now(){ return new Date().toTimeString().slice(0,5); }
+
+const REASONS = [
+  {v:'out_of_stock_in_kit', l:'Out of stock in kit'},{v:'damaged', l:'Damaged unit'},
+  {v:'wrong_item_picked', l:'Wrong item picked'},{v:'expired', l:'Expired'},
+  {v:'compliance_hold', l:'Compliance hold'},{v:'other', l:'Other'},
+];
+const DRIVERS = { d1:{id:'d1', name:'Marcus R.'}, d2:{id:'d2', name:'Priya C.'}, d3:{id:'d3', name:'Isla N.'} };
+const DRIVER_KITS = { d2:{ok:true}, d3:{ok:false, missing:['OG Kush Pre-Roll 1g']} };
+
+let INCIDENTS = [
+  { id:'INC-1001', orderId:'OR-58231', store:'West Hollywood', driver:DRIVERS.d1,
+    sku:'Wedding Cake 3.5g', originalCents:4800, detectedAgo:'2 min ago', sourceLabel:'Driver scan mismatch', resolved:false,
+    customer:{name:'Dana Whitfield', phone:'9515550142'}, boxId:'BOX-07', builtBy:'Elena Cho', rfidScanned:false,
+    candidates:{ similar:[{name:'Sunset Sherbet 3.5g', priceCents:4800, thc:'22.1%', brand:'Cannaco', inKit:true},{name:'Runtz 3.5g', priceCents:5200, thc:'24.0%', brand:'Cannaco', inKit:true}],
+      stronger:[{name:'GMO Cookies 3.5g', priceCents:5600, thc:'27.4%', brand:'Cannaco', inKit:true}],
+      sameBrand:[{name:'Cannaco Live Resin Cart 1g', priceCents:4400, thc:'86%', brand:'Cannaco', inKit:true}] },
+    audit:[{t:'14:32', b:'Mis-stock flagged — driver scan mismatch'}] },
+  { id:'INC-1002', orderId:'OR-58244', store:'Corona', driver:DRIVERS.d2,
+    sku:'Blue Dream Gummies 100mg', originalCents:2500, detectedAgo:'11 min ago', sourceLabel:'Kit-ledger mismatch', resolved:false,
+    customer:{name:'Rico Alvarez', phone:'6265559981'}, boxId:'BOX-12', builtBy:'Marcus R.', rfidScanned:true,
+    candidates:{ similar:[{name:'Watermelon Gummies 100mg', priceCents:2500, thc:'—', brand:'Kanha', inKit:true}],
+      stronger:[{name:'Blue Dream Gummies 200mg', priceCents:3800, thc:'—', brand:'Kanha', inKit:true}],
+      sameBrand:[{name:'Kanha Mango Gummies 100mg', priceCents:2500, thc:'—', brand:'Kanha', inKit:true}] },
+    audit:[{t:'14:23', b:'Mis-stock flagged — kit-ledger mismatch'}] },
+  { id:'INC-1003', orderId:'OR-58256', store:'Long Beach', driver:DRIVERS.d1,
+    sku:'Papaya Cake 1g Vape', originalCents:4200, detectedAgo:'26 min ago', sourceLabel:'Customer report', resolved:false,
+    customer:{name:'Jenna Ford', phone:'7145550193'}, boxId:'BOX-03', builtBy:'Isla N.', rfidScanned:false,
+    candidates:{ similar:[{name:'Papaya Punch 1g Vape', priceCents:4200, thc:'84%', brand:'Stiiizy', inKit:true}],
+      stronger:[{name:'GMO 1g Vape', priceCents:4600, thc:'91%', brand:'Stiiizy', inKit:true}],
+      sameBrand:[{name:'Stiiizy Battery Kit', priceCents:2000, thc:'—', brand:'Stiiizy', inKit:true}] },
+    audit:[{t:'14:08', b:'Customer called to report a missing item'},{t:'14:09', b:'Case opened — incident emitted'}] },
+];
+let REVEALED={};
+let curId=INCIDENTS[0].id, swapState=null, step='call'; // call -> script -> swap
+
+function inc(){ return INCIDENTS.find(i=>i.id===curId); }
+function pushAudit(b){ inc().audit.push({t:now(), b}); }
+
+function renderQueue(){
+  document.getElementById('queueStrip').innerHTML = INCIDENTS.map(i=>`<div class="qchip ${i.id===curId?'on':''}" data-id="${i.id}">${esc(i.orderId)}<span class="n">${i.resolved?'✓':'!'}</span></div>`).join('');
+  document.querySelectorAll('.qchip').forEach(q=>q.onclick=()=>{ curId=q.dataset.id; step='call'; swapState=null; renderAll(); });
+}
+
+function renderMain(){
+  const i = inc();
+  const revealed = !!REVEALED[i.id];
+  let body = '';
+  if(i.resolved){
+    body = `<div class="caseCard"><h3>${esc(i.orderId)} <span class="pill pill-good">Resolved</span></h3>
+      <div class="meta">${esc(i.sku)} · ${esc(i.store)}</div>
+      <div class="discrepancy-box">This case is closed. Built by <b>${esc(i.builtBy)}</b> · Box <b>${esc(i.boxId)}</b> · RFID at fill: <b>${i.rfidScanned?'Yes':'No'}</b>.</div>
+      <div class="section-eb">Audit trail</div>
+      ${i.audit.map(a=>`<div class="audit-item"><div class="t">${esc(a.t)}</div><div class="b">${esc(a.b)}</div></div>`).join('')}
+      </div>`;
+  } else {
+    body = `<div class="caseCard">
+      <h3>${esc(i.orderId)} <span class="pill pill-bad">Mis-stock</span></h3>
+      <div class="meta">${esc(i.sku)} · ${fmt$(i.originalCents)} · ${esc(i.driver.name)} · ${esc(i.sourceLabel)}, ${esc(i.detectedAgo)}</div>
+      <div class="bigPhone"><div><div class="small-note">${esc(i.customer.name)}</div><div class="num">${revealed?fullPhone(i.customer.phone):maskedPhone(i.customer.phone)}</div></div>
+        ${revealed?'':`<button class="btn" id="revealBtn">Reveal</button>`}
+        <button class="callBig" id="callBtn" ${revealed?'':'disabled'}>☎</button></div>
+      ${step==='call' ? `<button class="btn btn-primary" style="width:100%;" id="toScriptBtn">Show call script →</button>` : ''}
+      ${step==='script' ? renderScript(i) : ''}
+      ${step==='swap' ? renderSwap(i) : ''}
+    </div>`;
+  }
+  document.getElementById('mainCol').innerHTML = body;
+  wire();
+}
+
+function renderScript(i){
+  return `<div class="script-card">
+    <b>Open:</b> "Hi ${esc(i.customer.name.split(' ')[0])}, this is Hyperwolf — caught something before your driver arrives."<br><br>
+    <b>Explain:</b> "${esc(i.sku)} isn't actually in the van (${esc(i.sourceLabel.toLowerCase())})."<br><br>
+    <b>Offer:</b> "I can send an alternative — similar, stronger, or same brand. I'll walk you through it."</div>
+    <button class="btn btn-primary" style="width:100%;" id="toSwapBtn">Open the swap →</button>`;
+}
+
+function renderSwap(i){
+  if(!swapState) swapState = { mode:'similar', candidate:null, reason:'', priceChoice:'', ackChecked:false, consentLogged:false };
+  const modes=[['similar','Similar'],['stronger','Stronger'],['sameBrand','Same brand']];
+  const cand = i.candidates[swapState.mode]||[];
+  let priceHtml='<div class="small-note">Pick a candidate to see the price difference.</div>', ackHtml='';
+  if(swapState.candidate){
+    const delta = swapState.candidate.priceCents - i.originalCents; const d=fmtDelta(delta);
+    priceHtml = `<div class="price-decision">
+      <label><input type="radio" name="price" value="no_charge" ${swapState.priceChoice==='no_charge'?'checked':''}> No charge — original price (${fmt$(i.originalCents)})</label>
+      ${delta<0?`<label><input type="radio" name="price" value="refund" ${swapState.priceChoice==='refund'?'checked':''}> Refund the difference — ${fmt$(Math.abs(delta))}</label>`:''}
+      ${delta>0?`<label><input type="radio" name="price" value="goodwill" ${swapState.priceChoice==='goodwill'?'checked':''}> Goodwill credit — absorb ${fmt$(delta)}</label>
+      <label><input type="radio" name="price" value="charge" ${swapState.priceChoice==='charge'?'checked':''}> Charge the difference — ${fmt$(delta)}, agreed</label>`:''}
+    </div>`;
+    if(delta!==0) ackHtml = `<div class="ack-gate ${swapState.ackChecked?'ok':''}"><input type="checkbox" id="ackCheck" ${swapState.ackChecked?'checked':''}>
+      <label for="ackCheck">Customer was told about the price change (${d.t}). Required to proceed.</label></div>`;
+  }
+  const needsAck = swapState.candidate && swapState.priceChoice && (swapState.candidate.priceCents-i.originalCents)!==0;
+  const canCommit = swapState.candidate && swapState.reason && swapState.priceChoice && swapState.consentLogged && (!needsAck || swapState.ackChecked);
+  return `
+    <div class="section-eb">Candidates</div>
+    <div class="seg" id="modeSeg">${modes.map(([v,l])=>`<button data-v="${v}" class="${swapState.mode===v?'on':''}">${l}</button>`).join('')}</div>
+    <div style="margin-top:10px;">${cand.map((c,idx)=>{ const delta=c.priceCents-i.originalCents; const d=fmtDelta(delta); const sel=swapState.candidate===c;
+      return `<div class="candidate-card ${sel?'sel':''}" data-i="${idx}"><div class="radio"></div>
+        <div class="meta"><div class="name">${esc(c.name)}</div><div class="sub">${esc(c.brand)} · THC ${esc(c.thc)} · ${fmt$(c.priceCents)}</div></div>
+        <span class="kit-badge ${c.inKit?'yes':'no'}">${c.inKit?'In kit':'Not in kit'}</span><div class="delta ${d.cls}">${d.t}</div></div>`; }).join('') || '<div class="small-note">No candidates in this ladder.</div>'}</div>
+    <div class="section-eb">Reason</div>
+    <select id="reasonSel" style="width:100%;"><option value="">Choose a reason…</option>${REASONS.map(r=>`<option value="${r.v}" ${swapState.reason===r.v?'selected':''}>${r.l}</option>`).join('')}</select>
+    <div class="section-eb">Price decision (case by case)</div>
+    ${priceHtml}${ackHtml}
+    <div class="section-eb">Consent</div>
+    <button class="btn ${swapState.consentLogged?'btn-primary':''}" id="consentBtn" style="width:100%;">${swapState.consentLogged?'✓ Verbal consent logged':'Log verbal consent'}</button>
+    <div class="discrepancy-box">Built by <b>${esc(i.builtBy)}</b> · Box <b>${esc(i.boxId)}</b> · RFID at fill: <b>${i.rfidScanned?'Yes':'No'}</b> — feeds the discrepancy scoreboard.</div>
+    <div class="bottomBar">
+      <button class="btn" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="commitBtn" ${canCommit?'':'disabled'}>Commit swap</button>
+    </div>`;
+}
+
+function wire(){
+  const revealBtn=document.getElementById('revealBtn'); if(revealBtn) revealBtn.onclick=()=>{ REVEALED[curId]=true; pushAudit('Support revealed customer phone — click-to-call enabled'); renderMain(); };
+  const callBtn=document.getElementById('callBtn'); if(callBtn && !callBtn.disabled) callBtn.onclick=()=>{ pushAudit('Called '+fullPhone(inc().customer.phone)+' (click-to-call)'); alert('Dialing (mock)'); renderMain(); };
+  const toScript=document.getElementById('toScriptBtn'); if(toScript) toScript.onclick=()=>{ step='script'; renderMain(); };
+  const toSwap=document.getElementById('toSwapBtn'); if(toSwap) toSwap.onclick=()=>{ step='swap'; renderMain(); };
+  const backBtn=document.getElementById('backBtn'); if(backBtn) backBtn.onclick=()=>{ step='script'; renderMain(); };
+  const commitBtn=document.getElementById('commitBtn');
+  if(commitBtn) commitBtn.onclick=()=>{
+    const i = inc(); const delta = swapState.candidate.priceCents - i.originalCents;
+    i.resolved = true;
+    pushAudit(`Swap committed — ${i.sku} → ${swapState.candidate.name}. Reason: ${swapState.reason}. Price: ${swapState.priceChoice} (${fmtDelta(delta).t}). Consent: verbal (logged).`);
+    step='call'; swapState=null; renderAll();
+  };
+  if(step==='swap' && swapState){
+    const cand = inc().candidates[swapState.mode]||[];
+    document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{ swapState.mode=b.dataset.v; swapState.candidate=null; swapState.priceChoice=''; swapState.ackChecked=false; renderMain(); });
+    document.querySelectorAll('.candidate-card').forEach(c=>c.onclick=()=>{ swapState.candidate=cand[+c.dataset.i]; swapState.priceChoice=''; swapState.ackChecked=false; renderMain(); });
+    const rs=document.getElementById('reasonSel'); if(rs) rs.onchange=e=>{ swapState.reason=e.target.value; renderMain(); };
+    document.querySelectorAll('input[name=price]').forEach(r=>r.onchange=e=>{ swapState.priceChoice=e.target.value; swapState.ackChecked=false; renderMain(); });
+    const ackC=document.getElementById('ackCheck'); if(ackC) ackC.onchange=e=>{ swapState.ackChecked=e.target.checked; renderMain(); };
+    const consentBtn=document.getElementById('consentBtn'); if(consentBtn) consentBtn.onclick=()=>{ swapState.consentLogged=true; renderMain(); };
+  }
+}
+
+function renderAll(){ renderQueue(); renderMain(); }
+renderAll();
+</script>
+</body>
+</html>

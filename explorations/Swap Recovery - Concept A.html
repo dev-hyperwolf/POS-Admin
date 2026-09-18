@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swap Recovery — Concept A: Inline Banner + Governed Drawer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --scrim:rgba(20,18,12,.42);
+  --lock:#6E6E66; --lockSoft:#ECEAE2;
+}
+[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --scrim:rgba(0,0,0,.62);
+  --lock:#9A968B; --lockSoft:rgba(245,243,234,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+h1,h2,h3,h4{font-family:var(--fontSans)}
+code,.mono{font-family:var(--fontMono);}
+a{color:var(--info)}
+button{font-family:var(--fontSans)}
+::selection{background:var(--accentSoft)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--info);outline-offset:2px;}
+
+.doc-head{position:sticky;top:0;z-index:120;background:var(--rail);color:var(--railBright);
+  padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.theme-btn,.device-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+  font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;}
+.theme-btn:hover,.device-btn:hover{background:var(--railHover);}
+.device-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.device-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;
+  padding:6px 12px;border-radius:var(--r999);cursor:pointer;}
+.device-toggle button.on{background:var(--accent);color:var(--accentInk);}
+
+.stage{max-width:1180px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1180px;margin:0 auto;padding:16px 22px 0;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro .card{padding:16px 18px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+.route{font-family:var(--fontMono);font-size:10.5px;color:var(--info);background:var(--infoSoft);padding:1px 6px;border-radius:6px;white-space:nowrap;}
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+
+.controlbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0;}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r999);padding:3px;gap:2px;}
+.seg button{appearance:none;border:none;background:transparent;font-family:var(--fontSans);font-size:12px;font-weight:600;
+  color:var(--inkDim);padding:6px 13px;border-radius:var(--r999);cursor:pointer;white-space:nowrap;min-height:32px;}
+.seg button.on{background:var(--ink);color:var(--surface);}
+select,input[type=text],input[type=date],input[type=number],input[type=search],input[type=file],textarea{
+  font-family:var(--fontSans);font-size:12.5px;color:var(--ink);background:var(--field);border:1px solid var(--fieldBorder);
+  border-radius:var(--r8);padding:7px 10px;min-height:32px;}
+label{font-size:11px;font-weight:600;color:var(--inkMute);text-transform:uppercase;letter-spacing:.04em;}
+
+.role-chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px 0 4px;border-radius:var(--r999);
+  background:var(--surface);border:1px solid var(--hairline2);font-size:12px;cursor:pointer;margin-left:auto;position:relative;}
+.role-chip .dot{width:22px;height:22px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);
+  display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;font-family:var(--fontMono);}
+.role-chip b{font-family:var(--fontMono);font-weight:700;}
+.role-pop{display:none;position:absolute;top:38px;right:0;width:320px;background:var(--surface);border:1px solid var(--hairline2);
+  border-radius:var(--r10);box-shadow:var(--shadowLg);padding:12px 13px;z-index:80;font-size:12px;line-height:1.6;color:var(--ink2);text-align:left;}
+.role-chip:hover .role-pop, .role-chip:focus-within .role-pop{display:block;}
+.role-pop select{width:100%;margin-top:6px;}
+
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.stat{position:relative;overflow:hidden;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowSm);padding:13px 14px;}
+.stat .strip{position:absolute;left:0;right:0;top:0;height:3px;}
+.stat .lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--inkMute);}
+.stat .val{margin-top:6px;font-size:24px;line-height:1;font-weight:500;color:var(--ink);font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.stat .sub{margin-top:6px;font-size:11.5px;color:var(--inkDim);}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:10.5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.pill-lock{background:var(--lockSoft);color:var(--lock);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 13px;
+  font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+  white-space:nowrap;border:1px solid transparent;background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme="dark"] .btn-primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-danger{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
+.btn-sm{min-height:30px;padding:0 10px;font-size:11.5px;}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);
+  padding:8px 10px;border-bottom:1px solid var(--hairline2);white-space:nowrap;position:sticky;top:0;background:var(--surface);}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--hairline);vertical-align:top;}
+tbody tr:hover td{background:var(--highlightSoft);}
+td.num,th.num{text-align:right;font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+
+.section-eb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);
+  font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin:22px 0 10px;}
+.section-eb .grow{flex:1;border-bottom:1px solid var(--hairline);}
+
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:190;display:none;}
+.scrim.open{display:block;animation:fade .14s ease;}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:460px;max-width:92vw;max-height:86vh;overflow:auto;
+  background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r14);box-shadow:var(--shadowLg);z-index:195;display:none;}
+.modal.open{display:block;animation:fade .14s ease;}
+.modal-head{padding:14px 16px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:10px;}
+.modal-head h4{margin:0;font-size:14.5px;font-weight:700;flex:1;}
+.modal-x{appearance:none;border:none;background:var(--surface3);width:28px;height:28px;border-radius:99px;cursor:pointer;font-size:13px;color:var(--inkDim);}
+.modal-body{padding:14px 16px;}
+.modal-foot{padding:12px 16px;border-top:1px solid var(--hairline);display:flex;gap:8px;justify-content:flex-end;}
+.field{margin-bottom:10px;}
+.field .l{margin-bottom:4px;}
+.field select,.field input,.field textarea{width:100%;}
+.confirm-box{background:var(--warnSoft);border:1px solid var(--warn);border-radius:var(--r10);padding:10px 12px;font-size:12px;color:var(--warnText);line-height:1.6;margin:10px 0;}
+.confirm-box b{color:var(--ink);}
+
+.panel{position:fixed;top:0;right:0;bottom:0;width:460px;max-width:94vw;background:var(--surface);
+  border-left:1px solid var(--hairline2);box-shadow:var(--shadowLg);z-index:150;transform:translateX(100%);transition:transform .18s ease;
+  display:flex;flex-direction:column;}
+.panel.open{transform:translateX(0);}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:10px;}
+.panel-head h4{margin:0;font-size:14.5px;font-weight:700;flex:1;}
+.panel-x{appearance:none;border:none;background:var(--surface3);width:30px;height:30px;border-radius:99px;cursor:pointer;font-size:14px;color:var(--inkDim);}
+.panel-body{padding:16px;overflow-y:auto;flex:1;}
+.panel-foot{padding:12px 16px;border-top:1px solid var(--hairline);display:flex;gap:8px;}
+.pfield{margin-bottom:12px;}
+.pfield .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.pfield .v{margin-top:2px;font-size:13.5px;color:var(--ink);}
+.pfield .v.mono{font-family:var(--fontMono);}
+
+/* ---- desktop/phone device-frame toggle (house rule) ---- */
+body.frame-phone{background:
+    repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);}
+body.frame-phone .viewport{display:flex;justify-content:center;padding:26px 10px 46px;}
+body.frame-phone #appShell{width:390px;max-width:100%;background:var(--rail);border-radius:46px;
+  padding:14px 12px;box-shadow:var(--shadowLg);}
+body.frame-phone #appShell > .phone-screen{background:var(--bg2);border-radius:32px;overflow-y:auto;overflow-x:hidden;
+  height:844px;max-height:80vh;-webkit-overflow-scrolling:touch;position:relative;}
+body.frame-phone #appShell::before{content:'';display:block;width:120px;height:18px;background:var(--rail);
+  border-radius:999px;margin:2px auto 8px;}
+body:not(.frame-phone) .phone-screen{display:contents;}
+.viewport.is-phone .stage,.viewport.is-phone .intro{max-width:100%;padding:0 12px;margin:10px auto;}
+.viewport.is-phone .stat-strip{grid-template-columns:1fr 1fr;}
+.viewport.is-phone .btn,.viewport.is-phone .tab,.viewport.is-phone .seg button,.viewport.is-phone select,
+.viewport.is-phone input,.viewport.is-phone .device-btn{min-height:44px;}
+.viewport.is-phone table{font-size:12px;}
+.viewport.is-phone .panel{width:100%;}
+.viewport.is-phone .modal{width:92vw;}
+.viewport:not(.is-phone) .phone-only{display:none !important;}
+.viewport.is-phone .desktop-only{display:none !important;}
+
+/* ---- reusable layout + responsive-table utilities ---- */
+.split{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start;}
+.viewport.is-phone .split{grid-template-columns:1fr;}
+.split-wide{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;}
+.viewport.is-phone .split-wide{grid-template-columns:1fr;}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.viewport.is-phone .cols2{grid-template-columns:1fr;}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.viewport.is-phone .cols3{grid-template-columns:1fr;}
+
+table.rtable{width:100%;}
+.viewport.is-phone table.rtable thead{display:none;}
+.viewport.is-phone table.rtable, .viewport.is-phone table.rtable tbody,
+.viewport.is-phone table.rtable tr, .viewport.is-phone table.rtable td{display:block;width:100%;}
+.viewport.is-phone table.rtable tr{border:1px solid var(--hairline2);border-radius:var(--r10);margin-bottom:8px;padding:4px 12px;background:var(--surface);}
+.viewport.is-phone table.rtable td{display:flex;justify-content:space-between;gap:10px;border:0;padding:6px 0;font-size:12.5px;text-align:right;}
+.viewport.is-phone table.rtable td::before{content:attr(data-label);color:var(--inkMute);font-weight:600;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.03em;margin-right:8px;text-align:left;}
+
+@media (max-width:900px){.stat-strip{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:640px){
+  .doc-head{padding:11px 14px;}
+  .stage,.intro{padding-left:12px;padding-right:12px;}
+  .panel{width:100vw;}
+}
+
+/* ---- Swap Recovery — shared governed-swap component (same markup/state shape reused
+   in Concepts B/C/D; this is the "one governed swap component" the owner decisions require) ---- */
+.mis-banner{display:flex;align-items:flex-start;gap:12px;background:var(--badSoft);border:1px solid var(--bad);
+  border-radius:var(--r12);padding:12px 14px;margin-bottom:14px;}
+.mis-banner .ico{width:30px;height:30px;flex:none;border-radius:99px;background:var(--bad);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;}
+.mis-banner b{color:var(--ink);}
+.mis-banner .src{font-family:var(--fontMono);font-size:10.5px;color:var(--badText,var(--bad));}
+.phone-mask{display:inline-flex;align-items:center;gap:8px;font-family:var(--fontMono);font-size:12.5px;}
+.phone-mask .reveal-btn{border:1px dashed var(--hairline3);background:transparent;color:var(--info);border-radius:6px;
+  padding:3px 8px;font-size:10.5px;font-weight:700;cursor:pointer;min-height:28px;}
+.phone-mask .call-btn{border:0;background:var(--goodSoft);color:var(--good);border-radius:99px;width:28px;height:28px;
+  cursor:pointer;font-size:13px;display:inline-flex;align-items:center;justify-content:center;}
+.phone-mask .call-btn[disabled]{opacity:.4;cursor:not-allowed;}
+.candidate-card{border:1px solid var(--hairline2);border-radius:var(--r10);padding:10px 12px;background:var(--surface);
+  cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.candidate-card:hover{border-color:var(--hairline3);}
+.candidate-card.sel{border-color:var(--accentBorder);box-shadow:0 0 0 2px var(--accentSoft) inset;background:var(--accentSoft);}
+.candidate-card .radio{width:16px;height:16px;border-radius:99px;border:2px solid var(--hairline3);flex:none;}
+.candidate-card.sel .radio{border-color:var(--accentText);background:var(--accent);}
+.candidate-card .meta{flex:1;min-width:0;}
+.candidate-card .name{font-weight:700;font-size:12.5px;}
+.candidate-card .sub{font-size:11px;color:var(--inkDim);margin-top:2px;}
+.candidate-card .delta{font-family:var(--fontMono);font-size:12.5px;font-weight:700;white-space:nowrap;}
+.delta.up{color:var(--bad);} .delta.down{color:var(--good);} .delta.even{color:var(--inkMute);}
+.price-decision{display:grid;gap:6px;}
+.price-decision label{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--hairline2);border-radius:var(--r10);
+  padding:9px 11px;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--ink);text-transform:none;letter-spacing:0;background:var(--surface);}
+.price-decision input{margin-top:2px;}
+.price-decision label:has(input:checked){border-color:var(--accentBorder);background:var(--accentSoft);}
+.ack-gate{background:var(--warnSoft);border:1px solid var(--warn);border-radius:var(--r10);padding:10px 12px;display:flex;gap:9px;align-items:flex-start;margin-top:10px;}
+.ack-gate input{margin-top:2px;width:18px;height:18px;flex:none;}
+.ack-gate label{font-size:12px;color:var(--warnText);line-height:1.5;font-weight:600;}
+.ack-gate.ok{background:var(--goodSoft);border-color:var(--good);}
+.ack-gate.ok label{color:var(--good);}
+.kit-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;}
+.kit-badge.yes{background:var(--goodSoft);color:var(--good);}
+.kit-badge.no{background:var(--badSoft);color:var(--bad);}
+.audit-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--hairline);font-size:12px;}
+.audit-item .t{width:120px;flex:none;color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;}
+.audit-item .b{flex:1;color:var(--ink2);}
+.audit-item .who{color:var(--inkMute);font-size:10.5px;}
+.discrepancy-box{background:var(--infoSoft);border:1px solid var(--info);border-radius:var(--r10);padding:10px 12px;font-size:12px;color:var(--ink2);line-height:1.6;}
+.discrepancy-box b{color:var(--ink);}
+.item-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--hairline);}
+.item-row:last-child{border-bottom:0;}
+.item-row .ico{width:32px;height:32px;border-radius:8px;background:var(--surface3);flex:none;}
+.item-row .name{font-weight:600;font-size:12.5px;}
+.item-row .sub{font-size:11px;color:var(--inkDim);}
+
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>Swap Recovery — Concept A: Inline Banner + Governed Drawer</h1>
+    <div class="sub">Logistics · order sheet · <span class="route">reuses pos/screen-orders.jsx SwapPanel shape</span> · never <code>logistics/lorder.jsx</code> directly</div>
+  </div>
+  <div class="hdr-right">
+    <div class="device-toggle" role="group" aria-label="Preview device">
+    <button type="button" id="devDesktop" class="on" aria-pressed="true">Desktop</button>
+    <button type="button" id="devPhone" aria-pressed="false">Phone</button>
+  </div>
+    <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+  </div>
+</div>
+
+<div class="viewport" id="viewport">
+<div id="appShell"><div class="phone-screen">
+
+<div class="intro"><div class="card">
+  <div class="eyebrow">Concept A</div>
+  <h2>The mis-stock banner lives right on the order sheet the support agent already has open</h2>
+  <p>The moment a scan mismatch or kit-ledger check flags an item as not in the driver's kit, a red banner appears at the top of that order's sheet — the same screen support already works from. "Open swap" slides in one governed drawer: three candidate ladders (Similar / Stronger / Same brand or price band), a reason, a case-by-case price decision that gates on a required "customer was told" acknowledgement, and a logged verbal consent. Nothing here invents a new destination — it is the existing order-detail screen, extended.</p>
+  <p class="small-note">Seeded with 3 incidents. Pick one from the selector to see the banner, then click "Open swap" to work the case end to end.</p>
+</div></div>
+
+<div class="stage">
+  <div class="controlbar">
+    <div class="field" style="margin:0;"><label>Order</label><br><select id="incidentSel"></select></div>
+    <span class="small-note">Signed in as</span>
+    <div class="role-chip" tabindex="0" id="roleChip">
+      <span class="dot" id="roleDot">SP</span> role: <b id="roleLabel">Support</b>
+      <div class="role-pop">
+        <div><b>Simulated actor</b> — Support is unscoped by kit (can offer anything in the regional catalogue that is confirmed in a driver's kit). Driver is scoped to their own kit only, and per the owner's decision, may self-serve the same governed drawer at the door.</div>
+        <select id="roleSelect">
+          <option value="support">Support Agent</option>
+          <option value="driver">Driver (self-serve at door)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="banners"></div>
+
+  <div class="split-wide">
+    <div>
+      <div class="card" style="padding:14px 16px;">
+        <div class="section-eb" style="margin-top:0;"><span>Order</span><span class="grow"></span></div>
+        <div id="orderHead"></div>
+        <div id="itemsList" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="section-eb"><span>Audit trail</span><span class="grow"></span></div>
+      <div class="card" style="padding:6px 16px;" id="auditTrail"></div>
+    </div>
+    <div>
+      <div class="card" style="padding:14px 16px;">
+        <div class="section-eb" style="margin-top:0;"><span>Customer</span><span class="grow"></span></div>
+        <div id="custBlock"></div>
+      </div>
+      <div class="card" style="padding:14px 16px;margin-top:12px;">
+        <div class="section-eb" style="margin-top:0;"><span>Discrepancy case (feeds the scoreboard)</span><span class="grow"></span></div>
+        <div id="discBlock"></div>
+      </div>
+      <div class="card" style="padding:14px 16px;margin-top:12px;">
+        <div class="section-eb" style="margin-top:0;"><span>Auto-move to another driver</span><span class="grow"></span></div>
+        <div id="reassignBlock"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="panel" id="swapPanel">
+  <div class="panel-head"><h4>Governed swap — <span id="panelOrderId"></span></h4><button class="panel-x" id="panelX" type="button">✕</button></div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="panel-foot">
+    <button class="btn" id="cancelSwapBtn" style="flex:1;">Cancel</button>
+    <button class="btn btn-primary" id="commitSwapBtn" style="flex:2;" disabled>Commit swap</button>
+  </div>
+</div>
+
+</div></div>
+</div>
+
+<script>
+document.getElementById('devDesktop').addEventListener('click', ()=>setDevice('desktop'));
+document.getElementById('devPhone').addEventListener('click', ()=>setDevice('phone'));
+function setDevice(mode){
+  const vp=document.getElementById('viewport');
+  vp.classList.toggle('is-phone', mode==='phone');
+  document.body.classList.toggle('frame-phone', mode==='phone');
+  document.getElementById('devDesktop').classList.toggle('on', mode==='desktop');
+  document.getElementById('devDesktop').setAttribute('aria-pressed', mode==='desktop');
+  document.getElementById('devPhone').classList.toggle('on', mode==='phone');
+  document.getElementById('devPhone').setAttribute('aria-pressed', mode==='phone');
+}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
+});
+
+/* ======================= SHARED GOVERNED-SWAP CORE =======================
+   Identical shape to the core embedded in Concepts B/C/D — one component,
+   three chrome treatments. Seed data models the three real detection
+   sources from SWAP-RECOVERY-FLOW-PLAN §2 step 1: driver scan mismatch,
+   kit-ledger mismatch, and a customer report. */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&lt;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt$(cents){ const neg=cents<0; const v=(Math.abs(cents)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return (neg?'-$':'$')+v; }
+function fmtDelta(cents){ if(cents===0) return {t:'even $0.00',cls:'even'}; return cents>0 ? {t:'+'+fmt$(cents),cls:'up'} : {t:'-'+fmt$(Math.abs(cents)),cls:'down'}; }
+
+const REASONS = [
+  {v:'out_of_stock_in_kit', l:'Out of stock in kit'},
+  {v:'damaged', l:'Damaged unit'},
+  {v:'wrong_item_picked', l:'Wrong item picked'},
+  {v:'expired', l:'Expired'},
+  {v:'compliance_hold', l:'Compliance hold'},
+  {v:'other', l:'Other'},
+];
+
+const DRIVERS = {
+  d1:{id:'d1', name:'Marcus R.'},
+  d2:{id:'d2', name:'Priya C.'},
+  d3:{id:'d3', name:'Isla N.'},
+};
+// Eligibility for auto-move: a driver's kit must hold EVERY item on the order, not just the missing one.
+const DRIVER_KITS = {
+  d2:{ ok:true,  have:['Wedding Cake 3.5g','OG Kush Pre-Roll 1g','Blue Dream Gummies 100mg'] },
+  d3:{ ok:false, have:['Wedding Cake 3.5g'], missing:['OG Kush Pre-Roll 1g'] },
+};
+
+const INCIDENTS = [
+  { id:'INC-1001', orderId:'OR-58231', store:'West Hollywood', driver:DRIVERS.d1,
+    sku:'Wedding Cake 3.5g', originalCents:4800,
+    items:[
+      {name:'Wedding Cake 3.5g', sub:'Flower · missing', missing:true},
+      {name:'OG Kush Pre-Roll 1g', sub:'Pre-Roll', missing:false},
+    ],
+    source:'driver_scan', sourceLabel:'Driver scan mismatch — scanned unit did not match SKU', detectedAgo:'2 min ago',
+    customer:{name:'Dana Whitfield', phone:'9515550142'},
+    kitId:'KIT-214', boxId:'BOX-07', builtBy:'Elena Cho', rfidScanned:false,
+    candidates:{
+      similar:[ {name:'Sunset Sherbet 3.5g', priceCents:4800, thc:'22.1%', brand:'Cannaco', inKit:true},
+                {name:'Runtz 3.5g', priceCents:5200, thc:'24.0%', brand:'Cannaco', inKit:true} ],
+      stronger:[ {name:'GMO Cookies 3.5g', priceCents:5600, thc:'27.4%', brand:'Cannaco', inKit:true} ],
+      sameBrand:[ {name:'Cannaco Live Resin Cart 1g', priceCents:4400, thc:'86%', brand:'Cannaco', inKit:true} ],
+    },
+    status:'open', auditSeed:[
+      {t:'14:32', b:'Mis-stock flagged — driver scan mismatch on Wedding Cake 3.5g', who:'system'},
+    ] },
+  { id:'INC-1002', orderId:'OR-58244', store:'Corona', driver:DRIVERS.d2,
+    sku:'Blue Dream Gummies 100mg', originalCents:2500,
+    items:[
+      {name:'Blue Dream Gummies 100mg', sub:'Edible · missing', missing:true},
+      {name:'Sour Diesel 3.5g', sub:'Flower', missing:false},
+    ],
+    source:'kit_ledger', sourceLabel:'Kit-ledger mismatch — ledger shows 0 on hand, order held 1', detectedAgo:'11 min ago',
+    customer:{name:'Rico Alvarez', phone:'6265559981'},
+    kitId:'KIT-098', boxId:'BOX-12', builtBy:'Marcus R.', rfidScanned:true,
+    candidates:{
+      similar:[ {name:'Watermelon Gummies 100mg', priceCents:2500, thc:'—', brand:'Kanha', inKit:true} ],
+      stronger:[ {name:'Blue Dream Gummies 200mg', priceCents:3800, thc:'—', brand:'Kanha', inKit:true} ],
+      sameBrand:[ {name:'Kanha Mango Gummies 100mg', priceCents:2500, thc:'—', brand:'Kanha', inKit:true},
+                  {name:'Kanha Sour Cherry Gummies 100mg', priceCents:2700, thc:'—', brand:'Kanha', inKit:true} ],
+    },
+    status:'open', auditSeed:[
+      {t:'14:23', b:'Mis-stock flagged — kit-ledger mismatch on Blue Dream Gummies 100mg', who:'system'},
+    ] },
+  { id:'INC-1003', orderId:'OR-58256', store:'Long Beach', driver:DRIVERS.d1,
+    sku:'Papaya Cake 1g Vape', originalCents:4200,
+    items:[
+      {name:'Papaya Cake 1g Vape', sub:'Cartridge · missing', missing:true},
+    ],
+    source:'customer_report', sourceLabel:'Customer report — called in, driver said he did not have it', detectedAgo:'26 min ago',
+    customer:{name:'Jenna Ford', phone:'7145550193'},
+    kitId:'KIT-214', boxId:'BOX-03', builtBy:'Isla N.', rfidScanned:false,
+    candidates:{
+      similar:[ {name:'Papaya Punch 1g Vape', priceCents:4200, thc:'84%', brand:'Stiiizy', inKit:true} ],
+      stronger:[ {name:'GMO 1g Vape', priceCents:4600, thc:'91%', brand:'Stiiizy', inKit:true} ],
+      sameBrand:[ {name:'Stiiizy Battery Kit', priceCents:2000, thc:'—', brand:'Stiiizy', inKit:true} ],
+    },
+    status:'open', auditSeed:[
+      {t:'14:08', b:'Customer called support to report a missing item', who:'Dana (support)'},
+      {t:'14:09', b:'Case opened — inventory-discrepancy incident emitted', who:'system'},
+    ] },
+];
+
+function maskedPhone(p){ return '('+p.slice(0,3)+') •••-'+p.slice(-4); }
+function fullPhone(p){ return '('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(-4); }
+
+// state
+let CURRENT_ROLE='support';
+let curIncidentId = INCIDENTS[0].id;
+let AUDIT = {}; INCIDENTS.forEach(i=>AUDIT[i.id]=i.auditSeed.slice());
+let REVEALED = {};
+let swapState = null; // {mode, candidate, reason, priceChoice, ackChecked, consentLogged}
+
+document.getElementById('roleSelect').addEventListener('change', e=>{ CURRENT_ROLE=e.target.value;
+  document.getElementById('roleDot').textContent = CURRENT_ROLE==='driver'?'DR':'SP';
+  document.getElementById('roleLabel').textContent = CURRENT_ROLE==='driver'?'Driver':'Support';
+});
+
+function buildIncidentSel(){
+  const sel=document.getElementById('incidentSel');
+  sel.innerHTML = INCIDENTS.map(i=>`<option value="${i.id}">${i.orderId} — ${esc(i.sku)} (${i.store})</option>`).join('');
+  sel.value = curIncidentId;
+  sel.onchange = e=>{ curIncidentId=e.target.value; render(); };
+}
+
+function curIncident(){ return INCIDENTS.find(i=>i.id===curIncidentId); }
+
+function renderBanner(){
+  const inc = curIncident();
+  const el = document.getElementById('banners');
+  if(inc.status==='resolved'){
+    el.innerHTML = `<div class="mis-banner" style="background:var(--goodSoft);border-color:var(--good);"><div class="ico" style="background:var(--good);">✓</div>
+      <div><b>Resolved.</b> <span class="small-note">Swap committed and logged. See the audit trail below.</span></div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="mis-banner"><div class="ico">!</div>
+    <div style="flex:1;"><b>Mis-stock detected — ${esc(inc.sku)} is not in ${esc(inc.driver.name)}'s kit.</b>
+      <div class="small-note">Flagged ${esc(inc.detectedAgo)}. <span class="src">${esc(inc.sourceLabel)}</span></div>
+    </div>
+    <button class="btn btn-accent" id="openSwapBtn">Open swap →</button></div>`;
+  document.getElementById('openSwapBtn').onclick = openSwap;
+}
+
+function renderOrder(){
+  const inc = curIncident();
+  document.getElementById('orderHead').innerHTML = `<div style="display:flex;gap:10px;align-items:center;">
+    <b>${esc(inc.orderId)}</b><span class="pill pill-neutral">${esc(inc.store)}</span>
+    <span class="pill ${inc.status==='resolved'?'pill-good':'pill-bad'}">${inc.status==='resolved'?'Resolved':'Mis-stock'}</span>
+    <span class="small-note" style="margin-left:auto;">Driver: ${esc(inc.driver.name)} · Kit ${esc(inc.kitId)}</span></div>`;
+  document.getElementById('itemsList').innerHTML = inc.items.map(it=>`<div class="item-row">
+    <div class="ico"></div><div style="flex:1;"><div class="name">${esc(it.name)}</div><div class="sub">${esc(it.sub)}</div></div>
+    ${it.missing?'<span class="pill pill-bad">Not in kit</span>':'<span class="pill pill-good">In kit</span>'}</div>`).join('');
+}
+
+function renderAudit(){
+  const inc = curIncident();
+  document.getElementById('auditTrail').innerHTML = (AUDIT[inc.id]||[]).map(a=>`<div class="audit-item">
+    <div class="t">${esc(a.t)}</div><div class="b">${esc(a.b)}<div class="who">${esc(a.who)}</div></div></div>`).join('');
+}
+
+function renderCustomer(){
+  const inc = curIncident();
+  const revealed = !!REVEALED[inc.id];
+  document.getElementById('custBlock').innerHTML = `<div class="pfield"><div class="l">Name</div><div class="v">${esc(inc.customer.name)}</div></div>
+    <div class="pfield"><div class="l">Phone</div><div class="v phone-mask">
+      <span id="phoneText">${revealed?fullPhone(inc.customer.phone):maskedPhone(inc.customer.phone)}</span>
+      ${revealed?'':'<button class="reveal-btn" id="revealBtn">Reveal</button>'}
+      <button class="call-btn" id="callBtn" ${revealed?'':'disabled'} title="Click to call">☎</button>
+    </div></div>
+    <div class="small-note">Every reveal is logged to the audit trail with agent, time and reason.</div>`;
+  const rb = document.getElementById('revealBtn');
+  if(rb) rb.onclick = ()=>{ REVEALED[inc.id]=true; pushAudit(inc.id, `Support revealed customer phone — click-to-call enabled`, 'you (support)'); renderCustomer(); renderAudit(); };
+  const cb = document.getElementById('callBtn');
+  if(cb && !cb.disabled) cb.onclick = ()=>{ pushAudit(inc.id, `Called ${fullPhone(inc.customer.phone)} (click-to-call)`, 'you (support)'); renderAudit(); alert('Dialing '+fullPhone(inc.customer.phone)+' (mock)'); };
+}
+
+function renderDiscrepancy(){
+  const inc = curIncident();
+  document.getElementById('discBlock').innerHTML = `<div class="discrepancy-box">
+    Built by <b>${esc(inc.builtBy)}</b> · Box <b>${esc(inc.boxId)}</b> · RFID scanned at fill: <b>${inc.rfidScanned?'Yes':'No'}</b><br>
+    <span class="small-note">This incident already fed the discrepancy case — who filled the kit, whether it was scanned, and box placement — for the scoreboard. That attribution is a separate system; this screen only emits the event.</span>
+  </div>`;
+}
+
+function renderReassign(){
+  const inc = curIncident();
+  const rows = Object.values(DRIVERS).filter(d=>d.id!==inc.driver.id).map(d=>{
+    const k = DRIVER_KITS[d.id];
+    const ok = k && k.ok;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--hairline);">
+      <span style="flex:1;font-size:12.5px;">${esc(d.name)}</span>
+      <span class="kit-badge ${ok?'yes':'no'}">${ok?'Kit holds all items':'Missing '+(k?k.missing.join(', '):'—')}</span>
+      <button class="btn btn-sm" ${ok?'':'disabled'}>Move order</button></div>`;
+  }).join('');
+  document.getElementById('reassignBlock').innerHTML = rows + `<div class="small-note" style="margin-top:6px;">Auto-move only offers a driver whose kit holds every item on the order — not just the missing one.</div>`;
+}
+
+function pushAudit(id, b, who){ (AUDIT[id]=AUDIT[id]||[]).push({t:new Date().toTimeString().slice(0,5), b, who}); }
+
+function render(){ buildIncidentSel(); renderBanner(); renderOrder(); renderAudit(); renderCustomer(); renderDiscrepancy(); renderReassign(); closeSwap(); }
+
+// ---- governed swap drawer ----
+function openSwap(){
+  const inc = curIncident();
+  swapState = { mode:'similar', candidate:null, reason:'', priceChoice:'', ackChecked:false, consentLogged:false };
+  document.getElementById('panelOrderId').textContent = inc.orderId;
+  renderSwapBody();
+  document.getElementById('scrim').classList.add('open');
+  document.getElementById('swapPanel').classList.add('open');
+}
+function closeSwap(){ document.getElementById('scrim').classList.remove('open'); document.getElementById('swapPanel').classList.remove('open'); }
+document.getElementById('panelX').onclick = closeSwap;
+document.getElementById('cancelSwapBtn').onclick = closeSwap;
+document.getElementById('scrim').onclick = closeSwap;
+
+function renderSwapBody(){
+  const inc = curIncident();
+  const modes = [['similar','Similar'],['stronger','Stronger'],['sameBrand','Same brand or price band']];
+  const cand = inc.candidates[swapState.mode]||[];
+  let priceHtml = '<div class="small-note">Pick a candidate to see the price difference.</div>';
+  let ackHtml = '';
+  if(swapState.candidate){
+    const delta = swapState.candidate.priceCents - inc.originalCents;
+    const d = fmtDelta(delta);
+    priceHtml = `<div class="price-decision">
+      <label><input type="radio" name="price" value="no_charge" ${swapState.priceChoice==='no_charge'?'checked':''}> No charge — customer pays the original price (${fmt$(inc.originalCents)})</label>
+      ${delta<0?`<label><input type="radio" name="price" value="refund" ${swapState.priceChoice==='refund'?'checked':''}> Refund the difference — ${fmt$(Math.abs(delta))} back to the customer</label>`:''}
+      ${delta>0?`<label><input type="radio" name="price" value="goodwill" ${swapState.priceChoice==='goodwill'?'checked':''}> Goodwill credit — cover the ${fmt$(delta)} difference, no charge to customer</label>
+      <label><input type="radio" name="price" value="charge" ${swapState.priceChoice==='charge'?'checked':''}> Charge the difference — ${fmt$(delta)}, customer agreed</label>`:''}
+    </div>`;
+    const needsAck = swapState.priceChoice && swapState.priceChoice!=='no_charge' ? true : (delta!==0);
+    if(needsAck){
+      ackHtml = `<div class="ack-gate ${swapState.ackChecked?'ok':''}" id="ackGate">
+        <input type="checkbox" id="ackCheck" ${swapState.ackChecked?'checked':''}>
+        <label for="ackCheck">Customer was told about the price change (${d.t}) before this swap was committed. Required to proceed.</label>
+      </div>`;
+    }
+  }
+  document.getElementById('panelBody').innerHTML = `
+    <div class="pfield"><div class="l">Missing item</div><div class="v">${esc(inc.sku)} · ${fmt$(inc.originalCents)}</div></div>
+    <div class="section-eb" style="margin-top:14px;"><span>Candidates</span><span class="grow"></span></div>
+    <div class="seg" id="modeSeg">${modes.map(([v,l])=>`<button data-v="${v}" class="${swapState.mode===v?'on':''}">${l}</button>`).join('')}</div>
+    <div style="margin-top:10px;" id="candList">${cand.length? cand.map((c,i)=>{
+      const delta = c.priceCents - inc.originalCents; const d=fmtDelta(delta);
+      const sel = swapState.candidate===c;
+      return `<div class="candidate-card ${sel?'sel':''}" data-i="${i}"><div class="radio"></div>
+        <div class="meta"><div class="name">${esc(c.name)}</div><div class="sub">${esc(c.brand)} · THC ${esc(c.thc)} · ${fmt$(c.priceCents)}</div></div>
+        <span class="kit-badge ${c.inKit?'yes':'no'}">${c.inKit?'In kit':'Not in kit'}</span>
+        <div class="delta ${d.cls}">${d.t}</div></div>`;
+    }).join('') : `<div class="small-note">No candidates in this ladder for this item right now.</div>`}</div>
+
+    <div class="section-eb"><span>Reason</span><span class="grow"></span></div>
+    <select id="reasonSel"><option value="">Choose a reason…</option>${REASONS.map(r=>`<option value="${r.v}" ${swapState.reason===r.v?'selected':''}>${r.l}</option>`).join('')}</select>
+
+    <div class="section-eb"><span>Price decision (support decides case by case)</span><span class="grow"></span></div>
+    ${priceHtml}
+    ${ackHtml}
+
+    <div class="section-eb"><span>Consent</span><span class="grow"></span></div>
+    <div class="pfield"><div class="l">Channel</div><div class="v">Verbal — over the phone</div></div>
+    <button class="btn ${swapState.consentLogged?'btn-primary':''}" id="consentBtn" style="width:100%;">${swapState.consentLogged?'✓ Verbal consent logged':'Log verbal consent'}</button>
+
+    <div class="section-eb"><span>Kit check</span><span class="grow"></span></div>
+    <div class="small-note">${swapState.candidate ? (swapState.candidate.inKit?`Confirmed in ${esc(inc.driver.name)}'s kit right now.`:`Not confirmed in the current driver's kit — a reassignment or wait would be needed.`) : 'Select a candidate to check kit availability.'}</div>
+  `;
+  document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{ swapState.mode=b.dataset.v; swapState.candidate=null; swapState.priceChoice=''; swapState.ackChecked=false; renderSwapBody(); updateCommitState(); });
+  document.querySelectorAll('.candidate-card').forEach(c=>c.onclick=()=>{ swapState.candidate = cand[+c.dataset.i]; swapState.priceChoice=''; swapState.ackChecked=false; renderSwapBody(); updateCommitState(); });
+  document.getElementById('reasonSel').onchange = e=>{ swapState.reason=e.target.value; updateCommitState(); };
+  document.querySelectorAll('input[name=price]').forEach(r=>r.onchange = e=>{ swapState.priceChoice=e.target.value; swapState.ackChecked=false; renderSwapBody(); updateCommitState(); });
+  const ackC = document.getElementById('ackCheck'); if(ackC) ackC.onchange = e=>{ swapState.ackChecked=e.target.checked; renderSwapBody(); updateCommitState(); };
+  document.getElementById('consentBtn').onclick = ()=>{ swapState.consentLogged=true; renderSwapBody(); updateCommitState(); };
+  updateCommitState();
+}
+
+function needsAckNow(inc){
+  if(!swapState.candidate || !swapState.priceChoice) return false;
+  const delta = swapState.candidate.priceCents - inc.originalCents;
+  return delta!==0;
+}
+function updateCommitState(){
+  const inc = curIncident();
+  const ok = swapState.candidate && swapState.reason && swapState.priceChoice && swapState.consentLogged && (!needsAckNow(inc) || swapState.ackChecked);
+  document.getElementById('commitSwapBtn').disabled = !ok;
+}
+document.getElementById('commitSwapBtn').onclick = ()=>{
+  const inc = curIncident();
+  const delta = swapState.candidate.priceCents - inc.originalCents;
+  inc.status = 'resolved';
+  pushAudit(inc.id, `Swap committed — ${esc(inc.sku)} → ${esc(swapState.candidate.name)}. Reason: ${swapState.reason}. Price: ${swapState.priceChoice} (${fmtDelta(delta).t}). Consent: verbal (logged, ${CURRENT_ROLE}).`, 'you ('+CURRENT_ROLE+')');
+  closeSwap(); render();
+};
+
+render();
+</script>
+</body>
+</html>
