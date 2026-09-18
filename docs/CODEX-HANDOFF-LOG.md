@@ -48,3 +48,19 @@
 - Partial evidence supports in_progress for writeup-pipeline, end-of-shift-portal, onboarding and delivery-ops only. Other statuses and all per-project effort cells remain blank where unsupported. Shared timesheet plumbing alone is not treated as a port underway. Source-limited facts from the inventory, forms matrix, and two port plans; no live verification claimed.
 - Checks: required csv.DictReader command PASS (27 rows; expected 10 keys), 8 structural/security/coverage groups PASS, 0 FAIL. Artifact Tool exact range roundtrip PASS, error scan 0 matches; scratch preview visually inspected. git diff --check PASS. No runtime/backend/network execution. Initial scratch parser assertion caught 5 risk-table rows outside the project section before output; table boundary corrected and all final checks pass.
 - Nothing unfinished for this brief.
+
+## 09 — Backend documentation index — COMPLETE
+
+- Files: wm-demo `docs/README.md`; this POS-Admin log. Backend commit: `64fcc41`. Previous task 08 commit: `e10937a`.
+- Read the first 60 lines of all 62 source Markdown documents (whole file when shorter), scanned every document for WM_/HW_ environment names, and created the five requested groups with one-sentence summaries and Flags lists. No existing backend file changed.
+- Final Flag to doc table: 131 distinct names/families, sorted by name (119 literal names and 12 placeholder/wildcard families; concrete examples within a family count separately). Includes source-described test/historical references, labels proposed rotation variables as design-only, and expands two documented shared-prefix shorthands. Excludes browser globals, code constants, and the WM_SERVICE_FEE wire enum.
+- Named verification, run in the authorized handoff worktree: `python3 -c "import re,os;t=open('docs/README.md').read();links=re.findall(r'\]\(([^)#]+)',t);missing=[l for l in links if not os.path.exists(os.path.join('docs',l))];print(len(links),'links',missing)"` -> `270 links []` (PASS).
+- Checks: 5 index validation groups PASS / 0 FAIL (62 documents indexed once, flag-row count, link existence, flag coverage, all original source-document hashes unchanged); git diff --check PASS. No runtime/backend imports, servers, database opens or network calls.
+- Purpose unclear: none. Old handoffs and correspondence explicitly summarized as historical; source claims were not treated as new deployment evidence or task instructions. Nothing unfinished for task 09.
+
+## Queue completion
+
+- Requested queue 04–09 exhausted. Task 04 blocked at the brief-required generator boundary; tasks 05–09 complete. No tier-2 work started, no push.
+- Commits: wm-demo `8fea271` (04 blocker report), `64fcc41` (09 index); POS-Admin `929acbe` (04 log), `dd4a3c3` (05), `a36323c` (06), `bf3930f` (07), `e10937a` (08). This final log entry is committed separately for cross-repository task 09.
+- Final task 07 report count is 93 findings, 10 blocker rows across 15 pages (the interim commentary count of 96 preceded the final consolidated audit).
+- Lead review next: generator prerequisites and environment-file-free test harness before requeuing 04; contract helper rename and denomination expressiveness limit from 06; keyboard blockers from 07; unresolved source classifications from 08.
