@@ -72,7 +72,9 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | B32 | Sale lines RE-REVIEW PASSED → COMMITTED wm-demo 58ed35d + contracts 0.5.3 (POS-Admin 0835bc8); index boot-tested; buttons handed to JT 2026-09-17 evening; reports_probe fixture updated; RP-17/18/19/20/58 = UTC-midnight day-boundary flake in the fixture (fix: compute days in store-local tz) | refuting |
 | B33 | IAM template THIRD review FAILED (rds/kms tag self-forging; SecretTargetAttachment blocker) → fourth fix running → fourth review. Earlier: third fix DONE (Denies inside the boundary, sts removed, ceiling trimmed to 8 services, 6,049/6,144 chars; template 178 KB → must be uploaded to S3, not inline) → third review running | reviewing |
 | B34 | Plans landed (committed): PICKUP-FLOW-UX-REVIEW + PICKUP-FLOW-DEMO-AUDIT, PURCHASE-LIMITS-DAY-EDGE-CASES, MEDICAL-PURCHASE-LIMIT-RESEARCH, SMS-PROVIDER-SHORTLIST, ALPINE-CONFIG-READ-OPTIONS | done |
-| B35 | Alpine read-only config probe job (Render, redacted report, admin routes) | building |
+| B35 | Alpine read-only config probe job COMMITTED (fcf4598, 36 checks) → refuter running; JT triggers it after deploy via `docs/ALPINE-PROBE.md` | refuting |
+| B38 | Design rounds 10 + 11 built and committed: Curbside Arrival (A–D) and Swap Recovery (A–D) under `explorations/review/` — JT picks with the other rounds | waiting on JT |
+| B39 | Forms generator HEIC + min_files DONE (ddd6346, 158 checks); Codex briefs 10–14 committed; Codex worktrees merged with main; JT re-prompts Codex (prompt in chat) | done |
 | B36 | Forms generator: add HEIC to `ATTACHMENT_CONTENT_TYPES` and a non-empty `files` check (from Codex 04 blocker), then re-queue brief 04 | queue |
 | B37 | IAM template FIFTH fix (structural: conditioned Allows) running → fifth review; AWS MCP connector session INVALIDATED 2026-09-17 evening — JT must reconnect | fixing |
 | B26 | Metrc recon: rerun creates duplicate exception rows; per-store wall-clock cap on package pulls | queue (with B15) |
