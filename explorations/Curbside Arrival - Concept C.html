@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curbside Arrival — Concept C: Store-Map Arrival</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --scrim:rgba(20,18,12,.42);
+  --lock:#6E6E66; --lockSoft:#ECEAE2;
+}
+[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --scrim:rgba(0,0,0,.62);
+  --lock:#9A968B; --lockSoft:rgba(245,243,234,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,138,79,.35)}50%{box-shadow:0 0 0 8px rgba(31,138,79,0)}}
+@keyframes drop{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+h1,h2,h3,h4{font-family:var(--fontSans)}
+code,.mono{font-family:var(--fontMono);}
+a{color:var(--info)}
+button{font-family:var(--fontSans)}
+::selection{background:var(--accentSoft)}
+:focus-visible{outline:2.5px solid var(--info);outline-offset:2px;border-radius:6px;}
+
+.doc-head{position:sticky;top:0;z-index:120;background:var(--rail);color:var(--railBright);
+  padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;}
+.theme-btn,.device-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+  font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;}
+.theme-btn:hover,.device-btn:hover{background:var(--railHover);}
+.device-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.device-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;
+  padding:6px 12px;border-radius:var(--r999);cursor:pointer;}
+.device-toggle button.on{background:var(--accent);color:var(--accentInk);}
+.view-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.view-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;padding:6px 13px;border-radius:var(--r999);cursor:pointer;}
+.view-toggle button.on{background:var(--accent);color:var(--accentInk);}
+
+.stage{max-width:1180px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1180px;margin:0 auto;padding:16px 22px 0;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro .card{padding:16px 18px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+.controlbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0;}
+select{font-family:var(--fontSans);font-size:12.5px;color:var(--ink);background:var(--field);border:1px solid var(--fieldBorder);border-radius:var(--r8);padding:7px 10px;min-height:36px;}
+.role-chip{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px 0 4px;border-radius:var(--r999);background:var(--surface);border:1px solid var(--hairline2);font-size:12px;cursor:pointer;margin-left:auto;}
+.role-chip .dot{width:26px;height:26px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;font-family:var(--fontMono);}
+.role-chip b{font-family:var(--fontMono);font-weight:700;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:10.5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 14px;font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;white-space:nowrap;border:1px solid transparent;background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme="dark"] .btn-primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);font-weight:700;}
+.btn-danger{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.btn-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
+.btn-sm{min-height:30px;padding:0 10px;font-size:11.5px;}
+.btn-block{width:100%;}
+.section-eb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin:22px 0 10px;}
+.section-eb .grow{flex:1;border-bottom:1px solid var(--hairline);}
+body.frame-phone{background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);}
+body.frame-phone .viewport{display:flex;justify-content:center;padding:26px 10px 46px;}
+body.frame-phone #appShell{width:390px;max-width:100%;background:var(--rail);border-radius:46px;padding:14px 12px;box-shadow:var(--shadowLg);}
+body.frame-phone #appShell > .phone-screen{background:var(--bg2);border-radius:32px;overflow-y:auto;overflow-x:hidden;height:844px;max-height:80vh;-webkit-overflow-scrolling:touch;position:relative;}
+body.frame-phone #appShell::before{content:'';display:block;width:120px;height:18px;background:var(--rail);border-radius:999px;margin:2px auto 8px;}
+body:not(.frame-phone) .phone-screen{display:contents;}
+.viewport.is-phone .stage,.viewport.is-phone .intro{max-width:100%;padding:0 12px;margin:10px auto;}
+.viewport.is-phone .btn,.viewport.is-phone select{min-height:44px;}
+.role-shell.staff-active .face-customer{display:none;}
+.role-shell:not(.staff-active) .face-staff{display:none;}
+
+.stagebar{display:flex;align-items:flex-start;gap:0;margin:18px 0 6px;}
+.stagebar .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;text-align:center;}
+.stagebar .dot{width:30px;height:30px;border-radius:99px;background:var(--surface3);border:2px solid var(--hairline3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--inkMute);z-index:1;}
+.stagebar .step.done .dot{background:var(--good);border-color:var(--good);color:#fff;}
+.stagebar .step.now .dot{background:var(--accent);border-color:var(--accentBorder);color:var(--accentInk);animation:pulse 1.8s infinite;}
+.stagebar .lbl{font-size:11px;font-weight:700;color:var(--inkDim);}
+.stagebar .step.done .lbl,.stagebar .step.now .lbl{color:var(--ink);}
+.stagebar .line{position:absolute;top:15px;left:-50%;right:50%;height:2px;background:var(--hairline3);z-index:0;}
+.stagebar .step:first-child .line{display:none;}
+.stagebar .step.done .line,.stagebar .step.now .line{background:var(--good);}
+.code-card{display:flex;align-items:center;gap:18px;padding:18px;background:var(--ink);color:var(--surface);border-radius:var(--r14);}
+[data-theme="dark"] .code-card{background:var(--surface2);border:1px solid var(--hairline2);}
+.code-card .qr{flex:0 0 auto;width:96px;height:96px;background:#fff;border-radius:10px;padding:6px;display:grid;grid-template-columns:repeat(11,1fr);grid-template-rows:repeat(11,1fr);gap:1px;}
+.code-card .qr i{background:#fff;display:block;}
+.code-card .qr i.on{background:#0F0F0C;}
+.code-card .code{font-family:var(--fontMono);font-size:26px;font-weight:700;letter-spacing:.12em;}
+.code-card .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.55);font-family:var(--fontMono);margin-bottom:4px;}
+[data-theme="dark"] .code-card .lbl{color:var(--inkMute);}
+.settings-i{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:99px;background:var(--surface3);color:var(--inkMute);font-size:10px;font-weight:700;cursor:help;border:1px solid var(--hairline3);}
+.settings-panel{margin-top:16px;}
+.settings-panel summary{cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--inkMute);padding:8px 0;}
+.settings-panel table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px;}
+.settings-panel td{padding:5px 8px;border-bottom:1px solid var(--hairline);}
+.settings-panel td:first-child{font-family:var(--fontMono);color:var(--inkDim);}
+.settings-panel td:last-child{text-align:right;font-family:var(--fontMono);font-weight:700;}
+.sim-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px;background:var(--infoSoft);border-radius:var(--r10);margin-bottom:14px;}
+.sim-bar .lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--info);align-self:center;margin-right:4px;}
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:250;display:flex;flex-direction:column;gap:8px;max-width:340px;}
+.toast{background:var(--ink);color:var(--surface);border-radius:var(--r10);padding:12px 14px;box-shadow:var(--shadowLg);font-size:12.5px;display:flex;gap:10px;align-items:flex-start;animation:fade .18s ease;}
+[data-theme="dark"] .toast{background:var(--surface2);border:1px solid var(--good);}
+.toast b{display:block;margin-bottom:2px;}
+.app-topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.app-topbar h2{margin:0;font-size:16px;}
+.app-topbar .store-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:var(--r999);background:var(--accentSoft);color:var(--accentText);font-size:12px;font-weight:700;}
+
+/* ---- the lot map, shared shape for customer + staff ---- */
+.lot{background:#DCE3DA;border-radius:var(--r14);padding:16px;position:relative;overflow:hidden;}
+[data-theme="dark"] .lot{background:#232A22;}
+.lot-storefront{background:var(--ink);color:var(--surface);text-align:center;padding:10px;border-radius:var(--r10);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.lot-entrance{text-align:center;font-size:10px;color:var(--inkMute);margin-bottom:12px;font-family:var(--fontMono);}
+.lot-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;}
+.viewport.is-phone .lot-row{grid-template-columns:repeat(4,1fr);gap:6px;}
+.lot-lane{height:22px;background:repeating-linear-gradient(90deg,#fff 0 14px,transparent 14px 28px);opacity:.5;margin:4px 0;border-radius:3px;}
+[data-theme="dark"] .lot-lane{background:repeating-linear-gradient(90deg,#666 0 14px,transparent 14px 28px);}
+.lot-space{position:relative;aspect-ratio:1.3;background:#fff;border:2px dashed rgba(0,0,0,.25);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;min-height:44px;font-family:var(--fontMono);font-weight:800;color:var(--ink2);}
+[data-theme="dark"] .lot-space{background:var(--surface2);border-color:rgba(255,255,255,.2);}
+.lot-space:hover{border-color:var(--info);border-style:solid;}
+.lot-space .n{font-size:15px;}
+.lot-space .s{font-size:8px;text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
+.lot-space.occupied{background:var(--surface3);cursor:not-allowed;border-style:solid;}
+.lot-space.mine{background:var(--accent);border-color:var(--accentBorder);border-style:solid;color:var(--accentInk);}
+.lot-space .car{position:absolute;top:-6px;right:-4px;font-size:20px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25));animation:drop .3s ease;}
+.lot-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--inkDim);margin:8px 0;}
+.lot-legend span{display:inline-flex;align-items:center;gap:5px;}
+
+.lot-detail{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--hairline2);border-radius:16px 16px 0 0;box-shadow:var(--shadowLg);padding:16px 18px;z-index:200;transform:translateY(110%);transition:transform .2s ease;max-width:460px;margin:0 auto;}
+.lot-detail.open{transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>Curbside Arrival — Concept C: Store-Map Arrival</h1>
+    <div class="sub">Tap your space on the actual lot layout · staff see the same lot with cars in it · store: <b>Corona</b></div>
+  </div>
+  <div class="hdr-right">
+    <div class="view-toggle" role="group" aria-label="Which side">
+      <button type="button" id="viewCustomer" class="on" aria-pressed="true">Customer</button>
+      <button type="button" id="viewStaff" aria-pressed="false">Staff (POS)</button>
+    </div>
+    <div class="device-toggle" role="group" aria-label="Preview device">
+      <button type="button" id="devDesktop" class="on" aria-pressed="true">Desktop</button>
+      <button type="button" id="devPhone" aria-pressed="false">Phone</button>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+  </div>
+</div>
+
+<div class="viewport" id="viewport">
+<div id="appShell"><div class="phone-screen">
+<div id="rootShell" class="role-shell">
+
+  <!-- ============ CUSTOMER FACE ============ -->
+  <div class="face-customer">
+    <div class="intro"><div class="card">
+      <div class="eyebrow">Model C — Store-map arrival</div>
+      <p>The status page shows the real Corona lot — storefront, entrance, and the numbered curbside row —
+      instead of a plain numbered grid. Tapping a space on the map is the same signal as A's grid, but it is
+      spatial: the customer sees where the space actually is relative to the door before they choose it.</p>
+    </div></div>
+
+    <div class="stage">
+      <div class="sim-bar" id="custSim"></div>
+      <div class="app-topbar"><h2>Your order</h2><span class="store-chip">📍 Pickup at Corona</span></div>
+
+      <div class="card" style="padding:16px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+          <div><div class="small-note">Order <b class="mono" id="ordId"></b> · placed <span id="ordPlacedAt"></span></div>
+          <div style="font-size:14px;font-weight:700;margin-top:2px;">2 items · <span id="ordTotal" class="mono"></span></div></div>
+          <span class="pill" id="stagePill"></span>
+        </div>
+        <div class="stagebar" id="stagebar"></div>
+        <div id="promiseArea"></div>
+
+        <div class="section-eb"><span>Pickup code</span><span class="grow"></span></div>
+        <div class="code-card">
+          <div class="qr" id="qrBox"></div>
+          <div><div class="lbl">Show this at the counter</div><div class="code" id="codeText"></div>
+          <div class="small-note" style="color:rgba(255,255,255,.65);margin-top:6px;">Single-use · expires when collected</div></div>
+        </div>
+
+        <div id="arrivalArea"></div>
+
+        <div class="section-eb"><span>Hold policy</span><span class="grow"></span></div>
+        <p class="small-note" id="holdNote"></p>
+        <div class="controlbar">
+          <button class="btn" id="rewardsBtn">🎁 Apply 50 pts reward</button>
+          <button class="btn btn-danger" id="cancelBtn" style="margin-left:auto;">Cancel order</button>
+        </div>
+        <p class="small-note">Bring the ID you ordered with. Store purchase limits were already enforced at checkout.</p>
+        <details class="settings-panel"><summary>Settings driving this screen (per store)</summary><table id="custSettingsTable"></table></details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STAFF FACE ============ -->
+  <div class="face-staff">
+    <div class="intro"><div class="card">
+      <div class="eyebrow">POS · Lot view — Corona</div>
+      <p class="small-note">A second tab beside the usual queue board: the same lot map, staff-side. A car
+      icon appears the instant a customer taps their space; tapping the car opens that order's hand-off
+      panel. The queue board itself (Verify/Pack/Packing/Ready/Done) is unchanged and reachable from the tab.</p>
+    </div></div>
+
+    <div class="stage">
+      <div class="sim-bar" id="staffSim"></div>
+      <div class="app-topbar">
+        <h2>Pickup — Lot View</h2>
+        <select id="staffStore"><option>Corona</option><option>Lake Elsinore</option><option>West Hollywood</option></select>
+        <div class="role-chip" tabindex="0"><span class="dot">AS</span> role: <b>Associate</b></div>
+      </div>
+      <div class="lot-legend"><span>⬜ open</span><span style="background:var(--surface3);width:12px;height:12px;border-radius:3px;display:inline-block;"></span><span>occupied, not yet ID'd</span><span>🚗 arrived</span></div>
+      <div class="lot" id="staffLot"></div>
+    </div>
+  </div>
+
+</div>
+</div></div>
+</div>
+
+<div class="scrim" id="scrim" style="position:fixed;inset:0;background:var(--scrim);z-index:190;display:none;"></div>
+<div class="lot-detail" id="lotDetail">
+  <div id="lotDetailBody"></div>
+</div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+document.getElementById('devDesktop').addEventListener('click', ()=>setDevice('desktop'));
+document.getElementById('devPhone').addEventListener('click', ()=>setDevice('phone'));
+function setDevice(mode){
+  const vp=document.getElementById('viewport');
+  vp.classList.toggle('is-phone', mode==='phone');
+  document.body.classList.toggle('frame-phone', mode==='phone');
+  document.getElementById('devDesktop').classList.toggle('on', mode==='desktop');
+  document.getElementById('devDesktop').setAttribute('aria-pressed', mode==='desktop');
+  document.getElementById('devPhone').classList.toggle('on', mode==='phone');
+  document.getElementById('devPhone').setAttribute('aria-pressed', mode==='phone');
+}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
+});
+document.getElementById('viewCustomer').addEventListener('click', ()=>setView('customer'));
+document.getElementById('viewStaff').addEventListener('click', ()=>setView('staff'));
+function setView(mode){
+  document.getElementById('rootShell').classList.toggle('staff-active', mode==='staff');
+  document.getElementById('viewCustomer').classList.toggle('on', mode==='customer');
+  document.getElementById('viewCustomer').setAttribute('aria-pressed', mode==='customer');
+  document.getElementById('viewStaff').classList.toggle('on', mode==='staff');
+  document.getElementById('viewStaff').setAttribute('aria-pressed', mode==='staff');
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt$(cents){return '$'+(cents/100).toFixed(2);}
+function fakeQR(seed, cells){
+  let h=0; for(let i=0;i<seed.length;i++) h=(h*31+seed.charCodeAt(i))>>>0;
+  const n=cells*cells; let out='';
+  for(let i=0;i<n;i++){
+    const r=Math.floor(i/cells), c=i%cells;
+    const finder=(r<3&&c<3)||(r<3&&c>=cells-3)||(r>=cells-3&&c<3);
+    h=(h*1103515245+12345)>>>0;
+    const on = finder ? (r===0||r===2||c===0||c===2||(r>=cells-3&&r===cells-1)||(r<3&&r===2)) : (h % 100)<46;
+    out += `<i class="${on?'on':''}"></i>`;
+  }
+  return out;
+}
+
+const STORE = {name:'Corona', settings:{prepTimeMin:18, queueDepthMin:4, asapFloorMin:15, roundToMin:5,
+  holdHoursAfterReady:'until close', reminderBeforeReleaseMin:60, purchaseLimitFlowerG:28.5}};
+function computePromiseMin(s){ return Math.max(s.asapFloorMin, Math.ceil((s.prepTimeMin+s.queueDepthMin)/s.roundToMin)*s.roundToMin); }
+
+// 8 curbside spaces, arranged as the actual Corona lot: row nearest the door (1-4), then a drive lane, then row 2 (5-8)
+const PARKING = [1,2,3,4,5,6,7,8].map(n=>({n, taken:[2,6].includes(n), customer: n===2?'Priya C.':n===6?'Marcus T.':null}));
+
+let ORDER = {id:'HW-58231', placedAt:'6:42 PM', totalCents:5410, code:'H7K4RT', stage:'ready',
+  promisedMin: computePromiseMin(STORE.settings), space:null, arrivedAt:null};
+
+const STAGES = [{key:'received',label:'Received'},{key:'preparing',label:'Preparing'},{key:'ready',label:'Ready'},{key:'collected',label:'Collected'}];
+const STAGE_ORDER = ['received','preparing','ready','collected'];
+let revealed = {};
+
+function toast(title, body){
+  const el=document.createElement('div'); el.className='toast';
+  el.innerHTML = `<span>🅿️</span><div><b>${esc(title)}</b>${esc(body)}</div>`;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(()=>el.remove(), 5200);
+}
+function stagePillFor(stage){
+  if(stage==='cancelled') return ['pill-bad','Cancelled'];
+  if(stage==='released_no_show') return ['pill-bad','Released — no-show'];
+  if(stage==='ready') return ['pill-good','Ready'];
+  if(stage==='collected') return ['pill-neutral','Collected'];
+  return ['pill-info', stage[0].toUpperCase()+stage.slice(1)];
+}
+
+function renderLot(target, interactive){
+  const rows = [PARKING.slice(0,4), PARKING.slice(4,8)];
+  const spaceHtml = (p)=>{
+    const mine = ORDER.space===p.n;
+    const occ = p.taken || mine;
+    const cls = mine ? 'mine' : occ ? 'occupied' : '';
+    const carIcon = (mine || (p.customer && interactive===false)) ? '<span class="car">🚗</span>' : '';
+    return `<button class="lot-space ${cls}" data-n="${p.n}" ${(p.taken&&!mine)&&interactive?'disabled':''}>
+      ${carIcon}<span class="n">${p.n}</span><span class="s">${mine?'yours':p.taken?'parked':'open'}</span></button>`;
+  };
+  target.innerHTML = `<div class="lot-storefront">🏪 Corona storefront — pickup counter</div>
+    <div class="lot-entrance">↓ entrance / walk-up window ↓</div>
+    <div class="lot-row">${rows[0].map(spaceHtml).join('')}</div>
+    <div class="lot-lane"></div>
+    <div class="lot-row">${rows[1].map(spaceHtml).join('')}</div>`;
+  if(interactive){
+    target.querySelectorAll('.lot-space:not(.occupied)').forEach(b=>b.onclick=()=>chooseSpace(+b.dataset.n));
+  } else {
+    target.querySelectorAll('.lot-space').forEach(b=>{
+      const n=+b.dataset.n; const p=PARKING.find(x=>x.n===n);
+      if(p && (p.customer || (ORDER.space===n))) b.onclick=()=>openLotDetail(n);
+    });
+  }
+}
+
+function renderCustomer(){
+  document.getElementById('ordId').textContent = ORDER.id;
+  document.getElementById('ordPlacedAt').textContent = ORDER.placedAt;
+  document.getElementById('ordTotal').textContent = fmt$(ORDER.totalCents);
+  const [cls,label] = stagePillFor(ORDER.stage);
+  document.getElementById('stagePill').className='pill '+cls; document.getElementById('stagePill').textContent=label;
+  document.getElementById('codeText').textContent = ORDER.code;
+  document.getElementById('qrBox').innerHTML = fakeQR(ORDER.id+ORDER.code, 11);
+
+  const terminal = ORDER.stage==='cancelled'||ORDER.stage==='released_no_show';
+  const idx = STAGE_ORDER.indexOf(ORDER.stage);
+  document.getElementById('stagebar').innerHTML = STAGES.map((s,i)=>{
+    const c = terminal ? '' : i<idx?'done':i===idx?'now':'';
+    return `<div class="step ${c}"><span class="line"></span><span class="dot">${i<idx&&!terminal?'✓':i+1}</span><span class="lbl">${esc(s.label)}</span></div>`;
+  }).join('');
+
+  const pa=document.getElementById('promiseArea');
+  if(ORDER.stage==='received'||ORDER.stage==='preparing'){
+    pa.innerHTML = `<div class="card" style="padding:12px 14px;background:var(--goodSoft);border-color:var(--good);margin:14px 0;">Ready in about <b class="mono">${ORDER.promisedMin} min</b> <span class="settings-i" title="Prep time + queue depth, rounded, floored at 15 — per-store setting.">i</span></div>`;
+  } else if(ORDER.stage==='ready'){
+    pa.innerHTML = `<div class="card" style="padding:12px 14px;background:var(--goodSoft);border-color:var(--good);margin:14px 0;"><b>✅ Ready</b> — held ${esc(STORE.settings.holdHoursAfterReady)}, reminder ${STORE.settings.reminderBeforeReleaseMin} min before release.</div>`;
+  } else if(ORDER.stage==='collected'){
+    pa.innerHTML = `<div class="card" style="padding:12px 14px;background:var(--neutralSoft);margin:14px 0;"><b>🎉 Collected — thanks!</b></div>`;
+  } else if(terminal){
+    pa.innerHTML = `<div class="card" style="padding:12px 14px;background:var(--badSoft);border-color:var(--bad);margin:14px 0;"><b>${ORDER.stage==='cancelled'?'Order cancelled':'Released — marked no-show'}</b></div>`;
+  }
+
+  const aa=document.getElementById('arrivalArea');
+  if(ORDER.stage==='ready' && !ORDER.arrivedAt){
+    aa.innerHTML = `<div class="section-eb"><span>Tap your space on the lot</span><span class="grow"></span></div><div class="lot" id="custLot"></div>`;
+    renderLot(document.getElementById('custLot'), true);
+  } else if(ORDER.arrivedAt){
+    aa.innerHTML = `<div class="section-eb"><span>Curbside</span><span class="grow"></span></div>
+      <div class="lot" id="custLot"></div>
+      <div class="card" style="padding:12px 14px;background:var(--infoSoft);border-color:var(--info);margin-top:10px;">🅿️ <b>Space ${esc(ORDER.space)}</b> — arrived ${esc(ORDER.arrivedAt)}, staff are on the way out.</div>`;
+    renderLot(document.getElementById('custLot'), false);
+  } else { aa.innerHTML=''; }
+
+  document.getElementById('holdNote').textContent = `Ready orders hold ${STORE.settings.holdHoursAfterReady} at Corona, reminder ${STORE.settings.reminderBeforeReleaseMin} min before release — a per-store setting.`;
+  document.getElementById('cancelBtn').disabled = !(ORDER.stage==='received'||ORDER.stage==='preparing');
+  document.getElementById('custSettingsTable').innerHTML = Object.entries({
+    'pickup.prepTimeMin':STORE.settings.prepTimeMin,'pickup.queueDepthMin (live)':STORE.settings.queueDepthMin,
+    'pickup.asapFloorMin':STORE.settings.asapFloorMin,'pickup.holdAfterReady':STORE.settings.holdHoursAfterReady,
+    'pickup.reminderBeforeReleaseMin':STORE.settings.reminderBeforeReleaseMin,
+    'purchaseLimit.flowerGramsPerDay':STORE.settings.purchaseLimitFlowerG,
+  }).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${esc(String(v))}</td></tr>`).join('');
+}
+
+function chooseSpace(n){
+  ORDER.space=n; ORDER.arrivedAt='just now';
+  const p=PARKING.find(x=>x.n===n); if(p){ p.taken=true; p.customer='Jordan M. (order '+ORDER.id+')'; }
+  renderCustomer();
+  renderStaffLot();
+  toast('Corona lot arrival', `${ORDER.id} · Space ${n} — bring it out`);
+}
+
+function openLotDetail(n){
+  const p=PARKING.find(x=>x.n===n); if(!p||!p.customer) return;
+  const mineOrder = ORDER.space===n;
+  document.getElementById('lotDetailBody').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <b>Space ${n}</b><button class="btn btn-sm" id="lotDetailClose">✕</button></div>
+    <div class="small-note">${esc(p.customer)}</div>
+    <div class="controlbar"><button class="btn btn-sm" id="lotIdCheck">🪪 ID check</button>
+    ${mineOrder?'<button class="btn btn-sm btn-good" id="lotWalk">Walking out</button>':''}</div>`;
+  document.getElementById('scrim').style.display='block';
+  document.getElementById('lotDetail').classList.add('open');
+  document.getElementById('lotDetailClose').onclick = closeLotDetail;
+  document.getElementById('lotIdCheck') && (document.getElementById('lotIdCheck').onclick = ()=>alert('ID check gate runs server-side at hand-off.'));
+  const w=document.getElementById('lotWalk'); if(w) w.onclick=()=>{ ORDER.stage='collected'; p.taken=false; p.customer=null; closeLotDetail(); renderCustomer(); renderStaffLot(); };
+}
+function closeLotDetail(){ document.getElementById('scrim').style.display='none'; document.getElementById('lotDetail').classList.remove('open'); }
+document.getElementById('scrim').onclick = closeLotDetail;
+
+document.getElementById('rewardsBtn').onclick = ()=>{
+  const btn=document.getElementById('rewardsBtn'); btn.disabled=true; btn.textContent='Validating…';
+  setTimeout(()=>{ btn.textContent='✓ 50 pts applied — $2.50 off'; btn.classList.add('btn-good'); }, 500);
+};
+document.getElementById('cancelBtn').onclick = ()=>{
+  if(document.getElementById('cancelBtn').disabled) return;
+  if(!confirm('Cancel this order? Stock will be released immediately.')) return;
+  ORDER.stage='cancelled'; renderCustomer();
+};
+
+function buildCustSim(){
+  document.getElementById('custSim').innerHTML = `<span class="lbl">Simulate</span>
+    <button class="btn btn-sm" id="simAdvance">Advance stage →</button>
+    <button class="btn btn-sm" id="simReset">Reset order</button>`;
+  document.getElementById('simAdvance').onclick=()=>{
+    const i=STAGE_ORDER.indexOf(ORDER.stage);
+    if(i<STAGE_ORDER.length-1) ORDER.stage=STAGE_ORDER[i+1];
+    renderCustomer(); renderStaffLot();
+  };
+  document.getElementById('simReset').onclick=()=>{
+    ORDER.stage='preparing'; ORDER.arrivedAt=null;
+    if(ORDER.space){ const p=PARKING.find(x=>x.n===ORDER.space); if(p){p.taken=false;p.customer=null;} }
+    ORDER.space=null; renderCustomer(); renderStaffLot();
+  };
+}
+function renderStaffLot(){ renderLot(document.getElementById('staffLot'), false); }
+function buildStaffSim(){
+  document.getElementById('staffSim').innerHTML = `<span class="lbl">Simulate</span><button class="btn btn-sm" id="simRefresh">Refresh lot</button>`;
+  document.getElementById('simRefresh').onclick = renderStaffLot;
+}
+
+buildCustSim(); buildStaffSim(); renderCustomer(); renderStaffLot();
+</script>
+</body>
+</html>

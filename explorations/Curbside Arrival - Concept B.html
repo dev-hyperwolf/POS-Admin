@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curbside Arrival — Concept B: SMS-Link-First</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9; --canvas2:#EEEBE2;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+  --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+  --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --scrim:rgba(20,18,12,.42);
+  --lock:#6E6E66; --lockSoft:#ECEAE2;
+}
+[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D; --canvas2:#0A0A07;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --scrim:rgba(0,0,0,.62);
+  --lock:#9A968B; --lockSoft:rgba(245,243,234,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes slideDown{from{transform:translateY(-120%)}to{transform:translateY(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,138,79,.35)}50%{box-shadow:0 0 0 8px rgba(31,138,79,0)}}
+@keyframes tick{0%,100%{color:var(--ink)}50%{color:var(--bad)}}
+h1,h2,h3,h4{font-family:var(--fontSans)}
+code,.mono{font-family:var(--fontMono);}
+a{color:var(--info)}
+button{font-family:var(--fontSans)}
+::selection{background:var(--accentSoft)}
+:focus-visible{outline:2.5px solid var(--info);outline-offset:2px;border-radius:6px;}
+
+.doc-head{position:sticky;top:0;z-index:120;background:var(--rail);color:var(--railBright);
+  padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;}
+.theme-btn,.device-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+  font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;}
+.theme-btn:hover,.device-btn:hover{background:var(--railHover);}
+.device-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.device-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;
+  padding:6px 12px;border-radius:var(--r999);cursor:pointer;}
+.device-toggle button.on{background:var(--accent);color:var(--accentInk);}
+
+.stage{max-width:1180px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1180px;margin:0 auto;padding:16px 22px 0;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro .card{padding:16px 18px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;}
+.intro p:last-child{margin-bottom:0;}
+.small-note{font-size:11.5px;color:var(--inkDim);line-height:1.6;}
+
+.controlbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0;}
+select,input[type=text],input[type=date],input[type=number],input[type=search],input[type=file],textarea{
+  font-family:var(--fontSans);font-size:12.5px;color:var(--ink);background:var(--field);border:1px solid var(--fieldBorder);
+  border-radius:var(--r8);padding:7px 10px;min-height:36px;}
+label{font-size:11px;font-weight:600;color:var(--inkMute);text-transform:uppercase;letter-spacing:.04em;}
+
+.role-chip{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px 0 4px;border-radius:var(--r999);
+  background:var(--surface);border:1px solid var(--hairline2);font-size:12px;cursor:pointer;margin-left:auto;}
+.role-chip .dot{width:26px;height:26px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);
+  display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;font-family:var(--fontMono);}
+.role-chip b{font-family:var(--fontMono);font-weight:700;}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 4px;border-radius:var(--r999);font-size:10.5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.pill-lock{background:var(--lockSoft);color:var(--lock);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 14px;
+  font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+  white-space:nowrap;border:1px solid transparent;background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme="dark"] .btn-primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);font-weight:700;}
+.btn-danger{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.btn-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
+.btn-sm{min-height:30px;padding:0 10px;font-size:11.5px;}
+.btn-lg{min-height:52px;padding:0 22px;font-size:15px;font-weight:800;}
+.btn-block{width:100%;}
+.btn-link{background:transparent;border-color:transparent;color:var(--info);text-decoration:underline;min-height:auto;padding:2px;}
+
+.section-eb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);
+  font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin:22px 0 10px;}
+.section-eb .grow{flex:1;border-bottom:1px solid var(--hairline);}
+
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:190;display:none;}
+.scrim.open{display:block;animation:fade .14s ease;}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:460px;max-width:92vw;max-height:86vh;overflow:auto;
+  background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r14);box-shadow:var(--shadowLg);z-index:195;display:none;}
+.modal.open{display:block;animation:fade .14s ease;}
+.modal-head{padding:14px 16px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:10px;}
+.modal-head h4{margin:0;font-size:14.5px;font-weight:700;flex:1;}
+.modal-x{appearance:none;border:none;background:var(--surface3);width:30px;height:30px;border-radius:99px;cursor:pointer;font-size:13px;color:var(--inkDim);}
+.modal-body{padding:14px 16px;}
+.modal-foot{padding:12px 16px;border-top:1px solid var(--hairline);display:flex;gap:8px;justify-content:flex-end;}
+
+body.frame-phone{background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);}
+body.frame-phone .viewport{display:flex;justify-content:center;padding:26px 10px 46px;}
+body.frame-phone #appShell{width:390px;max-width:100%;background:var(--rail);border-radius:46px;padding:14px 12px;box-shadow:var(--shadowLg);position:relative;}
+body.frame-phone #appShell > .phone-screen{background:var(--bg2);border-radius:32px;overflow-y:auto;overflow-x:hidden;height:844px;max-height:80vh;-webkit-overflow-scrolling:touch;position:relative;}
+body.frame-phone #appShell::before{content:'';display:block;width:120px;height:18px;background:var(--rail);border-radius:999px;margin:2px auto 8px;}
+body:not(.frame-phone) .phone-screen{display:contents;}
+.viewport.is-phone .stage,.viewport.is-phone .intro{max-width:100%;padding:0 12px;margin:10px auto;}
+.viewport.is-phone .btn,.viewport.is-phone select,.viewport.is-phone input,.viewport.is-phone .device-btn{min-height:44px;}
+.viewport.is-phone .modal{width:92vw;}
+.viewport:not(.is-phone) .phone-only{display:none !important;}
+.viewport.is-phone .desktop-only{display:none !important;}
+
+.role-shell.staff-active .face-customer{display:none;}
+.role-shell:not(.staff-active) .face-staff{display:none;}
+
+.board{display:grid;grid-template-columns:repeat(6,minmax(180px,1fr));gap:10px;overflow-x:auto;}
+.viewport.is-phone .board{grid-template-columns:1fr;overflow-x:visible;}
+.board .col{background:var(--surface2);border-radius:var(--r12);border:1px solid var(--hairline2);padding:10px;min-height:120px;}
+.board .col.curbside{background:var(--accentSoft);border-color:var(--accentBorder);}
+.board .col h5{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);display:flex;justify-content:space-between;}
+.ocard{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:10px;margin-bottom:8px;font-size:12px;}
+.ocard.urgent{border-color:var(--bad);box-shadow:0 0 0 3px var(--badSoft);}
+.ocard .row1{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px;}
+.ocard .name{font-weight:700;}
+.ocard .meta{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);}
+.ocard .countdown{font-family:var(--fontMono);font-weight:800;font-size:15px;}
+.ocard .countdown.hot{animation:tick 1s infinite;}
+.ocard .phone-mask{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-family:var(--fontMono);color:var(--inkDim);background:none;border:0;padding:0;font-size:11px;}
+.ocard .actions{display:flex;gap:6px;margin-top:8px;}
+
+@media (max-width:900px){.board{grid-template-columns:repeat(3,1fr);}}
+
+/* ---- SMS lock-screen banner, phone-only ---- */
+.lockscreen{position:absolute;inset:0;background:linear-gradient(160deg,#2b2f36,#12141a);z-index:80;display:none;flex-direction:column;color:#fff;border-radius:32px;overflow:hidden;}
+.lockscreen.show{display:flex;}
+.lockscreen .clock{text-align:center;padding:60px 0 10px;font-size:52px;font-weight:200;font-family:var(--fontSans);}
+.lockscreen .date{text-align:center;font-size:13px;color:rgba(255,255,255,.7);margin-bottom:20px;}
+.sms-banner{margin:0 14px;background:rgba(255,255,255,.14);backdrop-filter:blur(6px);border-radius:16px;padding:12px 14px;display:flex;gap:10px;cursor:pointer;animation:slideDown .4s cubic-bezier(.2,.9,.3,1.2);}
+.sms-banner .icn{width:38px;height:38px;border-radius:10px;background:#2ecC71;display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto;}
+.sms-banner .body{min-width:0;}
+.sms-banner .from{font-size:12px;font-weight:700;display:flex;justify-content:space-between;}
+.sms-banner .txt{font-size:12.5px;color:rgba(255,255,255,.92);line-height:1.4;margin-top:2px;}
+.sms-banner .link{color:#8ec9ff;text-decoration:underline;}
+.lockscreen .hint{margin-top:auto;text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.55);}
+.dismiss-lock{position:absolute;top:8px;right:8px;z-index:81;background:rgba(0,0,0,.4);color:#fff;border:0;border-radius:99px;width:26px;height:26px;font-size:12px;cursor:pointer;}
+
+.arrival-mini{background:var(--surface);}
+.arrival-mini .hero{padding:20px 18px;text-align:center;}
+.parking-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0;}
+.viewport.is-phone .parking-grid{grid-template-columns:repeat(3,1fr);}
+.pk-space{aspect-ratio:1;border-radius:var(--r10);border:2px solid var(--hairline3);background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-weight:800;font-family:var(--fontMono);color:var(--ink2);min-height:44px;}
+.pk-space:hover{border-color:var(--info);}
+.pk-space.taken{background:var(--surface3);color:var(--inkFaint);border-color:var(--hairline);cursor:not-allowed;}
+.pk-space.mine{background:var(--accent);border-color:var(--accentBorder);color:var(--accentInk);}
+.pk-space .n{font-size:16px;}
+.pk-space .s{font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+
+.stagebar{display:flex;align-items:flex-start;gap:0;margin:18px 0 6px;}
+.stagebar .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;text-align:center;}
+.stagebar .dot{width:30px;height:30px;border-radius:99px;background:var(--surface3);border:2px solid var(--hairline3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--inkMute);z-index:1;}
+.stagebar .step.done .dot{background:var(--good);border-color:var(--good);color:#fff;}
+.stagebar .step.now .dot{background:var(--accent);border-color:var(--accentBorder);color:var(--accentInk);animation:pulse 1.8s infinite;}
+.stagebar .lbl{font-size:11px;font-weight:700;color:var(--inkDim);}
+.stagebar .step.done .lbl,.stagebar .step.now .lbl{color:var(--ink);}
+.stagebar .line{position:absolute;top:15px;left:-50%;right:50%;height:2px;background:var(--hairline3);z-index:0;}
+.stagebar .step:first-child .line{display:none;}
+.stagebar .step.done .line,.stagebar .step.now .line{background:var(--good);}
+
+.code-card{display:flex;align-items:center;gap:18px;padding:18px;background:var(--ink);color:var(--surface);border-radius:var(--r14);}
+[data-theme="dark"] .code-card{background:var(--surface2);border:1px solid var(--hairline2);}
+.code-card .qr{flex:0 0 auto;width:96px;height:96px;background:#fff;border-radius:10px;padding:6px;display:grid;grid-template-columns:repeat(11,1fr);grid-template-rows:repeat(11,1fr);gap:1px;}
+.code-card .qr i{background:#fff;display:block;}
+.code-card .qr i.on{background:#0F0F0C;}
+.code-card .code{font-family:var(--fontMono);font-size:26px;font-weight:700;letter-spacing:.12em;}
+.code-card .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.55);font-family:var(--fontMono);margin-bottom:4px;}
+[data-theme="dark"] .code-card .lbl{color:var(--inkMute);}
+
+.settings-i{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:99px;background:var(--surface3);color:var(--inkMute);font-size:10px;font-weight:700;cursor:help;border:1px solid var(--hairline3);}
+.settings-panel{margin-top:16px;}
+.settings-panel summary{cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--inkMute);padding:8px 0;}
+.settings-panel table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px;}
+.settings-panel td{padding:5px 8px;border-bottom:1px solid var(--hairline);}
+.settings-panel td:first-child{font-family:var(--fontMono);color:var(--inkDim);}
+.settings-panel td:last-child{text-align:right;font-family:var(--fontMono);font-weight:700;}
+
+.sim-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px;background:var(--infoSoft);border-radius:var(--r10);margin-bottom:14px;}
+.sim-bar .lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--info);align-self:center;margin-right:4px;}
+
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:250;display:flex;flex-direction:column;gap:8px;max-width:340px;}
+.toast{background:var(--ink);color:var(--surface);border-radius:var(--r10);padding:12px 14px;box-shadow:var(--shadowLg);font-size:12.5px;display:flex;gap:10px;align-items:flex-start;animation:fade .18s ease;}
+[data-theme="dark"] .toast{background:var(--surface2);border:1px solid var(--good);}
+.toast b{display:block;margin-bottom:2px;}
+.view-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.view-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;padding:6px 13px;border-radius:var(--r999);cursor:pointer;}
+.view-toggle button.on{background:var(--accent);color:var(--accentInk);}
+.app-topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.app-topbar h2{margin:0;font-size:16px;}
+.app-topbar .store-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:var(--r999);background:var(--accentSoft);color:var(--accentText);font-size:12px;font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>Curbside Arrival — Concept B: SMS-Link-First</h1>
+    <div class="sub">The "ready" text carries the arrival link · staff see a dedicated Curbside lane · store: <b>Corona</b></div>
+  </div>
+  <div class="hdr-right">
+    <div class="view-toggle" role="group" aria-label="Which side">
+      <button type="button" id="viewCustomer" class="on" aria-pressed="true">Customer</button>
+      <button type="button" id="viewStaff" aria-pressed="false">Staff (POS)</button>
+    </div>
+    <div class="device-toggle" role="group" aria-label="Preview device">
+      <button type="button" id="devDesktop" class="on" aria-pressed="true">Desktop</button>
+      <button type="button" id="devPhone" aria-pressed="false">Phone</button>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+  </div>
+</div>
+
+<div class="viewport" id="viewport">
+<div id="appShell"><div class="phone-screen">
+
+  <div class="lockscreen" id="lockscreen">
+    <button class="dismiss-lock phone-only" id="dismissLock">✕</button>
+    <div class="clock" id="lockClock">6:58</div>
+    <div class="date">Thursday, September 17</div>
+    <div class="sms-banner" id="smsBanner">
+      <div class="icn">💬</div>
+      <div class="body">
+        <div class="from"><span>Hyperwolf</span><span style="opacity:.6;">now</span></div>
+        <div class="txt">Your order is ready at Corona! Tap to check in and pick your parking space: <span class="link">hyperwolf.co/o/H7K4RT</span></div>
+      </div>
+    </div>
+    <div class="hint">This is what lands on the lock screen — tap the text to continue</div>
+  </div>
+
+<div id="rootShell" class="role-shell">
+
+  <!-- ============ CUSTOMER FACE ============ -->
+  <div class="face-customer">
+    <div class="intro"><div class="card">
+      <div class="eyebrow">Model B — SMS-link-first</div>
+      <p>The ready text itself <b>is</b> the arrival flow — the customer never has to reopen the app. Tapping
+      the link in the text opens a lightweight, no-login arrival page: pick a space, done. The order-status
+      page still exists (below the mini-flow) with the full stage tracker, but "I'm here" on it is a small,
+      secondary link — most people arrive through the text.</p>
+    </div></div>
+
+    <div class="stage">
+      <div class="sim-bar" id="custSim"></div>
+
+      <!-- the SMS-link mini page — shown after "tapping" the text -->
+      <div class="card arrival-mini" id="miniArrival" style="display:none;padding:18px;margin-bottom:16px;">
+        <div class="hero">
+          <div style="font-size:34px;">🅿️</div>
+          <h2 style="margin:8px 0 2px;">Where are you parked?</h2>
+          <p class="small-note">Order <b class="mono">HW-58231</b> · Corona · no app needed</p>
+        </div>
+        <div class="lot-legend small-note" style="display:flex;gap:14px;margin-bottom:6px;"><span>⬜ open</span><span>◼️ occupied</span><span>🟨 yours</span></div>
+        <div class="parking-grid" id="miniParkGrid"></div>
+        <p class="small-note" style="text-align:center;">Staff bring your order out the moment you pick a space.</p>
+      </div>
+      <div class="card" id="miniConfirm" style="display:none;padding:18px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:34px;">✅</div>
+        <h2 style="margin:8px 0 2px;">Space <span id="miniSpaceNum"></span> — we've got you</h2>
+        <p class="small-note">Staff are bringing your order out now.</p>
+        <button class="btn btn-link" id="openFullStatus">View full order status →</button>
+      </div>
+
+      <div class="app-topbar">
+        <h2>Your order</h2>
+        <span class="store-chip">📍 Pickup at Corona</span>
+      </div>
+
+      <div class="card" style="padding:16px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+          <div>
+            <div class="small-note">Order <b class="mono" id="ordId"></b> · placed <span id="ordPlacedAt"></span></div>
+            <div style="font-size:14px;font-weight:700;margin-top:2px;">2 items · <span id="ordTotal" class="mono"></span></div>
+          </div>
+          <span class="pill" id="stagePill"></span>
+        </div>
+
+        <div class="stagebar" id="stagebar"></div>
+        <div id="promiseArea"></div>
+
+        <div class="section-eb"><span>Pickup code</span><span class="grow"></span></div>
+        <div class="code-card">
+          <div class="qr" id="qrBox"></div>
+          <div>
+            <div class="lbl">Show this at the counter</div>
+            <div class="code" id="codeText"></div>
+            <div class="small-note" style="color:rgba(255,255,255,.65);margin-top:6px;">Single-use · expires when collected</div>
+          </div>
+        </div>
+
+        <div id="arrivalArea"></div>
+
+        <div class="section-eb"><span>Hold policy</span><span class="grow"></span></div>
+        <p class="small-note" id="holdNote"></p>
+
+        <div class="controlbar">
+          <button class="btn" id="rewardsBtn">🎁 Apply 50 pts reward</button>
+          <button class="btn btn-danger" id="cancelBtn" style="margin-left:auto;">Cancel order</button>
+        </div>
+        <p class="small-note">Bring the ID you ordered with — staff check it at hand-off. Store purchase limits were already enforced at checkout.</p>
+
+        <details class="settings-panel">
+          <summary>Settings driving this screen (per store)</summary>
+          <table id="custSettingsTable"></table>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STAFF FACE ============ -->
+  <div class="face-staff">
+    <div class="intro"><div class="card">
+      <div class="eyebrow">POS · Pickup queue — Corona</div>
+      <p class="small-note">Because arrival comes in over a signed link rather than an in-app tap, staff get a
+      <b>dedicated Curbside lane</b> — a sixth column, separate from Ready — with a bring-out countdown per
+      car. A card only ever lands there once a real arrival event fires.</p>
+    </div></div>
+
+    <div class="stage">
+      <div class="sim-bar" id="staffSim"></div>
+      <div class="app-topbar">
+        <h2>Pickup Orders</h2>
+        <select id="staffStore"><option>Corona</option><option>Lake Elsinore</option><option>West Hollywood</option></select>
+        <div class="role-chip" tabindex="0"><span class="dot">AS</span> role: <b>Associate</b></div>
+      </div>
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+
+</div>
+</div></div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+</body>
+<script>
+document.getElementById('devDesktop').addEventListener('click', ()=>setDevice('desktop'));
+document.getElementById('devPhone').addEventListener('click', ()=>setDevice('phone'));
+function setDevice(mode){
+  const vp=document.getElementById('viewport');
+  vp.classList.toggle('is-phone', mode==='phone');
+  document.body.classList.toggle('frame-phone', mode==='phone');
+  document.getElementById('devDesktop').classList.toggle('on', mode==='desktop');
+  document.getElementById('devDesktop').setAttribute('aria-pressed', mode==='desktop');
+  document.getElementById('devPhone').classList.toggle('on', mode==='phone');
+  document.getElementById('devPhone').setAttribute('aria-pressed', mode==='phone');
+}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
+});
+document.getElementById('viewCustomer').addEventListener('click', ()=>setView('customer'));
+document.getElementById('viewStaff').addEventListener('click', ()=>setView('staff'));
+function setView(mode){
+  document.getElementById('rootShell').classList.toggle('staff-active', mode==='staff');
+  document.getElementById('viewCustomer').classList.toggle('on', mode==='customer');
+  document.getElementById('viewCustomer').setAttribute('aria-pressed', mode==='customer');
+  document.getElementById('viewStaff').classList.toggle('on', mode==='staff');
+  document.getElementById('viewStaff').setAttribute('aria-pressed', mode==='staff');
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt$(cents){return '$'+(cents/100).toFixed(2);}
+function fakeQR(seed, cells){
+  let h=0; for(let i=0;i<seed.length;i++) h=(h*31+seed.charCodeAt(i))>>>0;
+  const n=cells*cells; let out='';
+  for(let i=0;i<n;i++){
+    const r=Math.floor(i/cells), c=i%cells;
+    const finder=(r<3&&c<3)||(r<3&&c>=cells-3)||(r>=cells-3&&c<3);
+    h=(h*1103515245+12345)>>>0;
+    const on = finder ? (r===0||r===2||c===0||c===2||(r>=cells-3&&r===cells-1)||(r<3&&r===2)) : (h % 100)<46;
+    out += `<i class="${on?'on':''}"></i>`;
+  }
+  return out;
+}
+
+const STORE = {name:'Corona', settings:{prepTimeMin:18, queueDepthMin:4, asapFloorMin:15, roundToMin:5,
+  holdHoursAfterReady:'until close', reminderBeforeReleaseMin:60, lastOrderBeforeCloseMin:30,
+  purchaseLimitFlowerG:28.5, bringOutTargetMin:5}};
+function computePromiseMin(s){ return Math.max(s.asapFloorMin, Math.ceil((s.prepTimeMin+s.queueDepthMin)/s.roundToMin)*s.roundToMin); }
+const PARKING = [1,2,3,4,5,6,7,8].map(n=>({n, taken:[3,7].includes(n)}));
+
+let ORDER = {id:'HW-58231', placedAt:'6:42 PM', totalCents:5410, code:'H7K4RT', stage:'ready',
+  promisedMin: computePromiseMin(STORE.settings), space:null, arrivedAt:null};
+
+const STAGES = [{key:'received',label:'Received'},{key:'preparing',label:'Preparing'},{key:'ready',label:'Ready'},{key:'collected',label:'Collected'}];
+const STAGE_ORDER = ['received','preparing','ready','collected'];
+
+let QUEUE = [
+  {id:'HW-58198', name:'Priya C.', phone:'(951) 555-0187', stage:'verify', items:3, promisedMin:20, createdMinAgo:26},
+  {id:'HW-58210', name:'Marcus T.', phone:'(714) 555-0121', stage:'pack', items:1, promisedMin:15, createdMinAgo:19},
+  {id:'HW-58217', name:'Dana R.', phone:'(657) 555-0199', stage:'packing', items:2, promisedMin:20, createdMinAgo:14},
+  {id:'HW-58225', name:'Sam W.', phone:'(213) 555-0155', stage:'ready', items:4, promisedMin:20, readyMinAgo:9, heldUntil:'9:00 PM'},
+  {id:'HW-58231', name:'Jordan M.', phone:'(818) 555-0142', stage:'ready', items:2, promisedMin:ORDER.promisedMin, readyMinAgo:2, isOrder:true, heldUntil:'9:00 PM'},
+  {id:'HW-58189', name:'Ines V.', phone:'(909) 555-0166', stage:'curbside', items:2, arrivedMinAgo:4, space:6, bringOutTargetMin:STORE.settings.bringOutTargetMin},
+  {id:'HW-58176', name:'Leah K.', phone:'(562) 555-0133', stage:'released_no_show', items:2, promisedMin:20, releasedMinAgo:35},
+];
+let revealed = {};
+
+function toast(title, body){
+  const el=document.createElement('div'); el.className='toast';
+  el.innerHTML = `<span>🅿️</span><div><b>${esc(title)}</b>${esc(body)}</div>`;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(()=>el.remove(), 5200);
+}
+function stagePillFor(stage){
+  if(stage==='cancelled') return 'pill-bad|Cancelled';
+  if(stage==='released_no_show') return 'pill-bad|Released — no-show';
+  if(stage==='ready') return 'pill-good|Ready';
+  if(stage==='collected') return 'pill-neutral|Collected';
+  return 'pill-info|'+stage[0].toUpperCase()+stage.slice(1);
+}
+
+function renderCustomer(){
+  document.getElementById('ordId').textContent = ORDER.id;
+  document.getElementById('ordPlacedAt').textContent = ORDER.placedAt;
+  document.getElementById('ordTotal').textContent = fmt$(ORDER.totalCents);
+  const [cls,label] = stagePillFor(ORDER.stage).split('|');
+  document.getElementById('stagePill').className = 'pill '+cls;
+  document.getElementById('stagePill').textContent = label;
+  document.getElementById('codeText').textContent = ORDER.code;
+  document.getElementById('qrBox').innerHTML = fakeQR(ORDER.id+ORDER.code, 11);
+
+  const terminal = ORDER.stage==='cancelled' || ORDER.stage==='released_no_show';
+  const idx = STAGE_ORDER.indexOf(ORDER.stage);
+  document.getElementById('stagebar').innerHTML = STAGES.map((s,i)=>{
+    const c = terminal ? '' : i<idx ? 'done' : i===idx ? 'now' : '';
+    return `<div class="step ${c}"><span class="line"></span><span class="dot">${i<idx&&!terminal?'✓':i+1}</span><span class="lbl">${esc(s.label)}</span></div>`;
+  }).join('');
+
+  const pa = document.getElementById('promiseArea');
+  if(ORDER.stage==='received'||ORDER.stage==='preparing'){
+    pa.innerHTML = `<div class="card" style="padding:12px 14px;background:var(--goodSoft);border-color:var(--good);margin:14px 0;"><div>Ready in about <b style="font-family:var(--fontMono);">${ORDER.promisedMin} min</b>
+      <span class="settings-i" title="Prep time + queue depth, rounded up, never under the floor — per-store setting.">i</span></div><div class="small-note">We'll text you the moment it's ready — the text is how you check in.</div></div>`;
+  } else if(ORDER.stage==='ready'){
+    pa.innerHTML = `<div class="card" style="padding:12px 14px;background:var(--goodSoft);border-color:var(--good);margin:14px 0;"><div style="font-weight:800;">✅ Your order is ready</div><div class="small-note">Check your texts — tap the link to check in and skip typing anything here. Held ${esc(STORE.settings.holdHoursAfterReady)}, reminder ${STORE.settings.reminderBeforeReleaseMin} min before release.</div></div>`;
+  } else if(ORDER.stage==='collected'){
+    pa.innerHTML = `<div class="card" style="padding:12px 14px;background:var(--neutralSoft);margin:14px 0;"><div style="font-weight:800;">🎉 Collected — thanks!</div></div>`;
+  } else if(terminal){
+    pa.innerHTML = `<div class="card" style="padding:12px 14px;background:var(--badSoft);border-color:var(--bad);margin:14px 0;"><div style="font-weight:800;">${ORDER.stage==='cancelled'?'Order cancelled':'Released — marked no-show'}</div></div>`;
+  }
+
+  const aa = document.getElementById('arrivalArea');
+  if(ORDER.stage==='ready' && !ORDER.arrivedAt){
+    aa.innerHTML = `<div class="section-eb"><span>Curbside</span><span class="grow"></span></div>
+      <p class="small-note">Already parked but didn't get the text? <button class="btn-link" id="imHereLink" style="border:0;background:none;">I'm here — check in manually</button></p>`;
+    document.getElementById('imHereLink').onclick = ()=>showMiniArrival(true);
+  } else if(ORDER.arrivedAt){
+    aa.innerHTML = `<div class="section-eb"><span>Curbside</span><span class="grow"></span></div>
+      <div class="card" style="padding:12px 14px;background:var(--infoSoft);border-color:var(--info);">🅿️ <b>Space ${esc(ORDER.space)}</b> — arrived ${esc(ORDER.arrivedAt)}, staff are bringing it out.</div>`;
+  } else { aa.innerHTML=''; }
+
+  document.getElementById('holdNote').textContent = `Ready orders hold ${STORE.settings.holdHoursAfterReady} at Corona, reminder ${STORE.settings.reminderBeforeReleaseMin} min before release — a per-store setting.`;
+  document.getElementById('cancelBtn').disabled = !(ORDER.stage==='received'||ORDER.stage==='preparing');
+
+  document.getElementById('custSettingsTable').innerHTML = Object.entries({
+    'pickup.prepTimeMin':STORE.settings.prepTimeMin,'pickup.queueDepthMin (live)':STORE.settings.queueDepthMin,
+    'pickup.asapFloorMin':STORE.settings.asapFloorMin,'pickup.holdAfterReady':STORE.settings.holdHoursAfterReady,
+    'pickup.reminderBeforeReleaseMin':STORE.settings.reminderBeforeReleaseMin,
+    'pickup.bringOutTargetMin':STORE.settings.bringOutTargetMin,
+    'purchaseLimit.flowerGramsPerDay':STORE.settings.purchaseLimitFlowerG,
+  }).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${esc(String(v))}</td></tr>`).join('');
+}
+
+function showMiniArrival(fromManual){
+  document.getElementById('lockscreen').classList.remove('show');
+  document.getElementById('miniArrival').style.display = ORDER.arrivedAt ? 'none' : 'block';
+  document.getElementById('miniConfirm').style.display='none';
+  document.getElementById('miniParkGrid').innerHTML = PARKING.map(p=>{
+    const cls = p.taken ? 'taken':'';
+    return `<button class="pk-space ${cls}" data-n="${p.n}" ${p.taken?'disabled':''}><span class="n">${p.n}</span><span class="s">${p.taken?'taken':'open'}</span></button>`;
+  }).join('');
+  document.querySelectorAll('#miniParkGrid .pk-space:not(.taken)').forEach(b=>b.onclick=()=>chooseSpace(+b.dataset.n));
+  if(fromManual) document.getElementById('miniArrival').scrollIntoView({behavior:'smooth'});
+}
+function chooseSpace(n){
+  ORDER.space=n; ORDER.arrivedAt='just now';
+  document.getElementById('miniArrival').style.display='none';
+  document.getElementById('miniConfirm').style.display='block';
+  document.getElementById('miniSpaceNum').textContent=n;
+  renderCustomer();
+  const q=QUEUE.find(o=>o.isOrder);
+  if(q){ q.stage='curbside'; q.space=n; q.arrivedMinAgo=0; q.bringOutTargetMin=STORE.settings.bringOutTargetMin; }
+  renderStaff();
+  toast('Curbside arrival', `${ORDER.id} · Space ${n} — bring-out target ${STORE.settings.bringOutTargetMin} min`);
+}
+document.getElementById('openFullStatus').onclick = ()=>{
+  document.getElementById('miniConfirm').style.display='none';
+  document.querySelector('.app-topbar').scrollIntoView({behavior:'smooth'});
+};
+document.getElementById('smsBanner').onclick = ()=> showMiniArrival(false);
+document.getElementById('dismissLock').onclick = ()=> document.getElementById('lockscreen').classList.remove('show');
+
+document.getElementById('rewardsBtn').onclick = ()=>{
+  const btn=document.getElementById('rewardsBtn'); btn.disabled=true; btn.textContent='Validating…';
+  setTimeout(()=>{ btn.textContent='✓ 50 pts applied — $2.50 off'; btn.classList.add('btn-good'); }, 500);
+};
+document.getElementById('cancelBtn').onclick = ()=>{
+  if(document.getElementById('cancelBtn').disabled) return;
+  if(!confirm('Cancel this order? Stock will be released immediately.')) return;
+  ORDER.stage='cancelled'; renderCustomer();
+  const q=QUEUE.find(o=>o.isOrder); if(q) q.stage='cancelled'; renderStaff();
+};
+
+function buildCustSim(){
+  document.getElementById('custSim').innerHTML = `<span class="lbl">Simulate</span>
+    <button class="btn btn-sm" id="simShowLock">📱 Order became Ready → show lock-screen text</button>
+    <button class="btn btn-sm" id="simReset">Reset</button>`;
+  document.getElementById('simShowLock').onclick = ()=>{
+    ORDER.stage='ready'; ORDER.arrivedAt=null; ORDER.space=null;
+    const q=QUEUE.find(o=>o.isOrder); if(q){ q.stage='ready'; delete q.space; }
+    renderCustomer(); renderStaff();
+    document.getElementById('lockscreen').classList.add('show');
+  };
+  document.getElementById('simReset').onclick = ()=>{
+    ORDER.stage='preparing'; ORDER.arrivedAt=null; ORDER.space=null;
+    document.getElementById('miniArrival').style.display='none'; document.getElementById('miniConfirm').style.display='none';
+    document.getElementById('lockscreen').classList.remove('show');
+    const q=QUEUE.find(o=>o.isOrder); if(q){ q.stage='preparing'; delete q.space; }
+    renderCustomer(); renderStaff();
+  };
+}
+
+const COLS = [
+  {key:'verify',label:'Verify'},{key:'pack',label:'Pack'},{key:'packing',label:'Packing'},
+  {key:'ready',label:'Ready'},{key:'curbside',label:'🅿️ Curbside'},{key:'done',label:'Done / Released'},
+];
+function maskedPhone(p){ const last4=p.replace(/\D/g,'').slice(-4); return '(•••) •••-'+last4; }
+function colFor(o){
+  if(['verify','pack','packing','ready','curbside'].includes(o.stage)) return o.stage;
+  if(o.stage==='preparing') return 'packing';
+  return 'done';
+}
+function renderStaff(){
+  document.getElementById('board').innerHTML = COLS.map(col=>{
+    const items = QUEUE.filter(o=>colFor(o)===col.key);
+    return `<div class="col ${col.key==='curbside'?'curbside':''}"><h5>${esc(col.label)}<span>${items.length}</span></h5>${
+      items.map(o=>{
+        const rev = revealed[o.id];
+        let extra='';
+        if(o.stage==='curbside'){
+          const remain = o.bringOutTargetMin - (o.arrivedMinAgo||0);
+          extra = `<div class="countdown ${remain<=1?'hot':''}">${remain<=0?'OVERDUE':remain+' min to bring out'}</div><div class="meta">🅿️ Space ${esc(o.space)} · arrived ${o.arrivedMinAgo||0}m ago</div>`;
+        }
+        if(o.stage==='ready') extra = `<div class="meta">ready ${o.readyMinAgo}m ago · held until ${esc(o.heldUntil)}</div>`;
+        const doneBad = o.stage==='cancelled' ? '<span class="pill pill-bad" style="margin-top:4px;">Cancelled</span>' :
+          o.stage==='released_no_show' ? '<span class="pill pill-bad" style="margin-top:4px;">No-show · released</span>' :
+          o.stage==='collected' ? '<span class="pill pill-neutral" style="margin-top:4px;">Collected</span>' : '';
+        return `<div class="ocard ${o.stage==='curbside'&&(o.bringOutTargetMin-(o.arrivedMinAgo||0))<=1?'urgent':''}">
+          <div class="row1"><span class="name">${esc(o.name)}</span><span class="meta">${esc(o.id)}</span></div>
+          <div class="meta">${o.items} item${o.items===1?'':'s'} ${o.promisedMin?('· promised '+o.promisedMin+'m'):''} ${o.createdMinAgo?('· in queue '+o.createdMinAgo+'m'):''}</div>
+          <button class="phone-mask" data-id="${o.id}">${rev?esc(o.phone):esc(maskedPhone(o.phone))} ${rev?'':'👁'}</button>
+          ${extra}${doneBad}
+          <div class="actions">
+            <button class="btn btn-sm" data-id-check="${o.id}">🪪 ID check</button>
+            ${o.stage==='curbside'?'<button class="btn btn-sm btn-good" data-walk="'+esc(o.id)+'">Walking out</button>':''}
+          </div>
+        </div>`;
+      }).join('') || '<div class="small-note">Nothing here.</div>'
+    }</div>`;
+  }).join('');
+  document.querySelectorAll('.phone-mask').forEach(b=>b.onclick=()=>{ revealed[b.dataset.id]=!revealed[b.dataset.id]; renderStaff(); });
+  document.querySelectorAll('[data-walk]').forEach(b=>b.onclick=()=>{
+    const o=QUEUE.find(x=>x.id===b.dataset.walk); if(o){ o.stage='collected'; if(o.isOrder) ORDER.stage='collected'; }
+    renderStaff(); renderCustomer();
+  });
+  document.querySelectorAll('[data-id-check]').forEach(b=>b.onclick=()=>alert('ID check gate runs server-side on hand-off. This opens the same scan sheet used at checkin.'));
+}
+function buildStaffSim(){
+  document.getElementById('staffSim').innerHTML = `<span class="lbl">Simulate</span><button class="btn btn-sm" id="simRefresh">Refresh board</button>`;
+  document.getElementById('simRefresh').onclick = renderStaff;
+}
+
+buildCustSim(); buildStaffSim(); renderCustomer(); renderStaff();
+</script>
+</html>
