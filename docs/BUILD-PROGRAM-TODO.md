@@ -24,7 +24,7 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | A4 | Tap-target sizes — **DECIDED 2026-09-17: include Register, but NO change until JT approves before/after designs.** PM owes before/after mockups (POS incl. Register, Driver, back-office; desktop + phone). | Design only until approved. |
 | A5 | Customer Account: pick variant A/B/C; remove the design-review switcher from the live page | Switcher already hidden on phones. |
 | A6 | Real tax rates per store (five numbers); medical exemption; where rates live today | `wm-demo/docs/TAX.md` |
-| A7 | AWS: **re-apply the access template** (Update stack → change set → Replace template → `infra/access/hw-assistant-access.yaml`) AFTER its security review passes (B20); then switch the connector to `hw-assistant-deploy-dev` when the dev change set is ready. Also confirm `hw-assistant-deploy-dev` has the permissions boundary (IAM → Roles → it → "Permissions boundary"); later sign the connector in as that role when the dev change set is ready | View-only role cannot read role details. |
+| A7 | AWS: (1) **reconnect the AWS MCP connector** (session invalidated 2026-09-17 evening); (2) re-apply the access template — now COMMITTED (wm-demo 196e812) after FIVE review rounds. The file is ~200 KB, over CloudFormation's 51,200-byte inline limit, so: upload `infra/access/hw-assistant-access.yaml` to an S3 bucket you own (console → S3 → any private bucket → Upload), then CloudFormation → hw-assistant-access → Update → Replace template → Amazon S3 URL → change set → review the 6-ish IAM changes → Execute; keep `EnableDeployRoleDev=true` only when ready; (3) then switch the connector to `hw-assistant-deploy-dev` for the dev change sets | waiting on JT |
 | A8 | AWS hygiene: MFA for 5 of 10 users; confirm contractor login `techindustan-hw`; `Customer.Support` unused since 2024; inventory long-lived keys | `wm-demo/docs/AWS-INVENTORY-2026-09-17.md` |
 | A9 | From whoever hosts production: read-only MongoDB user for `hw-sync`; who controls `hyperwolf.com` DNS | Production servers are NOT in the company AWS account. |
 | A10 | Mobile apps: driver-app source repo, TestFlight/Play internal access, test accounts, push console | `MOBILE-APP-AUDIT-GROUNDWORK` |
@@ -72,11 +72,11 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | B32 | Sale lines RE-REVIEW PASSED → COMMITTED wm-demo 58ed35d + contracts 0.5.3 (POS-Admin 0835bc8); index boot-tested; buttons handed to JT 2026-09-17 evening; reports_probe fixture updated; RP-17/18/19/20/58 = UTC-midnight day-boundary flake in the fixture (fix: compute days in store-local tz) | refuting |
 | B33 | IAM template THIRD review FAILED (rds/kms tag self-forging; SecretTargetAttachment blocker) → fourth fix running → fourth review. Earlier: third fix DONE (Denies inside the boundary, sts removed, ceiling trimmed to 8 services, 6,049/6,144 chars; template 178 KB → must be uploaded to S3, not inline) → third review running | reviewing |
 | B34 | Plans landed (committed): PICKUP-FLOW-UX-REVIEW + PICKUP-FLOW-DEMO-AUDIT, PURCHASE-LIMITS-DAY-EDGE-CASES, MEDICAL-PURCHASE-LIMIT-RESEARCH, SMS-PROVIDER-SHORTLIST, ALPINE-CONFIG-READ-OPTIONS | done |
-| B35 | Alpine read-only config probe job COMMITTED (fcf4598, 36 checks) → refuter running; JT triggers it after deploy via `docs/ALPINE-PROBE.md` | refuting |
+| B35 | Alpine probe REFUTED + FIXED (58b4cc7, 37 checks: identifier-shaped keys redacted); JT triggers it after deploy via `docs/ALPINE-PROBE.md` | refuting |
 | B38 | Design rounds 10 + 11 built and committed: Curbside Arrival (A–D) and Swap Recovery (A–D) under `explorations/review/` — JT picks with the other rounds | waiting on JT |
 | B39 | Forms generator HEIC + min_files DONE (ddd6346, 158 checks); Codex briefs 10–14 committed; Codex worktrees merged with main; JT re-prompts Codex (prompt in chat) | done |
 | B36 | Forms generator: add HEIC to `ATTACHMENT_CONTENT_TYPES` and a non-empty `files` check (from Codex 04 blocker), then re-queue brief 04 | queue |
-| B37 | IAM template FIFTH fix (structural: conditioned Allows) running → fifth review; AWS MCP connector session INVALIDATED 2026-09-17 evening — JT must reconnect | fixing |
+| B37 | IAM template DONE: fifth review found no escalation; one PassRole (rds.amazonaws.com) fixed; committed 196e812 → A7 | done |
 | B26 | Metrc recon: rerun creates duplicate exception rows; per-store wall-clock cap on package pulls | queue (with B15) |
 
 ## C. Landed today (2026-09-17) — detail in the master plan §9
