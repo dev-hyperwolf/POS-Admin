@@ -1,4 +1,4 @@
-// @hyper-tech/contracts — hand-written declarations for index.js (schema sync 2026-09-17, 0.5.3).
+// @hyper-tech/contracts — hand-written declarations for index.js (schema sync 2026-09-17, 0.5.4).
 // Numeric bounds, integer-only values, formats, and cross-field rules require runtime validation.
 // TypeScript structural types do not enforce additionalProperties:false on existing objects.
 export type Platform = 'hyperwolf' | 'hemp' | 'stilo';
@@ -97,7 +97,9 @@ export interface Order { id: string; platform: Platform; store_id: string; statu
 export interface Location { id: string; kind: LocationKind; name: string; address?: string | null; store_id?: string | null; region_id?: string | null; parent_id?: string | null; active?: boolean; capacity?: number | null }
 /** One Metrc package a batch is split across. The batch is the unit of control; the tag is compliance. */
 export interface BatchMetrcPackage { tag: string; quantity?: number | null; packaged_at?: string | null }
-export interface Batch { id: string; product_id: string; sku?: string | null; batch_no: string; /** deprecated 0.4.3: first tag; write metrc_packages */ metrc_tag?: string | null; metrc_packages?: BatchMetrcPackage[]; packaged_at?: string | null; expires_at?: string | null; received_at: string; thc_pct?: number | null; unit_cost?: Money | null; quantity?: number; location_id?: string | null; external_ids?: ExternalId[] }
+export type LimitBucket = 'flower' | 'concentrate' | 'plant' | 'non_cannabis';
+// 0.5.4 — 2026-09-17: optional, nullable Batch purchase-limits overrides.
+export interface Batch { id: string; product_id: string; sku?: string | null; batch_no: string; /** deprecated 0.4.3: first tag; write metrc_packages */ metrc_tag?: string | null; metrc_packages?: BatchMetrcPackage[]; packaged_at?: string | null; expires_at?: string | null; received_at: string; thc_pct?: number | null; unit_cost?: Money | null; quantity?: number; location_id?: string | null; is_cannabis?: boolean | null; limit_bucket?: LimitBucket | null; net_weight_mg?: number | null; concentrate_mg?: number | null; thc_mg?: number | null; plant_count?: number | null; external_ids?: ExternalId[] }
 export interface Movement { id: string; at: string; reason: MovementReason; product_id: string; batch_id: string; quantity: number; from_location_id?: string | null; to_location_id: string; tag_ids?: string[]; actor_id?: string | null; ref?: string | null; note?: string | null }
 export interface ReceivedItem { id: string; received_at: string; kind: ArrivalKind; product_id: string; batch_id: string; quantity: number; location_id?: string | null; included_in?: string[]; reason?: PlanReason | null; premium?: boolean }
 export interface PlanLine { product_id: string; batch_id: string; from_location_id?: string | null; to_location_id: string; sold: number; need: number; cap: number; give: number; reasons: Array<PlanReason>; mixed_batch?: boolean; note?: string | null; batch_no?: string | null; thc_pct?: number | null; packaged_at?: string | null; received_at?: string | null; expires_at?: string | null; picked_by?: string | null; picked_at?: string | null; packed_by?: string | null; packed_at?: string | null; verified_by?: string | null; verified_at?: string | null; overridden_by?: string | null; }

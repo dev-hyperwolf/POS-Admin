@@ -1,5 +1,5 @@
 {
-  "contract": "0.5.3",
+  "contract": "0.5.4",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -979,6 +979,12 @@
       "catalog",
       "catalog_fractional_qty",
       "client"
+    ],
+    "LimitBucket": [
+      "flower",
+      "concentrate",
+      "plant",
+      "non_cannabis"
     ]
   }
 }

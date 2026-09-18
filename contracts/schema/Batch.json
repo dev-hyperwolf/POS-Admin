@@ -1,6 +1,6 @@
 {
   "$id": "Batch",
-  "contract": "0.5.3",
+  "contract": "0.5.4",
   "type": "object",
   "required": [
     "id",
@@ -85,6 +85,35 @@
     },
     "location_id": {
       "type": "string",
+      "nullable": true
+    },
+    "is_cannabis": {
+      "type": "boolean",
+      "nullable": true
+    },
+    "limit_bucket": {
+      "type": "string",
+      "$enum": "LimitBucket",
+      "nullable": true
+    },
+    "net_weight_mg": {
+      "type": "integer",
+      "minimum": 0,
+      "nullable": true
+    },
+    "concentrate_mg": {
+      "type": "integer",
+      "minimum": 0,
+      "nullable": true
+    },
+    "thc_mg": {
+      "type": "integer",
+      "minimum": 0,
+      "nullable": true
+    },
+    "plant_count": {
+      "type": "integer",
+      "minimum": 0,
       "nullable": true
     },
     "external_ids": {

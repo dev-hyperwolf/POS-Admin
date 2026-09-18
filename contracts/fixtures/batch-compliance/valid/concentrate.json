@@ -1,0 +1,15 @@
+{
+  "shape": "Batch",
+  "record": {
+    "id": "batch-fixture",
+    "product_id": "product-fixture",
+    "batch_no": "LOT-QA",
+    "received_at": "2026-09-17T12:00:00Z",
+    "is_cannabis": true,
+    "limit_bucket": "concentrate",
+    "net_weight_mg": 1000,
+    "concentrate_mg": 1000,
+    "thc_mg": 800,
+    "plant_count": 0
+  }
+}

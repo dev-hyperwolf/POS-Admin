@@ -1,6 +1,6 @@
 {
   "$id": "RuleNode",
-  "contract": "0.5.3",
+  "contract": "0.5.4",
   "type": "object",
   "additionalProperties": false,
   "properties": {

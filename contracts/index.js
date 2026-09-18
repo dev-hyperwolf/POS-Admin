@@ -27,7 +27,11 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.5.3'; // 0.5.3 (additive): SaleLine + SaleLineResolutionPath/SaleLinePricedBy
+  var VERSION = '0.5.4'; // 0.5.4 (additive): Batch.is_cannabis/limit_bucket/
+  // net_weight_mg/concentrate_mg/thc_mg/plant_count + LimitBucket enum
+  // (docs/PURCHASE-LIMITS-PLAN-2026-09-17.md §3.2, Batch-level override --
+  // simplified naming, see LimitBucket below). No prior shape changed.
+  // 0.5.3 (additive): SaleLine + SaleLineResolutionPath/SaleLinePricedBy
   // (docs/SALES.md) -- the line-grain sibling pos_sales.py's own header always said was missing:
   // batch/unit/location resolution and server-side unit-price/tax authority for one cart line,
   // append-only. No prior shape changed.
@@ -353,6 +357,10 @@
     // 'fractional_qty_skipped' -- the two are reported together but are independent facts).
     SaleLinePricedBy: { values: ['catalog', 'catalog_fractional_qty', 'client'],
       source: 'docs/SALES.md; wmdemo/pos_sale_lines.py' },
+    // Batch override: flower = flower weight; concentrate = extract amount;
+    // plant = plant count; non_cannabis = merchandise outside cannabis buckets.
+    LimitBucket: { values: ['flower', 'concentrate', 'plant', 'non_cannabis'],
+      source: 'docs/PURCHASE-LIMITS-PLAN-2026-09-17.md §3.2 (Batch-level override -- simplified from that section\'s fuller Product-level compliance.bucket enum)' },
   };
   var HTTP_STATUS = { bad_request: 400, unauthorized: 401, forbidden: 403, not_found: 404,
     conflict: 409, unprocessable: 422, rate_limited: 429, internal: 500, not_built: 501 };
@@ -766,6 +774,13 @@
         expires_at: { type: 'string', pattern: ISO_UTC.source, nullable: true }, received_at: ISO,
         thc_pct: { type: 'number', minimum: 0, maximum: 100, nullable: true }, unit_cost: { $ref: 'Money', nullable: true },
         quantity: { type: 'integer', minimum: 0 }, location_id: { type: 'string', nullable: true },
+        // Purchase-limits Batch override: additive/optional until the later admin UI gate.
+        is_cannabis: { type: 'boolean', nullable: true },
+        limit_bucket: { type: 'string', $enum: 'LimitBucket', nullable: true },
+        net_weight_mg: { type: 'integer', minimum: 0, nullable: true },
+        concentrate_mg: { type: 'integer', minimum: 0, nullable: true },
+        thc_mg: { type: 'integer', minimum: 0, nullable: true },
+        plant_count: { type: 'integer', minimum: 0, nullable: true },
         external_ids: { type: 'array', items: { $ref: 'ExternalId' } } } },
     Movement: { type: 'object', required: ['id', 'at', 'reason', 'product_id', 'batch_id', 'quantity', 'to_location_id'], additionalProperties: true,
       properties: { id: ID, at: ISO, reason: { type: 'string', $enum: 'MovementReason' }, product_id: ID, batch_id: ID,

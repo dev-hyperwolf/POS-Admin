@@ -1,6 +1,6 @@
 {
   "$id": "WriteupSignature",
-  "contract": "0.5.3",
+  "contract": "0.5.4",
   "type": "object",
   "required": [
     "signature_png_b64",

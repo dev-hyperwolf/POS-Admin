@@ -509,6 +509,8 @@ checkFixtureDomain('metrc', 6, 9);
 // (fefo_bulk, not_tracked minimal, unit_tracked, a void's negated quantity) + 4 invalid
 // (missing required, bad resolution_path, bad priced_by, negative line_no).
 checkFixtureDomain('sales', 2, 3);
+// Batch compliance: optional/null overrides, all buckets, nonnegative integer amounts and typed fields.
+checkFixtureDomain('batch-compliance', 6, 10);
 
 test('HrEmployee is the over-posting guard for HrEmployeeRestricted: restricted PII on an HrEmployee record is rejected', () => {
   const withSsn = { source_ref: { base: 'app8mI9K1lS1D3Uhk', table: 'tblDtY9WsQGQOgHgw', record_id: 'recX' },

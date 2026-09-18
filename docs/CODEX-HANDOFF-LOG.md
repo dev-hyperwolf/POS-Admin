@@ -64,3 +64,64 @@
 - Commits: wm-demo `8fea271` (04 blocker report), `64fcc41` (09 index); POS-Admin `929acbe` (04 log), `dd4a3c3` (05), `a36323c` (06), `bf3930f` (07), `e10937a` (08). This final log entry is committed separately for cross-repository task 09.
 - Final task 07 report count is 93 findings, 10 blocker rows across 15 pages (the interim commentary count of 96 preceded the final consolidated audit).
 - Lead review next: generator prerequisites and environment-file-free test harness before requeuing 04; contract helper rename and denomination expressiveness limit from 06; keyboard blockers from 07; unresolved source classifications from 08.
+
+## 10 -- Docs index refresh (wave 4 module READMEs) -- COMPLETE
+
+- Files: wm-demo `docs/README.md`; this log. Backend commit: `adcc92e`.
+- Added six TypeScript module references under Platform and migration; preserved every existing document row and all five group headings. Counts: 62 -> 68 indexed documents (62 docs + 6 module READMEs); 270 -> 281 links; 131 -> 131 distinct flag names/families (119 literal, 12 families).
+- Premise correction: actual docs source count is 63, not 62; `SALES.md` exists but is NOT indexed. Brief explicitly says to add only six module docs and not add SALES, so SALES remains unindexed and the intro states that coverage gap. No scope expansion.
+- Requested grep `grep -n 'SALES.md\|METRC-API-CONDUCT.md\|METRC.md\|REALTIME-DEMO.md\|DATA-SYNC.md\|AWS-' docs/README.md` before editing proved existing rows at 30 REALTIME-DEMO, 45 METRC-API-CONDUCT, 46 METRC, 64 AWS-ACCOUNT-SETUP, 65 AWS-DEV-DEPLOY-PLAN, 66 AWS-INVENTORY, 69 DATA-SYNC; no SALES match. Other matches were flag-table references. The stated all-already-indexed premise could not be confirmed for SALES.
+- `grep -n 'os\.environ' wmdemo/pos_sale_lines.py` -> no output (exit 1); no environment flag invented.
+- Module additions (whole-file flag scans): dispatch — pure constraints/quotes/staging/solver/budget library, Flags None; restock — allocation/scoped routes/idempotent apply/goldens, None; health — loader/policy/probe scaffold, None; tax — engine/routes/product-read/differential tests, WM_API_BASE + WM_DEMO_DB + WM_TAX_TABLE; register — drawer engine/routes/sales-read/errors, WM_API_BASE; promotions-rules — batch-rule engine/routes/inventory-read/differential tests, WM_API_BASE. Python-harness and out-of-scope flag references are labeled as references, not claimed TS runtime settings.
+- Checks: 5 preservation/coverage/link/flag groups PASS / 0 FAIL. Named Python link check -> `281 links []`. `git diff --check` PASS. All six module paths resolve from docs/.
+- No dedicated REPORT file in brief 10; findings printed to stdout and retained here. No runtime/server/network/database or protected-file mutation. No owner question.
+
+## 11 — Reports probe store-local fixture days — COMPLETE
+
+- Files: wm-demo `qa/reports_probe.py`, `qa/REPORT-11-reports_probe_local_day_fixture.md`; this log. Backend commit: `a82198d`.
+- Confirmed UTC 2026-09-18 03:00 is Pacific Sep 17 20:00: old UTC-yesterday label Sep 17 collapses into today; correct local yesterday is Sep 16. Both main and tax fixture local_day labels now reuse ledger.local_parts; today's server readback and all assertions unchanged. Other UTC timestamp/range uses inspected and retained.
+- Probe port now defaults to 9221 with a validated 9200–9299 override to obey handoff, replacing forbidden 8920. No production code or battery edits.
+- Checks: two consecutive standalone runs each 71 PASS / 0 FAIL; RP-17/18/19/20/58 PASS in both, during actual UTC/Pacific date disagreement. Targeted battery on separate scratch server 9222: 71 PASS / 0 FAIL, 1 suite; wrapper exit 1 due seven pre-existing unaccounted probes (express_source_plan_probe, idv_dev_seed, idv_med18_replay, idv_site_replay, idv_webhooks_probe, mapping_pool_probe, seed_aov_demo). git diff --check PASS.
+- Scratch-only DBs, dummy config, task-only guard prevents dotenv/credential reads and non-loopback networking. No clock override exists; no new fake-clock feature added. Second shell mktemp collision was harmless: the self-booting probe independently made its own scratch databases before configuration import; detailed in report.
+- Nothing unfinished in the fixture fix. Lead follow-up: classify the seven unregistered probes; brief explicitly excludes battery changes.
+
+## 12 -- Metrc recon idempotency + pull wall-clock cap -- COMPLETE
+
+- Files: wm-demo `wmdemo/metrc/recon.py`, `wmdemo/metrc/jobs.py`, `qa/metrc_probe.py`, `qa/battery.py`, `qa/REPORT-12-metrc_recon_idempotency.md`; this log.
+- Measured baseline 92 PASS / 0 FAIL (the old 88/88 comment was stale). Natural-key unique index plus serialized lookup/update prevents duplicate findings, preserves acknowledged/resolved history, and reports actual inserts. Pulls return written/partial with lazy finite nonnegative 60-second budget; jobs propagate per-store partial and any_partial. No adapter, API, security, or money module edits.
+- Added 15 checks D15–D27/E6–E7; standalone and targeted battery both 107 PASS / 0 FAIL. Raised only metrc floor 92 -> 107 and total 7331 -> 7346. Three syntax checks, battery-scope AST check, legacy-duplicate refusal check and git diff --check PASS. Concurrent 8-writer replay PASS. Metrc stub/server ports now 9224/9225 with bounded fallback.
+- Combined battery: Metrc 107/0, authz 67/0, sessions 87/0, security gate 1594/11 with 75 unevaluated. The 11 security failure IDs and counts are identical against pre-task Metrc source loaded from read-only git-show scratch copies; all IDs retained in report. No new regression failures. Wrapper exit 1 also flags the seven existing unaccounted probes and existing drained-stock fixture drift.
+- Runtime isolation uses scratch DBs, dummy values, loopback stubs, denied credential opens; legacy probe DB/ephemeral-port defaults relocated by an external task-only harness. Initial harness issues corrected before final before/after comparison; report distinguishes these from product failures.
+- Limits/lead follow-up: cap is cooperative between adapter calls and 25-row batches, cannot cancel in-flight adapter pagination. Existing duplicate natural keys fail unique-index creation without deleting history; a lead-reviewed deduplication migration is required before deployment to such a database. No live DB inspected. Existing exception-queue behavior is outside this variance-table brief.
+- Backend commit: `515a100`.
+
+## 13 -- Batch compliance fields, contracts 0.5.4 -- COMPLETE
+
+- Files: `contracts/index.js`, `contracts/types.d.ts`, `test/contracts.test.mjs`, generated `contracts/enums.json` and all 48 `contracts/schema/*.json`, 16 new `contracts/fixtures/batch-compliance/{valid,invalid}/*.json`, `docs/REPORT-13-batch_compliance_fields_contract.md`, this log.
+- Six additive optional/nullable Batch fields, exact four-value LimitBucket enum, nonnegative integer amounts, synchronized declarations. Existing required fields, additionalProperties:true, RULE_FIELD_TYPE and non-Batch schema contents unchanged. Generated Product.json changes only contract version metadata.
+- Export: wrote enums.json (102 enums) and 48 schemas for contract 0.5.4 (was 101/48). Fixtures 6 valid / 10 invalid; cross-field non_cannabis + THC cannot be expressed by current validator, so invalid boolean type substituted and business-rule gap documented.
+- Checks: contracts test 40 PASS / 0 FAIL, 0 skipped, including browser/JSON/types parity; 5 additive preservation groups PASS / 0 FAIL; required grep both 0.5.4; git diff --check PASS. Final test explicitly sets WM_DEMO_ROOT to the handoff worktree; initial test's default comparison path is disclosed in report.
+- Nothing unfinished; no UI/server/Python change or real service call. Previous task 12 backend commit `515a100`, log commit `475f0b6`.
+
+## 14 -- Restock client 409 message -- COMPLETE
+
+- Files: `shared/hw-restock.js`, `pos/screen-floor-restock.jsx`, `test/hw-restock.test.mjs`, `docs/REPORT-14-restock_client_409_message.md`, this log. Prior task 13 commit: `f85d9e0`.
+- Verified read-only server reference: repeat/overlap share RestockStale -> 409 conflict with free-text message only. Added display-only local success heuristic keyed by store+shelf, with snapshot/time normalization and no automatic retry. All existing non-conflict fields preserved; conflictKind=null on ordinary failures.
+- Existing OutcomePanel now uses tentative repeat/overlap copy and onRefresh={loadPreview}; ErrorState only supports onRetry, whose existing visible label is Try again with refresh icon. Used the brief's explicit fallback, documented that label; no shared component or new screen added. Generic errors and preview/commit/hand-counted flows unchanged.
+- Checks: node --test test/hw-restock.test.mjs -> 29 PASS / 0 FAIL, 0 skipped (21 existing +8 new). Four JSX/action/flow verification groups PASS / 0 FAIL; git diff --check PASS. No network/server/database execution for brief 14.
+- Limitation: per-module memory resets on reload and cannot identify other-tab/device retries. This changes text/manual refresh only. No unfinished work.
+
+## 04 retry — Employee edit + Upload employee doc — COMPLETE
+
+- Files: wm-demo additions to `wmdemo/forms_seed.py`, new `qa/forms_batch2a_probe.py`, updated `qa/REPORT-04-forms_batch2_employee_edit_upload_doc.md`; this log. Backend commit: `7cab68f`. Prior task 14 commit: `a5bdbf9`.
+- Re-read GAS with grep -a and verified the lead's HEIC/nonempty-required-file fixes. Added HR_EMPLOYEE_EDIT and HR_UPLOAD_EMPLOYEE_DOC in BATCH_2A; exact editable whitelist, recordId target, ordinary fields, three document slots, one file, exact six-type MIME allowlist. Explicit sandbox picker options and local table writebacks only; no Airtable call.
+- Checks: new probe 44 PASS / 0 FAIL. Combined targeted battery: forms_batch2a_probe 44/0, forms_batch1_probe 48/0, forms_probe 158/0; 250 PASS / 0 FAIL total. Wrapper exit 1 because new probe lacks registration/floor, plus seven pre-existing unaccounted probes. Environment restored, no drift. Seed AST preservation/probe syntax and git diff --check PASS. Initial 42/2 probe run used the wrong table-event status expectation (recorded vs actual done); corrected and strengthened with real table writeback verification, detailed in report.
+- Follow-up explicitly required by brief's battery-edit prohibition: register forms_batch2a_probe in SUITES, floor 44 in EXPECTED_CHECKS, total floor +44. No battery edit made in this task.
+- Remaining permitted gap: no per-field 5 MiB cap; generator has global 8 MiB cap. No hidden client-only workaround. Future operational dispatch must resolve/authorize employee and store targets, load real options and preserve attachment ownership; current task adds no HTTP route or employee write-back. Existing source normalization/changed-field semantics and identifier behavior unchanged. Synthetic data only.
+- Previous 04 generator blockers are resolved; no further generator feature was required for these FormDefs. No push, no tier-2 work.
+
+## Queue 10–14 plus 04 retry — finished
+
+- wm-demo commits: `adcc92e` (10 index), `a82198d` (11 fixture), `515a100` (12 Metrc), `7cab68f` (04 retry).
+- POS-Admin commits: `5c22f4c` (10 log), `845fffb` (11 log), `475f0b6` (12 log), `f85d9e0` (13 contracts), `a5bdbf9` (14 restock); this final entry accompanies the 04 retry log commit.
+- Lead review next: registration of Batch 2A and the seven existing unaccounted probes; the 11 pre-existing security gate failures (unchanged before/after task 12); safe migration for existing duplicate Metrc variance keys; per-field upload cap and scoped employee/document dispatch before operational use. Task 10's stale SALES-index premise is documented without widening scope.
