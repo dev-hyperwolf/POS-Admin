@@ -124,6 +124,7 @@
 
   // ══ FORMATS — GET /api/shells/formats ═══════════════════════════════════
   let FORMATS = null, FORMAT_COUNTS = {}, formatsLoading = false, formatsError = null, formatsPromise = null;
+  let formatsFailedAt = 0, brandsFailedAt = 0;  // see SHELLS_RETRY_MS below: never refetch on every render after a failure
 
   function fetchFormats() {
     if (formatsPromise) return formatsPromise;
@@ -141,18 +142,18 @@
         // format library first would have — never left silently blank.
         if (RAW_SHELLS) { SHELLS = RAW_SHELLS.map(decorate); }
       }
-      else { formatsError = (b && b.error) || r.error || ('HTTP ' + r.code); }
+      else { formatsError = (b && b.error) || r.error || ('HTTP ' + r.code); formatsFailedAt = Date.now(); }
       emit();
       return FORMATS || [];
     });
     return formatsPromise;
   }
-  function formats() { if (FORMATS === null && !formatsLoading) fetchFormats(); return FORMATS || []; }
+  function formats() { if (FORMATS === null && !formatsLoading && (!formatsFailedAt || Date.now() - formatsFailedAt > 30000)) fetchFormats(); return FORMATS || []; }
   function formatById(id) { return formats().find((f) => f.id === id) || null; }
   function formatCounts(id) { return FORMAT_COUNTS[id] || { shells: 0, products: 0 }; }
   function useFormats() { return useSubscribed(formats); }
   function useFormatsStatus() { return useSubscribed(() => ({ loading: formatsLoading, error: formatsError, loaded: FORMATS !== null })); }
-  function refreshFormats() { FORMATS = null; formatsPromise = null; return fetchFormats(); }
+  function refreshFormats() { FORMATS = null; formatsPromise = null; formatsFailedAt = 0; return fetchFormats(); }
 
   // ══ BRANDS — GET /api/shells/brands ══════════════════════════════════════
   // The one source of {brand_key, brand_name, product_count, shell_count} —
@@ -171,15 +172,15 @@
       brandsLoading = false; brandsPromise = null;
       const b = r.body || {};
       if (r.ok && Array.isArray(b.brands)) { BRANDS = b.brands; brandsError = null; }
-      else { brandsError = (b && b.error) || r.error || ('HTTP ' + r.code); }
+      else { brandsError = (b && b.error) || r.error || ('HTTP ' + r.code); brandsFailedAt = Date.now(); }
       emit();
       return BRANDS || [];
     });
     return brandsPromise;
   }
-  function brands() { if (BRANDS === null && !brandsLoading) fetchBrands(); return BRANDS || []; }
+  function brands() { if (BRANDS === null && !brandsLoading && (!brandsFailedAt || Date.now() - brandsFailedAt > 30000)) fetchBrands(); return BRANDS || []; }
   function useBrands() { return useSubscribed(brands); }
-  function refreshBrands() { BRANDS = null; brandsPromise = null; return fetchBrands(); }
+  function refreshBrands() { BRANDS = null; brandsPromise = null; brandsFailedAt = 0; return fetchBrands(); }
 
   // ══ CATALOGUE STATUS — GET /api/shells/catalogue/status ══════════════════
   // "Is the hyperwolf.com catalogue loaded" (Render's own deploy carries
@@ -241,6 +242,20 @@
   // radius of moving to a real backend stays inside this file rather than
   // spreading through every screen that renders a shell.
   let SHELLS = null, RAW_SHELLS = null, shellsLoading = false, shellsError = null, shellsPromise = null;
+  // A failed fetch must NOT be retried on the next render: allShells() is
+  // called from render, a failure emits, the emit re-renders, the re-render
+  // calls allShells() again -- with SHELLS still null that was an unbounded
+  // loop of GET /api/shells (2026-09-18 live incident: thousands of 401s in
+  // seconds while signed out, which tripped the server's lockout and locked
+  // the operator out of every module for five minutes, shown as "sign in
+  // again"). After a failure the store waits SHELLS_RETRY_MS before it will
+  // fetch on its own again; a sign-in (hw-live:changed) or refreshShells()
+  // clears the wait immediately.
+  const SHELLS_RETRY_MS = 30000;
+  let shellsFailedAt = 0;
+  try {
+    window.addEventListener('hw-live:changed', () => { shellsFailedAt = 0; formatsFailedAt = 0; brandsFailedAt = 0; if (SHELLS === null && !shellsLoading) fetchShells(); });
+  } catch (e) {}
   const SHELL_DETAILS = {};       // id -> { loading, error, shell, format, products, promise }
   const _skuToShellId = {};       // opportunistic sku -> shell id, filled by detail fetches & writes
   let _lastReportId = null;
@@ -289,13 +304,17 @@
         if (b.last_report_id) _lastReportId = b.last_report_id;
       } else {
         shellsError = (b && b.error) || r.error || ('HTTP ' + r.code);
+        shellsFailedAt = Date.now();
       }
       emit();
       return SHELLS || [];
     });
     return shellsPromise;
   }
-  function allShells() { if (SHELLS === null && !shellsLoading) fetchShells(); return SHELLS || []; }
+  function allShells() {
+    if (SHELLS === null && !shellsLoading && (!shellsFailedAt || Date.now() - shellsFailedAt > SHELLS_RETRY_MS)) fetchShells();
+    return SHELLS || [];
+  }
   function shellById(id) { return allShells().find((s) => s.id === id) || null; }
   // No arbitrary allShells()[0] fallback — a product whose shell cannot be
   // resolved renders "No shell" honestly (pos/product-shell.jsx,
@@ -305,7 +324,7 @@
     const sid = p.shell_id || _skuToShellId[p.sku];
     return sid ? shellById(sid) : null;
   }
-  function refreshShells(params) { SHELLS = null; shellsPromise = null; return fetchShells(params); }
+  function refreshShells(params) { SHELLS = null; shellsPromise = null; shellsFailedAt = 0; return fetchShells(params); }
   function useShells() { return useSubscribed(allShells); }
   function useShellsStatus() { return useSubscribed(() => ({ loading: shellsLoading, error: shellsError, loaded: SHELLS !== null, lastReportId: _lastReportId })); }
 

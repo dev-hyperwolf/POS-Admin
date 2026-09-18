@@ -422,10 +422,23 @@
   // -- the live-adapted shape this module hands out elsewhere drops fields a
   // blind rewrite would erase.
   function get(path) {
+    // 2026-09-18: the "no token, no gate" note above is out of date. Since the
+    // route-policy retrofit (wmdemo/policy_batch3.py, 2026-09-17) most GET
+    // routes -- /api/shells, /api/mapping/*, /api/product/* -- are registered
+    // session-or-key and answer 401 without a credential, and settleRead()
+    // treats that 401 as "your session died": it clears the session and
+    // reopens sign-in. That is exactly the live Catalog incident (Anish,
+    // 2026-09-18 00:01): every read in the module 401'd, the console asked
+    // for the token again, and the token was never at fault. Send the
+    // current credential (session first, legacy token otherwise) the same
+    // way post() does; a genuinely public GET ignores the header.
+    var cred = currentCredential();
+    var headers = cred ? { 'x-hw-write-token': cred } : {};
     return fetch(base + path, {
       method: 'GET',
       credentials: 'omit',
-      cache: 'no-store'
+      cache: 'no-store',
+      headers: headers
     }).then(function (res) {
       return res.json().then(function (j) { return settleRead(res, j); },
                              function () { return settleRead(res, null); });
@@ -496,6 +509,10 @@
       _writes = 'unknown'; _tokenSent = false;
       paintBadge();
       armRealtime();
+      // Tell every store that a credential now exists: a read that 401'd
+      // while signed out (shell-store's fetchShells on the Home screen)
+      // has to be retried NOW, not on the next realtime tick.
+      dispatchChanged();
       return { ok: true, code: res.status,
                session: { expires_at: j.expires_at, scopes: j.scopes, store_ids: j.store_ids },
                error: null };
