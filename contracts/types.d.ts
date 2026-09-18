@@ -1,4 +1,4 @@
-// @hyper-tech/contracts — hand-written declarations for index.js (schema sync 2026-09-17, 0.5.2).
+// @hyper-tech/contracts — hand-written declarations for index.js (schema sync 2026-09-17, 0.5.3).
 // Numeric bounds, integer-only values, formats, and cross-field rules require runtime validation.
 // TypeScript structural types do not enforce additionalProperties:false on existing objects.
 export type Platform = 'hyperwolf' | 'hemp' | 'stilo';
@@ -166,6 +166,11 @@ export type MetrcVarianceKind = 'package_balance' | 'ledger_missing_in_metrc' | 
 export type MetrcExceptionState = 'open' | 'acknowledged' | 'resolved';
 export interface MetrcPackage { tag: string; licence_number: string; item_name: string; item_category?: string | null; quantity: number; unit_of_measure: string; packaged_date?: string | null; is_active: boolean; is_finished?: boolean | null; production_batch_number?: string | null; location_name?: string | null; batch_id?: string | null; last_modified?: string | null; }
 export interface MetrcLedgerLine { id: string; licence_number: string; business_day: string; order_id?: string | null; order_line_idx?: number | null; store_id?: string | null; product_id: string; unit_id?: string | null; batch_id: string; package_tag: string; quantity: number; unit_of_measure?: string | null; resolution_path: MetrcResolutionPath; supersedes?: string | null; superseded_by?: string | null; content_hash: string; recorded_at: string; }
+
+// 0.5.3 — 2026-09-17: SaleLine, the line-grain sale ledger (wm-demo docs/SALES.md, pos_sale_lines.py).
+export type SaleLineResolutionPath = 'fefo_bulk' | 'unit_tracked' | 'not_tracked' | 'fractional_qty_skipped';
+export type SaleLinePricedBy = 'catalog' | 'catalog_fractional_qty' | 'client';
+export interface SaleLine { order_id: string; line_no: number; store_id: string; sku?: string | null; product_name?: string | null; quantity: number; unit_price?: Money | null; line_gross?: Money | null; discount: Money; tax?: Money | null; priced_by: SaleLinePricedBy; batch_id?: string | null; unit_ids?: string[] | null; location_id?: string | null; resolution_path: SaleLineResolutionPath; created_at: string; }
 export interface MetrcReconVariance { id: string; licence_number: string; business_day: string; package_tag?: string | null; batch_id?: string | null; kind: MetrcVarianceKind; severity: Severity; local_quantity?: number | null; metrc_quantity?: number | null; delta?: number | null; detail?: string | null; detected_at: string; status: MetrcExceptionState; acknowledged_by?: string | null; acknowledged_at?: string | null; resolved_by?: string | null; resolved_at?: string | null; resolution_note?: string | null; }
 
 // Schema-name aliases retain the existing ContractError/ContractEvent public names.
