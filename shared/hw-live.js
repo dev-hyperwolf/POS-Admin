@@ -388,17 +388,40 @@
   // learn whether a request was refused is a caller that gets it wrong once and
   // reports a COMMITTED write as a network error -- which is exactly the bug
   // advance() carries a comment about below.
+  // The server answers 503 {"error": "server is at its concurrency limit",
+  // "retry_after_s": N} when more than its cap of /api/ requests are in
+  // flight (wmdemo/server.py _gated). A page open fires a dozen reads at
+  // once, so the LAST few of a burst can hit that even on an idle box. One
+  // retry after the server's own retry_after_s (capped at 5 s) turns that
+  // into a short wait instead of an error card (live incident 2026-09-18).
+  // Only 503s with retry_after_s are retried, only once, and a POST is
+  // retried only because the server never started it (the 503 is sent
+  // before the body is read -- see _gated's own comment).
+  function fetchRetry503(doFetch) {
+    return doFetch().then(function (res) {
+      if (res.status !== 503) { return res; }
+      return res.clone().json().then(function (j) {
+        var after = j && typeof j.retry_after_s === 'number' ? j.retry_after_s : null;
+        if (after == null) { return res; }
+        var ms = Math.min(5000, Math.max(250, after * 1000));
+        return new Promise(function (resolve) { setTimeout(resolve, ms); }).then(doFetch);
+      }, function () { return res; });
+    });
+  }
+
   function post(path, body) {
     var headers = { 'Content-Type': 'application/json' };
     var sent = false;
     var cred = currentCredential();
     if (cred && sameOrigin()) { headers[TOKEN_HEADER] = cred; sent = true; }
-    return fetch(base + path, {
-      method: 'POST',
-      headers: headers,
-      credentials: 'omit',
-      cache: 'no-store',
-      body: JSON.stringify(body || {})
+    return fetchRetry503(function () {
+      return fetch(base + path, {
+        method: 'POST',
+        headers: headers,
+        credentials: 'omit',
+        cache: 'no-store',
+        body: JSON.stringify(body || {})
+      });
     }).then(function (res) {
       return res.json().then(function (j) { return settleWrite(res, j, sent); },
                              function () { return settleWrite(res, null, sent); });
@@ -433,12 +456,14 @@
     // current credential (session first, legacy token otherwise) the same
     // way post() does; a genuinely public GET ignores the header.
     var cred = currentCredential();
-    var headers = cred ? { 'x-hw-write-token': cred } : {};
-    return fetch(base + path, {
-      method: 'GET',
-      credentials: 'omit',
-      cache: 'no-store',
-      headers: headers
+    var headers = (cred && sameOrigin()) ? { 'x-hw-write-token': cred } : {};
+    return fetchRetry503(function () {
+      return fetch(base + path, {
+        method: 'GET',
+        credentials: 'omit',
+        cache: 'no-store',
+        headers: headers
+      });
     }).then(function (res) {
       return res.json().then(function (j) { return settleRead(res, j); },
                              function () { return settleRead(res, null); });
