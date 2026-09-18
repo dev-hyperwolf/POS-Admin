@@ -29,7 +29,7 @@
   --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
     --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
     --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
     --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
@@ -45,6 +45,22 @@
     --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
     --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
   }
+}
+:root[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentText:#FFD100;
+  --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--fontSans);}
@@ -154,10 +170,52 @@ body{padding:0 0 64px;min-width:0;}
   .stats{grid-template-columns:1fr;}
   .wall{grid-template-columns:1fr;}
 }
+
+/* ---- theme + device toggle, phone frame (grouped checklist, progress rings) ---- */
+[hidden]{display:none !important;}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:6px;}
+.theme-btn{appearance:none;border:1px solid var(--hairline2);background:var(--surface);color:var(--ink);width:32px;height:32px;border-radius:var(--r8);cursor:pointer;font-size:14px;flex:0 0 auto;}
+.theme-btn:hover{background:var(--surface3);}
+.device-toggle{display:inline-flex;background:var(--surface3);border:1px solid var(--hairline2);border-radius:999px;padding:3px;gap:2px;}
+.device-toggle button{border:none;background:transparent;padding:7px 13px;border-radius:999px;font-size:12px;font-weight:600;color:var(--inkDim);cursor:pointer;font-family:var(--fontSans);white-space:nowrap;}
+.device-toggle button.active{background:var(--ink);color:var(--bg);}
+.phone-wrap{display:flex;justify-content:center;padding:26px 10px 60px;background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);min-height:calc(100vh - 60px);}
+.phone{width:390px;max-width:100%;background:#13130F;border-radius:46px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{background:var(--bg2);border-radius:34px;overflow:hidden;height:844px;max-height:82vh;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 auto;height:32px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:12px;font-weight:700;color:var(--ink);}
+.p-topbar{flex:0 0 auto;padding:2px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-topbar h2{margin:0 0 8px;font-size:15px;}
+.p-entseg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+.p-entseg button{flex:0 0 auto;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);font-size:11.5px;font-weight:600;font-family:var(--fontSans);white-space:nowrap;}
+.p-entseg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.p-canvas{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch;}
+.p-group{margin-bottom:16px;}
+.p-group-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.p-ring{position:relative;width:46px;height:46px;flex:0 0 auto;border-radius:99px;}
+.p-ring svg{transform:rotate(-90deg);}
+.p-ring .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--fontMono);font-size:12px;font-weight:800;}
+.p-group-title{font-size:12.5px;font-weight:700;}
+.p-group-sub{font-size:10.5px;color:var(--inkMute);margin-top:1px;}
+.p-doc-row{display:flex;align-items:center;gap:10px;padding:10px 11px;min-height:44px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);margin-bottom:8px;cursor:pointer;}
+.p-doc-row .chk{width:22px;height:22px;border-radius:99px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;}
+.p-doc-row .body{flex:1;min-width:0;}
+.p-doc-row .who{font-size:12.8px;font-weight:700;}
+.p-doc-row .what{font-size:11px;color:var(--inkDim);margin-top:1px;}
+.p-empty{padding:20px 10px;text-align:center;color:var(--inkFaint);font-size:12px;font-style:italic;}
+.p-sheet-scrim{position:absolute;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:60;}
+.p-sheet-scrim.open{opacity:1;pointer-events:auto;}
+.p-sheet{position:absolute;left:0;right:0;bottom:0;max-height:78%;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);transform:translateY(100%);transition:transform .18s ease;z-index:70;display:flex;flex-direction:column;}
+.p-sheet.open{transform:translateY(0);}
+.p-sheet-grip{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 2px;flex:0 0 auto;}
+.p-sheet-head{display:flex;align-items:center;padding:6px 16px 10px;flex:0 0 auto;}
+.p-sheet-head h4{font-size:14px;margin:0;flex:1;}
+.p-sheet-close{width:44px;height:44px;border-radius:99px;background:var(--surface2);border:1px solid var(--hairline2);cursor:pointer;color:var(--inkDim);}
+.p-sheet-body{overflow-y:auto;padding:4px 16px 24px;-webkit-overflow-scrolling:touch;}
 </style>
 </head>
 <body>
 
+<div id="desktopView">
 <div class="topbar">
   <div class="wrap topbar-row">
     <div class="brandcol">
@@ -174,6 +232,11 @@ body{padding:0 0 64px;min-width:0;}
       Viewer scope <span class="scope">hr:read</span>
       <span style="color:var(--inkMute)">hides SSN · DL · passport · home address · emergency contact</span>
     </span>
+    <div class="device-toggle" id="deviceToggle" role="group" aria-label="Preview device">
+      <button class="active" data-d="desktop" type="button">Desktop</button>
+      <button data-d="mobile" type="button">Mobile</button>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" title="Toggle theme">◐</button>
   </div>
 </div>
 
@@ -310,6 +373,30 @@ body{padding:0 0 64px;min-width:0;}
     <div>Data: qa/fixtures/hr/{employees,documents,incidents,calloffs}.json — synthetic, no real names or PII. Mockup only, no network calls.</div>
   </div>
 
+</div>
+</div>
+
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-topbar">
+        <h2>Compliance Wall</h2>
+        <div class="p-entseg" id="pEntSeg">
+          <button class="on" data-entity="all" type="button">All entities</button>
+          <button data-entity="highest-craft" type="button">Highest Craft</button>
+          <button data-entity="circle-city" type="button">Circle City</button>
+        </div>
+      </div>
+      <div class="p-canvas" id="pCanvas"></div>
+      <div class="p-sheet-scrim" id="pSheetScrim"></div>
+      <div class="p-sheet" id="pSheet" role="dialog" aria-modal="true" aria-label="Document detail">
+        <div class="p-sheet-grip"></div>
+        <div class="p-sheet-head"><h4 id="pSheetTitle">Detail</h4><button class="p-sheet-close" id="pSheetClose" aria-label="Close">✕</button></div>
+        <div class="p-sheet-body" id="pSheetBody"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -462,7 +549,7 @@ function renderStrips(){
   }).join('') || '<div class="lane-empty" style="padding:14px;">No call-offs in this window.</div>';
 }
 
-function render(){ renderStats(); renderWall(); renderStrips(); }
+function render(){ renderStats(); renderWall(); renderStrips(); renderPhone(); }
 
 document.getElementById('entitySwitch').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-entity]');
@@ -472,7 +559,121 @@ document.getElementById('entitySwitch').addEventListener('click', (e) => {
   render();
 });
 
+/* ---------------------------------------------------------------------
+   PHONE VIEW — the same four lanes as the desktop wall (Overdue / Due≤30
+   / 31-60 / 61-90), each rendered as a grouped checklist with a progress
+   ring showing that lane's share of every flagged document in scope.
+   Tapping a row opens the same per-document detail in a bottom sheet.
+--------------------------------------------------------------------- */
+const RING_TONE = {overdue:'var(--bad)', d30:'var(--warn)', d60:'var(--info)', d90:'var(--neutral)'};
+function ringSvg(pct, color){
+  const r = 19, c = 2*Math.PI*r;
+  const off = c * (1 - pct);
+  return `<svg width="46" height="46" viewBox="0 0 46 46">
+    <circle cx="23" cy="23" r="${r}" fill="none" stroke="var(--hairline2)" stroke-width="5"/>
+    <circle cx="23" cy="23" r="${r}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+  </svg>`;
+}
+let pPhoneDocs = [];
+function renderPhone(){
+  const docs = DOCS.filter(d => currentEntity==='all' || empById[d.person].entity===currentEntity);
+  const lanes = [
+    {key:'overdue', title:'Overdue', filter: d => computeDocStatus(d.renewal,90)==='expired'},
+    {key:'d30', title:'Due ≤ 30 days', filter: d => computeDocStatus(d.renewal,30)==='expiring_soon'},
+    {key:'d60', title:'Due 31–60 days', filter: d => { const s=computeDocStatus(d.renewal,90); return s==='expiring_soon' && daysBetween(d.renewal)>30 && daysBetween(d.renewal)<=60; }},
+    {key:'d90', title:'Due 61–90 days', filter: d => { const s=computeDocStatus(d.renewal,90); return s==='expiring_soon' && daysBetween(d.renewal)>60; }},
+  ];
+  const total = docs.length || 1;
+  pPhoneDocs = [];
+  document.querySelectorAll('#pEntSeg button').forEach(b=>b.classList.toggle('on', b.dataset.entity===currentEntity));
+  const canvas = document.getElementById('pCanvas');
+  canvas.innerHTML = lanes.map(lane => {
+    const rows = docs.filter(lane.filter).sort((a,b)=> (a.renewal||'9999') > (b.renewal||'9999') ? 1 : -1);
+    const pct = rows.length / total;
+    const rowsHtml = rows.length ? rows.map(d => {
+      const emp = empById[d.person];
+      const status = computeDocStatus(d.renewal, 90);
+      const tone = toneFor(status);
+      const idx = pPhoneDocs.push(d) - 1;
+      return `<div class="p-doc-row" data-idx="${idx}">
+        <div class="chk" style="background:var(--${tone})">${status==='expired'?'!':'⏱'}</div>
+        <div class="body"><div class="who">${emp.name}</div><div class="what">${d.type.replace(/_/g,' ')} · ${d.renewal?fmtDate(d.renewal):'no date on file'}</div></div>
+        ${d.flag ? '<span class="pill bad" style="height:18px;font-size:9px;">flagged</span>' : ''}
+      </div>`;
+    }).join('') : '<div class="p-empty">No documents in this window.</div>';
+    return `<div class="p-group">
+      <div class="p-group-head">
+        <div class="p-ring">${ringSvg(pct, RING_TONE[lane.key])}<span class="n">${rows.length}</span></div>
+        <div><div class="p-group-title">${lane.title}</div><div class="p-group-sub">${rows.length} of ${total} flagged in scope</div></div>
+      </div>
+      ${rowsHtml}
+    </div>`;
+  }).join('');
+  canvas.querySelectorAll('.p-doc-row[data-idx]').forEach(row => row.addEventListener('click', () => openDocSheet(pPhoneDocs[+row.dataset.idx])));
+}
+function openDocSheet(d){
+  const emp = empById[d.person];
+  const status = computeDocStatus(d.renewal, 90);
+  const tone = toneFor(status);
+  const label = {expired:'Overdue', expiring_soon:'Expiring soon', current:'Current', missing:'No date on file'}[status];
+  document.getElementById('pSheetTitle').textContent = emp.name;
+  document.getElementById('pSheetBody').innerHTML = `
+    <div class="dfield" style="margin-bottom:10px;"><div class="l" style="font-size:10px;text-transform:uppercase;color:var(--inkMute);">Status</div><div class="pill ${tone}" style="margin-top:4px;">${label}</div></div>
+    <div class="dfield" style="margin-bottom:10px;"><div class="l" style="font-size:10px;text-transform:uppercase;color:var(--inkMute);">Document</div><div style="margin-top:2px;">${d.type.replace(/_/g,' ')}</div></div>
+    <div class="dfield" style="margin-bottom:10px;"><div class="l" style="font-size:10px;text-transform:uppercase;color:var(--inkMute);">Store</div><div style="margin-top:2px;">${emp.store}</div></div>
+    <div class="dfield" style="margin-bottom:10px;"><div class="l" style="font-size:10px;text-transform:uppercase;color:var(--inkMute);">Renewal date</div><div style="margin-top:2px;">${d.renewal ? fmtDate(d.renewal) : 'RENEWAL_DATE: null'}</div></div>
+    <div class="dfield" style="margin-bottom:10px;"><div class="l" style="font-size:10px;text-transform:uppercase;color:var(--inkMute);">Table A STATUS (not used)</div><div style="margin-top:2px;">${d.stale} · record ${d.id}${d.flag?' — stale field, ignored by this screen':''}</div></div>
+    <div class="small-note" style="color:var(--inkMute);font-size:11px;">GET /api/hr/compliance/expiring?days=90</div>`;
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function closeDocSheet(){
+  document.getElementById('pSheet').classList.remove('open');
+  document.getElementById('pSheetScrim').classList.remove('open');
+}
+document.getElementById('pEntSeg').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-entity]'); if(!btn) return;
+  currentEntity = btn.dataset.entity;
+  [...document.querySelectorAll('#entitySwitch button')].forEach(b => b.classList.toggle('active', b.dataset.entity===currentEntity));
+  render();
+});
+document.getElementById('pSheetClose').addEventListener('click', closeDocSheet);
+document.getElementById('pSheetScrim').addEventListener('click', closeDocSheet);
+
+/* ---- theme toggle ---- */
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const cur = html.getAttribute('data-theme') || (sysDark ? 'dark' : 'light');
+  html.setAttribute('data-theme', cur==='dark' ? 'light' : 'dark');
+});
+
+/* ---- device toggle ---- */
+function setDevice(mode){
+  document.getElementById('desktopView').hidden = mode !== 'desktop';
+  document.getElementById('phoneView').hidden = mode !== 'mobile';
+  document.querySelectorAll('#deviceToggle button').forEach(b=>b.classList.toggle('active', b.dataset.d===mode));
+  if (mode === 'mobile') renderPhone();
+}
+document.getElementById('deviceToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-d]'); if(!btn) return;
+  setDevice(btn.dataset.d);
+});
+
 render();
+
+/* ---- query params: ?device=desktop|mobile  ?open=1|0  ?theme=light|dark ---- */
+(function applyQueryParams(){
+  try{
+    const qp = new URLSearchParams(location.search);
+    const theme = qp.get('theme');
+    if(theme==='dark' || theme==='light') document.documentElement.setAttribute('data-theme', theme);
+    const device = qp.get('device');
+    if(device==='mobile' || device==='desktop') setDevice(device);
+    if(qp.get('open')==='1' && pPhoneDocs.length) openDocSheet(pPhoneDocs[0]);
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

@@ -208,10 +208,57 @@ table.board tr:hover td{background:var(--surface2);}
   table.board{font-size:11px;}
   .drawer{width:100vw;}
 }
+
+/* ============================================================================
+   Phone parity pass (2026-09-17) — Concept C phone view: a day strip over a
+   vertical timeline with collapsible stores. Reuses the same #drawer/#overlay
+   case detail as the desktop board. Toggled by #deviceSeg / ?device= param.
+   ========================================================================= */
+[hidden]{display:none !important;}
+.deviceseg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:999px;padding:2px;gap:2px;}
+.deviceseg button{appearance:none;border:none;background:transparent;font-size:11.5px;font-weight:700;color:var(--inkDim);padding:6px 11px;border-radius:999px;cursor:pointer;}
+.deviceseg button.on{background:var(--ink);color:var(--surface);}
+html[data-theme="dark"] .deviceseg button.on{background:var(--accent);color:var(--accentInk);}
+
+.phone-wrap{display:flex;justify-content:center;padding:26px 12px 60px;background:var(--bg2);min-height:100vh;}
+.phone{width:390px;max-width:100%;background:#000;border-radius:44px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{width:100%;min-height:800px;background:var(--bg);border-radius:32px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 40px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:11px;font-weight:700;font-family:var(--fontMono);color:var(--ink);}
+.p-appbar{flex:0 0 auto;padding:6px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-appbar .p-title{font-size:16px;font-weight:800;}
+.p-appbar .p-crumb{font-size:10.5px;color:var(--inkMute);}
+.p-iconbtn{width:34px;height:34px;min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.p-daystrip{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;border-bottom:1px solid var(--hairline2);background:var(--surface2);}
+.p-daychip{flex:0 0 auto;min-width:56px;text-align:center;padding:7px 10px;min-height:44px;border-radius:12px;border:1px solid var(--hairline3);background:var(--surface);cursor:pointer;}
+.p-daychip.on{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+html[data-theme="dark"] .p-daychip.on{background:var(--accent);color:var(--accentInk);}
+.p-daychip.off{opacity:.4;cursor:not-allowed;}
+.p-daychip .dow{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;}
+.p-daychip .dom{font-size:15px;font-weight:800;font-family:var(--fontMono);}
+.p-daychip .dot{width:6px;height:6px;border-radius:99px;margin:3px auto 0;}
+.p-roleswrap{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-roleswrap .rg-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);font-weight:700;}
+.p-screen{flex:1;overflow-y:auto;padding:12px 12px 30px;}
+.p-storegroup{border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);margin-bottom:12px;overflow:hidden;}
+.p-storehead{display:flex;align-items:center;gap:10px;padding:11px 12px;min-height:44px;background:var(--surface2);cursor:pointer;width:100%;border:none;text-align:left;}
+.p-storehead .sg-name{font-weight:700;font-size:13px;flex:1;}
+.p-storehead .sg-total{font-family:var(--fontMono);font-weight:700;font-size:13px;}
+.p-storehead .chev{transition:transform .15s ease;color:var(--inkMute);}
+.p-storegroup.open .p-storehead .chev{transform:rotate(90deg);}
+.p-timeline{display:none;padding:10px 14px 6px 22px;position:relative;}
+.p-storegroup.open .p-timeline{display:block;}
+.p-timeline::before{content:"";position:absolute;left:27px;top:2px;bottom:14px;width:2px;background:var(--hairline2);}
+.p-tlrow{position:relative;padding:0 0 16px 18px;cursor:pointer;min-height:44px;}
+.p-tlrow::before{content:"";position:absolute;left:-7px;top:3px;width:10px;height:10px;border-radius:99px;background:var(--surface);border:2px solid var(--info);}
+.p-tlrow .tl-top{display:flex;justify-content:space-between;gap:8px;}
+.p-tlrow .tl-name{font-weight:700;font-size:12.5px;}
+.p-tlrow .tl-var{font-family:var(--fontMono);font-weight:700;font-size:12.5px;}
+.p-tlrow .tl-meta{font-size:10.5px;color:var(--inkMute);margin-top:2px;}
+@media (max-width:420px){.phone{width:100%;border-radius:0;padding:0;box-shadow:none;} .phone-screen{border-radius:0;min-height:100vh;} .phone-wrap{padding:0;}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="desktopView">
 
   <nav class="rail">
     <div class="rail-logo">HW</div>
@@ -243,6 +290,13 @@ table.board tr:hover td{background:var(--surface2);}
           <button data-role="admin">admin</button>
         </div>
       </div>
+      <div class="deviceseg" id="deviceSeg" role="group" aria-label="Preview device">
+        <button class="on" data-d="desktop" type="button">Desktop</button>
+        <button data-d="mobile" type="button">Mobile</button>
+      </div>
+      <button class="p-iconbtn" id="cThemeToggle" title="Toggle light / dark" aria-label="Toggle theme" style="margin-left:4px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
     </div>
 
     <div class="examplebanner">⚠ EXAMPLE DATA — every driver, store total and dollar figure below is invented for this mockup, not a real Hyperwolf record.</div>
@@ -404,6 +458,19 @@ table.board tr:hover td{background:var(--surface2);}
   </div>
 </div>
 
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-appbar">
+        <div class="p-title">By Day<div class="p-crumb">M2 proposed · day strip · timeline</div></div>
+      </div>
+      <div class="p-daystrip" id="pDayStrip"></div>
+      <div class="p-screen" id="pTimelineScreen"></div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlay" onclick="closeCase()"></div>
 <div class="drawer" id="drawer" role="dialog" aria-label="Case detail">
   <div class="drawer-head">
@@ -545,7 +612,9 @@ table.board tr:hover td{background:var(--surface2);}
     currentRole = btn.getAttribute('data-role');
     Array.from(this.querySelectorAll('button')).forEach(function(b){ b.classList.toggle('on', b===btn); });
     applyRole();
+    if (window.pRenderTimeline) window.pRenderTimeline();
   });
+  window.applyRoleGlobal = applyRole;
 
   window.openCase = function(id){
     document.getElementById('overlay').classList.add('open');
@@ -558,6 +627,114 @@ table.board tr:hover td{background:var(--surface2);}
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeCase(); });
 
   applyRole();
+})();
+
+// ============================================================================
+// Phone parity pass — device toggle, query params, theme toggle, day strip +
+// vertical timeline with collapsible stores (reuses the shared #drawer).
+// ============================================================================
+(function(){
+  var THEME_KEY='hw-lp-triage-theme';
+  function toggleTheme(){
+    var cur = document.documentElement.getAttribute('data-theme') ||
+      (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+  }
+  document.getElementById('cThemeToggle').addEventListener('click', toggleTheme);
+  try{ var saved = localStorage.getItem(THEME_KEY); if (saved) document.documentElement.setAttribute('data-theme', saved); }catch(e){}
+
+  var qs; try{ qs = new URLSearchParams(location.search); }catch(e){ qs = null; }
+  var qDevice = qs ? qs.get('device') : null;
+  var qOpen = qs ? qs.get('open') : null;
+  var qTheme = qs ? qs.get('theme') : null;
+  if (qTheme === 'light' || qTheme === 'dark'){
+    document.documentElement.setAttribute('data-theme', qTheme);
+    try{ localStorage.setItem(THEME_KEY, qTheme); }catch(e){}
+  }
+
+  var DAYS = ['09-11','09-12','09-13','09-14','09-15','09-16','09-17'];
+  var TODAY_IDX = 4;
+  var STORES = [
+    { name:'Corona', total:-186.40, open:true, cases:[
+      { id:'c1', name:'Marcus Webb', mode:'Delivery', variance:-43.50, statusClass:'pill-new', statusLabel:'New' },
+      { id:'c2', name:'Priya Anand', mode:'Retail · Reg 2', variance:-142.40, statusClass:'pill-driver', statusLabel:'Awaiting driver' },
+      { id:'c3', name:'Jordan Vance', mode:'Delivery', variance:0.00, statusClass:'pill-decided', statusLabel:'Decided' }
+    ]},
+    { name:'Long Beach', total:-38.00, open:false, cases:[
+      { id:'c4', name:'Elena Cruz', mode:'Delivery', variance:-38.00, statusClass:'pill-manager', statusLabel:'Awaiting manager' },
+      { id:'c5', name:'Sam Whitfield', mode:'Delivery', variance:0.00, statusClass:'pill-corrected', statusLabel:'Corrected' }
+    ]},
+    { name:'West Hollywood', total:-194.10, open:false, cases:[
+      { id:'c6', name:'Theo Park', mode:'Retail · Reg 1', variance:-119.60, statusClass:'pill-new', statusLabel:'New' },
+      { id:'c7', name:'Nina Alvarez', mode:'Delivery', variance:-74.50, statusClass:'pill-driver', statusLabel:'Awaiting driver' }
+    ]},
+    { name:'Lake Elsinore', total:0.00, open:false, cases:[
+      { id:'c8', name:'Dante Ruiz', mode:'Delivery', variance:0.00, statusClass:'pill-decided', statusLabel:'Decided' }
+    ]}
+  ];
+
+  function renderDayStrip(){
+    var wrap = document.getElementById('pDayStrip'); wrap.innerHTML = '';
+    DAYS.forEach(function(d, i){
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'p-daychip' + (i === TODAY_IDX ? ' on' : '') + (i === TODAY_IDX ? '' : ' off');
+      var dow = ['Fri','Sat','Sun','Mon','Tue','Wed','Thu'][i];
+      chip.innerHTML = '<div class="dow">'+dow+'</div><div class="dom">'+d.split('-')[1]+'</div>'+(i===TODAY_IDX?'<div class="dot" style="background:var(--bad);"></div>':'');
+      if (i !== TODAY_IDX) chip.title = 'No data loaded for this day in the mockup';
+      wrap.appendChild(chip);
+    });
+  }
+
+  window.pRenderTimeline = function(){
+    var wrap = document.getElementById('pTimelineScreen'); wrap.innerHTML = '';
+    STORES.forEach(function(store, si){
+      var group = document.createElement('div');
+      group.className = 'p-storegroup' + (store.open ? ' open' : '');
+      var flagged = store.cases.filter(function(c){ return c.variance !== 0; }).length;
+      group.innerHTML =
+        '<button class="p-storehead" type="button">'+
+          '<span class="sg-name">'+store.name+'</span>'+
+          '<span style="font-size:10.5px;color:var(--inkMute);">'+store.cases.length+' reports · '+flagged+' flagged</span>'+
+          '<span class="sg-total" data-money data-exact="'+store.total+'">'+money(store.total)+'</span>'+
+          '<span class="chev">›</span>'+
+        '</button>'+
+        '<div class="p-timeline">'+
+          store.cases.map(function(c){
+            return '<div class="p-tlrow" data-case="'+c.id+'">'+
+              '<div class="tl-top"><span class="tl-name">'+c.name+'</span><span class="tl-var" data-money data-exact="'+c.variance+'">'+money(c.variance)+'</span></div>'+
+              '<div class="tl-meta">'+c.mode+' <span class="pill '+c.statusClass+'" style="margin-left:6px;">'+c.statusLabel+'</span></div>'+
+            '</div>';
+          }).join('')+
+        '</div>';
+      group.querySelector('.p-storehead').addEventListener('click', function(){
+        group.classList.toggle('open');
+      });
+      group.querySelectorAll('.p-tlrow').forEach(function(row){
+        row.addEventListener('click', function(){ window.openCase(row.dataset.case); });
+      });
+      wrap.appendChild(group);
+    });
+    if (window.applyRoleGlobal) window.applyRoleGlobal();
+  };
+  function money(n){ var neg = n < 0; return (neg?'−':'')+'$'+Math.abs(n).toFixed(2); }
+
+  function setDevice(d){
+    document.getElementById('desktopView').hidden = d !== 'desktop';
+    document.getElementById('phoneView').hidden = d !== 'mobile';
+    document.querySelectorAll('#deviceSeg button').forEach(function(b){ b.classList.toggle('on', b.dataset.d === d); });
+    if (d === 'mobile'){ renderDayStrip(); window.pRenderTimeline(); }
+  }
+  document.getElementById('deviceSeg').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-d]'); if (!btn) return;
+    setDevice(btn.dataset.d);
+  });
+
+  var initialDevice = (qDevice === 'mobile' || qDevice === 'desktop') ? qDevice : 'desktop';
+  setDevice(initialDevice);
+  if (qOpen === '1') window.openCase('c1');
 })();
 </script>
 </body>

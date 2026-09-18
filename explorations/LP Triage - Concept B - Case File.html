@@ -220,10 +220,46 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
   .rail-item .lbl{display:none;}
   .h1{font-size:20px;}
 }
+
+/* ============================================================================
+   Phone parity pass (2026-09-17) — Concept B phone view: tabbed case sheet
+   (Evidence / Timeline / Decision) with a sticky decision bar. Desktop layout
+   above is untouched; toggled by #deviceSeg / ?device= query param.
+   ========================================================================= */
+[hidden]{display:none !important;}
+.deviceseg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:999px;padding:2px;gap:2px;}
+.deviceseg button{appearance:none;border:none;background:transparent;font-size:11.5px;font-weight:700;color:var(--inkDim);padding:6px 11px;border-radius:999px;cursor:pointer;}
+.deviceseg button.on{background:var(--ink);color:var(--surface);}
+html[data-theme="dark"] .deviceseg button.on{background:var(--accent);color:var(--accentInk);}
+
+.phone-wrap{display:flex;justify-content:center;padding:26px 12px 60px;background:var(--bg2);min-height:100vh;}
+.phone{width:390px;max-width:100%;background:#000;border-radius:44px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{width:100%;min-height:800px;background:var(--bg);border-radius:32px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 40px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:11px;font-weight:700;font-family:var(--fontMono);color:var(--ink);}
+.p-appbar{flex:0 0 auto;padding:6px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);display:flex;align-items:flex-start;gap:8px;}
+.p-appbar .p-av{width:34px;height:34px;border-radius:10px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--ink2);flex:0 0 auto;}
+.p-appbar .p-mid{flex:1;min-width:0;}
+.p-appbar .p-name{font-weight:800;font-size:14.5px;}
+.p-appbar .p-sub{font-size:10.5px;color:var(--inkMute);margin-top:1px;}
+.p-iconbtn{width:34px;height:34px;min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.p-navwrap{display:flex;gap:6px;padding:0 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-navwrap button{flex:1;height:38px;min-height:44px;border-radius:9px;border:1px solid var(--hairline3);background:var(--surface2);color:var(--ink);font-size:12px;font-weight:700;}
+.p-navwrap button:disabled{opacity:.4;}
+.p-navwrap .p-cases{flex:0 0 auto;padding:0 12px;}
+.p-tabs{display:flex;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-tab{flex:1;text-align:center;padding:12px 0;min-height:44px;font-size:12px;font-weight:700;color:var(--inkMute);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;}
+.p-tab.on{color:var(--ink);border-bottom-color:var(--accent);}
+.p-screen{flex:1;overflow-y:auto;padding:14px 14px 100px;}
+.pcard{border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px 13px;margin-bottom:12px;background:var(--surface);}
+.pcard h4{margin:0 0 9px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
+.p-linegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+.p-decisionbar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,10px));background:var(--surface);border-top:1px solid var(--hairline2);box-shadow:0 -4px 14px rgba(0,0,0,.06);}
+.p-decisionbar .dbtn{flex:1;height:44px;min-height:44px;font-size:11.5px;}
+@media (max-width:420px){.phone{width:100%;border-radius:0;padding:0;box-shadow:none;} .phone-screen{border-radius:0;min-height:100vh;} .phone-wrap{padding:0;}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="desktopView">
   <aside class="rail">
     <div class="rail-logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
     <button class="rail-item active" title="Triage"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M7 12h10M7 17h6"/></svg><span class="lbl">Triage</span></button>
@@ -247,6 +283,10 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
           <option value="manager">manager</option>
           <option value="hr">hr</option>
         </select>
+      </div>
+      <div class="deviceseg" id="deviceSeg" role="group" aria-label="Preview device">
+        <button class="on" data-d="desktop" type="button">Desktop</button>
+        <button data-d="mobile" type="button">Mobile</button>
       </div>
       <div class="rolechip" id="roleChip"><span class="av">LP</span>lp
         <div class="rolepop" id="rolePop">
@@ -279,19 +319,79 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
   </div>
 </div>
 
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-appbar">
+        <div class="p-av" id="pAv">AK</div>
+        <div class="p-mid">
+          <div class="p-name" id="pName">—</div>
+          <div class="p-sub" id="pSub">—</div>
+        </div>
+        <button class="p-iconbtn" id="pThemeToggle" title="Toggle theme" aria-label="Toggle theme">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+        </button>
+      </div>
+      <div class="p-navwrap">
+        <button id="pPrev">← Prev</button>
+        <button class="p-cases" id="pCasesBtn" type="button">Cases</button>
+        <button id="pNext">Next →</button>
+      </div>
+      <div class="p-tabs" id="pTabs">
+        <button class="p-tab on" data-tab="evidence">Evidence</button>
+        <button class="p-tab" data-tab="timeline">Timeline</button>
+        <button class="p-tab" data-tab="decision">Decision</button>
+      </div>
+      <div class="p-screen" id="pScreen"></div>
+      <div class="p-decisionbar">
+        <button class="dbtn charge" disabled id="pdCharge">Charge<span class="m2">M2</span></button>
+        <button class="dbtn waive" disabled id="pdWaive">Waive<span class="m2">M2</span></button>
+        <button class="dbtn escalate" disabled id="pdEscalate">Escalate<span class="m2">M2</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="p-sheetoverlay" id="pSheetOverlay"></div>
+<div class="p-sheet" id="pSheet" role="dialog" aria-label="Switch case">
+  <div class="p-sheet-handle"></div>
+  <div class="p-sheet-head">
+    <div class="p-sh-main"><div style="font-weight:700;font-size:14.5px;">Cases in queue</div></div>
+    <button class="p-sheet-close" id="pSheetClose">✕</button>
+  </div>
+  <div class="p-sheet-body" id="pSheetBody"></div>
+</div>
+
+<style>
+.p-sheetoverlay{position:fixed;inset:0;background:rgba(10,10,8,.44);z-index:90;display:none;}
+.p-sheetoverlay.open{display:block;}
+.p-sheet{position:fixed;left:50%;transform:translateX(-50%) translateY(100%);bottom:0;width:390px;max-width:100vw;max-height:78vh;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);z-index:91;display:flex;flex-direction:column;transition:transform .18s ease;}
+.p-sheet.open{transform:translateX(-50%) translateY(0);}
+.p-sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 4px;}
+.p-sheet-head{display:flex;align-items:flex-start;gap:10px;padding:6px 16px 10px;border-bottom:1px solid var(--hairline2);}
+.p-sheet-head .p-sh-main{flex:1;min-width:0;}
+.p-sheet-close{width:36px;height:36px;min-height:44px;min-width:44px;border-radius:8px;border:1px solid var(--hairline2);background:var(--surface2);cursor:pointer;font-size:14px;color:var(--inkDim);}
+.p-sheet-body{flex:1;overflow-y:auto;padding:8px 12px 30px;}
+.p-caserow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 10px;min-height:44px;border-radius:10px;border:1px solid var(--hairline2);background:var(--surface);margin-bottom:8px;cursor:pointer;}
+.p-caserow.sel{border-color:var(--accentBorder);box-shadow:0 0 0 2px var(--accentSoft) inset;}
+</style>
+
 <script>
 // ---- theme ----
 (function(){
   var KEY='hw-lp-triage-theme';
   var saved = null; try{ saved = localStorage.getItem(KEY); }catch(e){}
   if (saved) document.documentElement.setAttribute('data-theme', saved);
-  document.getElementById('themeToggle').addEventListener('click', function(){
+  function toggleTheme(){
     var cur = document.documentElement.getAttribute('data-theme') ||
       (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
     var next = cur === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     try{ localStorage.setItem(KEY, next); }catch(e){}
-  });
+  }
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  document.getElementById('pThemeToggle').addEventListener('click', toggleTheme);
 })();
 
 // ---- role popover ----
@@ -501,6 +601,142 @@ document.getElementById('viewAsSel').addEventListener('change', function(e){
 
 renderQueueRail();
 renderDossier();
+
+function showToast(msg){
+  var old = document.querySelector('.toast'); if (old) old.remove();
+  var t = document.createElement('div'); t.className='toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2600);
+}
+
+// ============================================================================
+// Phone parity pass — device toggle, query params, tabbed case sheet with a
+// sticky decision bar.
+// ============================================================================
+(function(){
+  var qs; try{ qs = new URLSearchParams(location.search); }catch(e){ qs = null; }
+  var qDevice = qs ? qs.get('device') : null;
+  var qOpen = qs ? qs.get('open') : null;
+  var qTheme = qs ? qs.get('theme') : null;
+  if (qTheme === 'light' || qTheme === 'dark'){
+    document.documentElement.setAttribute('data-theme', qTheme);
+    try{ localStorage.setItem('hw-lp-triage-theme', qTheme); }catch(e){}
+  }
+
+  var pTab = 'evidence';
+
+  function pRender(){
+    var c = CASES[state.idx];
+    var d = delta(c);
+    document.getElementById('pAv').textContent = initials(c.driver);
+    document.getElementById('pName').textContent = c.driver;
+    document.getElementById('pSub').textContent = c.id + ' · ' + c.store + ' · ' + c.mode;
+    document.getElementById('pPrev').disabled = state.idx === 0;
+    document.getElementById('pNext').disabled = state.idx === CASES.length - 1;
+
+    var body = document.getElementById('pScreen');
+    if (pTab === 'evidence'){
+      var flagsHtml = c.flags.length
+        ? '<div class="flagrow">' + c.flags.map(function(f){ return '<span class="flagchip">'+f.replace(/_/g,' ')+'</span>'; }).join('') + '</div>'
+        : '<div class="flagrow"><span class="flagchip none">no discrepancy flags</span></div>';
+      body.innerHTML =
+        '<div class="pcard"><h4>Closer report<span class="routetag" style="float:right;">GET <b>/api/lp/cases/{id}</b></span></h4>'+
+          '<div class="p-linegrid">'+
+            '<div><div class="lg-k">Expected</div><div class="lg-v">'+money(c.expected)+'</div></div>'+
+            '<div><div class="lg-k">Counted</div><div class="lg-v">'+money(c.counted)+'</div></div>'+
+            '<div><div class="lg-k">Over / Under</div><div class="lg-v '+(d<0?'bad':(d>0?'warn':'good'))+'">'+money(d)+' · '+c.over_under+'</div></div>'+
+            '<div><div class="lg-k">Severity</div><div class="lg-v">'+c.severity+(c.pattern_flag?' · pattern':'')+'</div></div>'+
+          '</div>'+flagsHtml+
+        '</div>'+
+        '<div class="pcard"><h4>Evidence &amp; flags</h4>'+
+          '<div style="font-size:12px;color:var(--inkDim);">Flagged for: <b>'+(c.flags.length?c.flags.join(', ').replace(/_/g,' '):'discrepancy amount only')+'</b>.</div>'+
+          '<div class="gapnote" style="margin-top:8px;">No photo/attachment field exists in <code>CloserReport.json</code> yet — confirm before this tab ships with a real evidence gallery.</div>'+
+        '</div>';
+    } else if (pTab === 'timeline'){
+      var hist = HISTORY[c.driver] || [];
+      var role = state.viewAs;
+      var threadHtml = c.driverResponse
+        ? '<div class="msg driver"><div class="mmeta">'+c.driver+' · '+c.driverResponseAt+'</div>'+c.driverResponse+'</div>'
+        : '<div class="waitpill">⏳ awaiting driver response · deadline '+c.response_deadline+'</div>';
+      var rowsHtml = hist.map(function(h){
+        if (h.disposition === 'corrected_not_loss') return '';
+        return '<div class="histrow" style="border-bottom:1px dotted var(--hairline2);padding:6px 0;display:flex;justify-content:space-between;"><span>'+h.shift_date+(h.thisCase?' (this case)':'')+'</span><span>'+(h.disposition?h.disposition.replace(/_/g,' '):'undecided')+'</span><span class="num">'+(h.net_loss===null?'pending':money(h.net_loss))+'</span></div>';
+      }).join('');
+      var correctedRows = hist.filter(function(h){ return h.disposition === 'corrected_not_loss'; });
+      var correctedHtml = '';
+      if (correctedRows.length){
+        if (role === 'lp'){
+          correctedHtml = '<div style="margin-top:8px;"><div class="lg-k" style="margin-bottom:4px;">Corrected — not a loss<span class="lponly">LP ONLY</span></div>'+
+            correctedRows.map(function(h){ return '<div class="correctedrow"><span>'+h.shift_date+'</span><span class="num">net '+money(h.net_loss)+'</span></div>'; }).join('')+'</div>';
+        } else {
+          correctedHtml = '<div class="gated" style="margin-top:8px;">'+correctedRows.length+' "corrected — not a loss" row(s) hidden for <b>'+role+'</b> — LP-only.</div>';
+        }
+      }
+      var histBody = gatedHtml(role, ['lp','admin'], rowsHtml + correctedHtml, 'driver history is lp + admin only.');
+      body.innerHTML =
+        '<div class="pcard"><h4>Driver response thread</h4><div class="threadwrap">'+threadHtml+'</div>'+
+          '<div class="tokennote" style="margin-top:8px;">Response portal is a single-use, expiring HMAC token — not a role.</div>'+
+        '</div>'+
+        '<div class="pcard"><h4>Driver history — '+c.driver+'</h4>'+histBody+'</div>';
+    } else {
+      body.innerHTML =
+        '<div class="pcard"><h4>Decision<span class="routetag" style="float:right;">POST <b>/lp/incidents/{id}/decision</b></span></h4>'+
+          '<div style="font-size:11.5px;color:var(--inkMute);margin-bottom:8px;">Example outcomes only — LP Disposition and Manager Decision are two separate fields. All three below are disabled; the sticky bar underneath mirrors these.</div>'+
+          '<div class="decisionrow">'+
+            '<button class="dbtn charge" disabled style="height:44px;">Charge<span class="m2">M2 write</span></button>'+
+            '<button class="dbtn waive" disabled style="height:44px;">Waive<span class="m2">M2 write</span></button>'+
+            '<button class="dbtn escalate" disabled style="height:44px;">Escalate to write-up<span class="m2">M2 write</span></button>'+
+          '</div>'+
+        '</div>';
+    }
+  }
+
+  document.getElementById('pTabs').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-tab]'); if (!btn) return;
+    pTab = btn.dataset.tab;
+    document.querySelectorAll('#pTabs .p-tab').forEach(function(t){ t.classList.toggle('on', t===btn); });
+    pRender();
+  });
+  document.getElementById('pPrev').addEventListener('click', function(){ selectCase(state.idx-1); pRender(); });
+  document.getElementById('pNext').addEventListener('click', function(){ selectCase(state.idx+1); pRender(); });
+  ['pdCharge','pdWaive','pdEscalate'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(){ showToast('Decision write is M2 — not enabled in this mockup.'); });
+  });
+
+  function renderCasesSheet(){
+    var wrap = document.getElementById('pSheetBody'); wrap.innerHTML = '';
+    CASES.forEach(function(c, i){
+      var d = delta(c);
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'p-caserow' + (i === state.idx ? ' sel' : '');
+      row.innerHTML = '<span class="qc-dot dot-'+c.status+'"></span><span style="flex:1;text-align:left;"><b>'+c.driver+'</b><div style="font-size:10.5px;color:var(--inkMute);">'+c.store.split(' — ')[1]+' · '+c.shift_date+'</div></span><span class="num">'+money(d)+'</span>';
+      row.addEventListener('click', function(){ selectCase(i); pRender(); closeCasesSheet(); });
+      wrap.appendChild(row);
+    });
+  }
+  function openCasesSheet(){ renderCasesSheet(); document.getElementById('pSheetOverlay').classList.add('open'); document.getElementById('pSheet').classList.add('open'); }
+  function closeCasesSheet(){ document.getElementById('pSheetOverlay').classList.remove('open'); document.getElementById('pSheet').classList.remove('open'); }
+  document.getElementById('pCasesBtn').addEventListener('click', openCasesSheet);
+  document.getElementById('pSheetOverlay').addEventListener('click', closeCasesSheet);
+  document.getElementById('pSheetClose').addEventListener('click', closeCasesSheet);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeCasesSheet(); });
+
+  function setDevice(d){
+    document.getElementById('desktopView').hidden = d !== 'desktop';
+    document.getElementById('phoneView').hidden = d !== 'mobile';
+    document.querySelectorAll('#deviceSeg button').forEach(function(b){ b.classList.toggle('on', b.dataset.d === d); });
+    if (d === 'mobile') pRender();
+  }
+  document.getElementById('deviceSeg').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-d]'); if (!btn) return;
+    setDevice(btn.dataset.d);
+  });
+
+  var initialDevice = (qDevice === 'mobile' || qDevice === 'desktop') ? qDevice : 'desktop';
+  setDevice(initialDevice);
+  if (qOpen === '1' && initialDevice === 'mobile') openCasesSheet();
+})();
 </script>
 </body>
 </html>

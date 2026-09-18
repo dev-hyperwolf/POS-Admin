@@ -217,10 +217,60 @@ table.qtbl tbody tr:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--
   .kpirow{grid-template-columns:1fr 1fr;}
   .linegrid{grid-template-columns:1fr;}
 }
+
+/* ============================================================================
+   Phone parity pass (2026-09-17) — Concept A phone view: swipeable triage
+   stack. Desktop layout above is untouched; this adds a second top-level
+   view toggled by #deviceSeg / ?device= query param.
+   ========================================================================= */
+[hidden]{display:none !important;}
+.deviceseg{display:inline-flex;background:var(--surface2);border:1px solid var(--hairline2);border-radius:999px;padding:2px;gap:2px;}
+.deviceseg button{appearance:none;border:none;background:transparent;font-size:11.5px;font-weight:700;color:var(--inkDim);padding:6px 11px;border-radius:999px;cursor:pointer;}
+.deviceseg button.on{background:var(--ink);color:var(--surface);}
+html[data-theme="dark"] .deviceseg button.on{background:var(--accent);color:var(--accentInk);}
+
+.phone-wrap{display:flex;justify-content:center;padding:26px 12px 60px;background:var(--bg2);min-height:100vh;}
+.phone{width:390px;max-width:100%;background:#000;border-radius:44px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{width:100%;min-height:800px;background:var(--bg);border-radius:32px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 40px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:11px;font-weight:700;font-family:var(--fontMono);color:var(--ink);}
+.p-appbar{flex:0 0 auto;padding:6px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);display:flex;align-items:center;gap:10px;}
+.p-appbar .p-title{font-size:16px;font-weight:800;flex:1;min-width:0;}
+.p-appbar .p-crumb{font-size:10.5px;color:var(--inkMute);}
+.p-iconbtn{width:34px;height:34px;border-radius:10px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.p-chips{display:flex;gap:6px;overflow-x:auto;padding:9px 12px;border-bottom:1px solid var(--hairline2);background:var(--surface2);}
+.p-chip{flex:0 0 auto;white-space:nowrap;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--hairline3);background:var(--surface);color:var(--inkDim);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;}
+.p-chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+html[data-theme="dark"] .p-chip.on{background:var(--accent);color:var(--accentInk);}
+.p-stackwrap{flex:1;padding:14px 16px 6px;min-height:440px;display:flex;flex-direction:column;}
+.p-counter{text-align:center;font-size:11px;color:var(--inkMute);font-family:var(--fontMono);padding:2px 0 10px;}
+.p-card{position:relative;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowMd);padding:16px;touch-action:pan-y;user-select:none;}
+.p-card .stamp{position:absolute;top:14px;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:8px;border:2px solid;opacity:0;pointer-events:none;}
+.p-card .stamp.left{left:14px;border-color:var(--bad);color:var(--bad);transform:rotate(-8deg);}
+.p-card .stamp.right{right:14px;border-color:var(--good);color:var(--good);transform:rotate(8deg);}
+.p-card .pname{font-size:17px;font-weight:800;}
+.p-card .psub{font-size:11.5px;color:var(--inkMute);margin-top:2px;}
+.p-card .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:14px;}
+.p-swipehint{text-align:center;font-size:10.5px;color:var(--inkMute);margin-top:10px;}
+.p-navrow{display:flex;gap:10px;margin-top:14px;}
+.p-navbtn{flex:1;height:44px;min-height:44px;border-radius:var(--r12);border:1px solid var(--hairline3);background:var(--surface2);color:var(--ink);font-size:13px;font-weight:700;cursor:pointer;}
+.p-navbtn:disabled{opacity:.4;cursor:not-allowed;}
+.p-viewfull{margin-top:10px;width:100%;height:44px;min-height:44px;border-radius:var(--r12);border:1px solid var(--info);background:var(--infoSoft);color:var(--info);font-size:13px;font-weight:700;cursor:pointer;}
+.p-decrow{display:flex;gap:8px;margin-top:14px;}
+.p-decrow .dbtn{height:44px;min-height:44px;}
+.p-sheetoverlay{position:fixed;inset:0;background:rgba(10,10,8,.44);z-index:90;display:none;}
+.p-sheetoverlay.open{display:block;}
+.p-sheet{position:fixed;left:50%;transform:translateX(-50%) translateY(100%);bottom:0;width:390px;max-width:100vw;max-height:88vh;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);z-index:91;display:flex;flex-direction:column;transition:transform .18s ease;}
+.p-sheet.open{transform:translateX(-50%) translateY(0);}
+.p-sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 4px;}
+.p-sheet-head{display:flex;align-items:flex-start;gap:10px;padding:6px 16px 10px;border-bottom:1px solid var(--hairline2);}
+.p-sheet-head .p-sh-main{flex:1;min-width:0;}
+.p-sheet-close{width:36px;height:36px;min-height:44px;min-width:44px;border-radius:8px;border:1px solid var(--hairline2);background:var(--surface2);cursor:pointer;font-size:14px;color:var(--inkDim);}
+.p-sheet-body{flex:1;overflow-y:auto;padding:12px 16px 30px;}
+@media (max-width:420px){.phone{width:100%;border-radius:0;padding:0;box-shadow:none;} .phone-screen{border-radius:0;min-height:100vh;} .phone-wrap{padding:0;}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="desktopView">
   <aside class="rail">
     <div class="rail-logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
     <button class="rail-item active" title="Triage"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M7 12h10M7 17h6"/></svg><span class="lbl">Triage</span></button>
@@ -244,6 +294,10 @@ table.qtbl tbody tr:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--
           <option value="manager">manager</option>
           <option value="hr">hr</option>
         </select>
+      </div>
+      <div class="deviceseg" id="deviceSeg" role="group" aria-label="Preview device">
+        <button class="on" data-d="desktop" type="button">Desktop</button>
+        <button data-d="mobile" type="button">Mobile</button>
       </div>
       <div class="rolechip" id="roleChip"><span class="av">LP</span>lp
         <div class="rolepop" id="rolePop">
@@ -305,19 +359,54 @@ table.qtbl tbody tr:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--
   </div>
 </div>
 
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-appbar">
+        <div class="p-title">Triage — Queue<div class="p-crumb">M2 proposed · swipe stack</div></div>
+        <button class="p-iconbtn" id="pThemeToggle" title="Toggle theme" aria-label="Toggle theme">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+        </button>
+      </div>
+      <div class="p-chips" id="pChips"></div>
+      <div class="p-stackwrap">
+        <div class="p-counter" id="pCounter"></div>
+        <div id="pCardWrap"></div>
+        <div class="p-swipehint">◂ swipe to waive · charge ▸ &nbsp;(M2 write — disabled)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="p-sheetoverlay" id="pSheetOverlay"></div>
+<div class="p-sheet" id="pSheet" role="dialog" aria-label="Full case detail">
+  <div class="p-sheet-handle"></div>
+  <div class="p-sheet-head">
+    <div class="p-sh-main">
+      <div style="font-weight:700;font-size:14.5px;" id="pSheetTitle">Case</div>
+      <div style="font-size:11px;color:var(--inkMute);margin-top:2px;" id="pSheetSub"></div>
+    </div>
+    <button class="p-sheet-close" id="pSheetClose">✕</button>
+  </div>
+  <div class="p-sheet-body" id="pSheetBody"></div>
+</div>
+
 <script>
 // ---- theme ----
 (function(){
   var KEY='hw-lp-triage-theme';
   var saved = null; try{ saved = localStorage.getItem(KEY); }catch(e){}
   if (saved) document.documentElement.setAttribute('data-theme', saved);
-  document.getElementById('themeToggle').addEventListener('click', function(){
+  function toggleTheme(){
     var cur = document.documentElement.getAttribute('data-theme') ||
       (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
     var next = cur === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     try{ localStorage.setItem(KEY, next); }catch(e){}
-  });
+  }
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  document.getElementById('pThemeToggle').addEventListener('click', toggleTheme);
 })();
 
 // ---- role popover ----
@@ -515,6 +604,165 @@ document.getElementById('viewAsSel').addEventListener('change', function(e){
 
 renderQueue();
 renderDetail();
+
+// ============================================================================
+// Phone parity pass — device toggle, query params, swipeable triage stack.
+// ============================================================================
+(function(){
+  var qs; try{ qs = new URLSearchParams(location.search); }catch(e){ qs = null; }
+  var qDevice = qs ? qs.get('device') : null;
+  var qOpen = qs ? qs.get('open') : null;
+  var qTheme = qs ? qs.get('theme') : null;
+  if (qTheme === 'light' || qTheme === 'dark'){
+    document.documentElement.setAttribute('data-theme', qTheme);
+    try{ localStorage.setItem('hw-lp-triage-theme', qTheme); }catch(e){}
+  }
+
+  var pState = { filter: 'all', idx: 0, dragging:false, startX:0, dx:0 };
+  var FILTERS = [
+    { id:'all', label:'All' }, { id:'new', label:'New' },
+    { id:'awaiting_driver', label:'Awaiting driver' }, { id:'awaiting_manager', label:'Awaiting manager' },
+    { id:'decided', label:'Decided' }, { id:'corrected', label:'Corrected' }
+  ];
+
+  function filteredOrder(){
+    return ORDER.filter(function(idx){ return pState.filter === 'all' || CASES[idx].status === pState.filter; });
+  }
+
+  function renderChips(){
+    var wrap = document.getElementById('pChips'); wrap.innerHTML = '';
+    FILTERS.forEach(function(f){
+      var b = document.createElement('button');
+      b.className = 'p-chip' + (pState.filter === f.id ? ' on' : '');
+      b.type = 'button'; b.textContent = f.label;
+      b.addEventListener('click', function(){ pState.filter = f.id; pState.idx = 0; renderChips(); renderCard(); });
+      wrap.appendChild(b);
+    });
+  }
+
+  function renderCard(){
+    var list = filteredOrder();
+    var counter = document.getElementById('pCounter');
+    var wrap = document.getElementById('pCardWrap');
+    if (!list.length){ counter.textContent = '0 of 0'; wrap.innerHTML = '<div class="gated">No cases match this filter.</div>'; return; }
+    pState.idx = Math.max(0, Math.min(pState.idx, list.length - 1));
+    var c = CASES[list[pState.idx]];
+    var d = delta(c);
+    counter.textContent = (pState.idx + 1) + ' of ' + list.length + ' · priority ' + priority(c).toFixed(0);
+    wrap.innerHTML =
+      '<div class="p-card" id="pCard">'+
+        '<div class="stamp left" id="pStampLeft">Waive</div>'+
+        '<div class="stamp right" id="pStampRight">Charge</div>'+
+        '<div class="pname">'+c.driver+'</div>'+
+        '<div class="psub">'+c.id+' · '+c.store+' · '+c.mode+'</div>'+
+        '<span class="statuspill st-'+c.status+'" style="margin-top:8px;display:inline-flex;">'+STATUS_LABEL[c.status]+'</span>'+
+        '<div class="pgrid">'+
+          '<div><div class="lg-k">Δ Amount</div><div class="lg-v '+(d<0?'bad':'good')+'">'+money(d)+'</div></div>'+
+          '<div><div class="lg-k">Day</div><div class="lg-v" style="font-size:12.5px;">'+c.shift_date+'</div></div>'+
+          '<div><div class="lg-k">Severity</div><div class="lg-v" style="font-size:12.5px;">'+c.severity+(c.pattern_flag?' · pattern':'')+'</div></div>'+
+          '<div><div class="lg-k">Age</div><div class="lg-v" style="font-size:12.5px;">'+c.ageDays+'d</div></div>'+
+        '</div>'+
+        '<button class="p-viewfull" id="pViewFull">View full case</button>'+
+        '<div class="p-decrow">'+
+          '<button class="dbtn charge" id="pCharge" disabled style="flex:1;">Charge<span class="m2">M2</span></button>'+
+          '<button class="dbtn waive" id="pWaive" disabled style="flex:1;">Waive<span class="m2">M2</span></button>'+
+        '</div>'+
+        '<div class="p-navrow">'+
+          '<button class="p-navbtn" id="pPrev" '+(pState.idx===0?'disabled':'')+'>← Prev</button>'+
+          '<button class="p-navbtn" id="pNext" '+(pState.idx===list.length-1?'disabled':'')+'>Next →</button>'+
+        '</div>'+
+      '</div>';
+    document.getElementById('pPrev').addEventListener('click', function(){ pState.idx--; renderCard(); });
+    document.getElementById('pNext').addEventListener('click', function(){ pState.idx++; renderCard(); });
+    document.getElementById('pViewFull').addEventListener('click', function(){ openFullSheet(c); });
+    document.getElementById('pCharge').addEventListener('click', function(){ showToast('Decision write is M2 — not enabled in this mockup.'); });
+    document.getElementById('pWaive').addEventListener('click', function(){ showToast('Decision write is M2 — not enabled in this mockup.'); });
+    wireSwipe(document.getElementById('pCard'), list);
+  }
+
+  function wireSwipe(card, list){
+    var sl = document.getElementById('pStampLeft'), sr = document.getElementById('pStampRight');
+    function onDown(e){
+      pState.dragging = true; pState.startX = (e.touches?e.touches[0].clientX:e.clientX); pState.dx = 0;
+      card.style.transition = 'none';
+    }
+    function onMove(e){
+      if (!pState.dragging) return;
+      var x = (e.touches?e.touches[0].clientX:e.clientX);
+      pState.dx = x - pState.startX;
+      card.style.transform = 'translateX('+pState.dx+'px) rotate('+(pState.dx/22)+'deg)';
+      var mag = Math.min(1, Math.abs(pState.dx) / 90);
+      sl.style.opacity = pState.dx < 0 ? mag : 0;
+      sr.style.opacity = pState.dx > 0 ? mag : 0;
+    }
+    function onUp(){
+      if (!pState.dragging) return;
+      pState.dragging = false;
+      card.style.transition = 'transform .18s ease';
+      card.style.transform = 'translateX(0) rotate(0)';
+      sl.style.opacity = 0; sr.style.opacity = 0;
+      if (Math.abs(pState.dx) > 70){
+        showToast('Decision write is M2 — not enabled in this mockup.');
+      }
+      pState.dx = 0;
+    }
+    card.addEventListener('pointerdown', onDown);
+    card.addEventListener('pointermove', onMove);
+    card.addEventListener('pointerup', onUp);
+    card.addEventListener('pointerleave', onUp);
+    card.addEventListener('touchstart', onDown, {passive:true});
+    card.addEventListener('touchmove', onMove, {passive:true});
+    card.addEventListener('touchend', onUp);
+  }
+
+  function openFullSheet(c){
+    var hist = HISTORY[c.driver] || [];
+    document.getElementById('pSheetTitle').textContent = c.driver + ' — ' + c.id;
+    document.getElementById('pSheetSub').textContent = c.store + ' · ' + c.mode + ' · ' + c.shift_date;
+    var historyRows = hist.length ? hist.map(function(h){
+      return '<div class="histrow"><span class="hd">'+h.shift_date+'</span><span>'+(h.disposition?h.disposition.replace(/_/g,' '):'undecided')+(h.disposition==='corrected_not_loss'?' <span class="lponly">LP ONLY</span>':'')+'</span><span class="num">'+(h.net_loss===null?'pending':money(h.net_loss))+'</span></div>';
+    }).join('') : '<div class="gated">No prior cases for this driver.</div>';
+    var threadHtml = c.driverResponse
+      ? '<div class="msg driver"><div class="mmeta">'+c.driver+' · '+c.driverResponseAt+'</div>'+c.driverResponse+'</div>'
+      : '<div class="waitpill">⏳ awaiting driver response · deadline '+c.response_deadline+'</div>';
+    document.getElementById('pSheetBody').innerHTML =
+      '<div class="card"><h3>Cash-discrepancy history<span class="routetag">GET <b>/api/lp/closer-reports</b> (proposed)</span></h3>'+historyRows+'</div>'+
+      '<div class="card"><h3>Driver response<span class="routetag">GET <b>/api/lp/cases/{id}</b> (proposed)</span></h3><div class="threadwrap">'+threadHtml+'</div></div>'+
+      '<div class="card"><h3>Decision<span class="routetag">POST <b>/lp/incidents/{id}/decision</b> (proposed)</span></h3>'+
+        '<div class="decisionrow">'+
+          '<button class="dbtn charge" disabled>Charge<span class="m2">M2 write</span></button>'+
+          '<button class="dbtn waive" disabled>Waive<span class="m2">M2 write</span></button>'+
+          '<button class="dbtn escalate" disabled>Escalate<span class="m2">M2 write</span></button>'+
+        '</div></div>';
+    document.getElementById('pSheetOverlay').classList.add('open');
+    document.getElementById('pSheet').classList.add('open');
+  }
+  function closeFullSheet(){
+    document.getElementById('pSheetOverlay').classList.remove('open');
+    document.getElementById('pSheet').classList.remove('open');
+  }
+  document.getElementById('pSheetOverlay').addEventListener('click', closeFullSheet);
+  document.getElementById('pSheetClose').addEventListener('click', closeFullSheet);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeFullSheet(); });
+
+  function setDevice(d){
+    document.getElementById('desktopView').hidden = d !== 'desktop';
+    document.getElementById('phoneView').hidden = d !== 'mobile';
+    document.querySelectorAll('#deviceSeg button').forEach(function(b){ b.classList.toggle('on', b.dataset.d === d); });
+    if (d === 'mobile'){ renderChips(); renderCard(); }
+  }
+  document.getElementById('deviceSeg').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-d]'); if (!btn) return;
+    setDevice(btn.dataset.d);
+  });
+
+  var initialDevice = (qDevice === 'mobile' || qDevice === 'desktop') ? qDevice : 'desktop';
+  setDevice(initialDevice);
+  if (qOpen === '1' && initialDevice === 'mobile'){
+    var list = filteredOrder();
+    if (list.length) openFullSheet(CASES[list[0]]);
+  }
+})();
 </script>
 </body>
 </html>

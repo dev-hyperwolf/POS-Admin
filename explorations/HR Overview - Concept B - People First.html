@@ -153,6 +153,49 @@ table.people tbody tr.sel-row{background:var(--highlightSoft);}
   .intro,.layout{padding-left:12px;padding-right:12px;}
   .filterbar{padding:10px;}
 }
+
+/* ---- device toggle + phone frame (searchable list, sticky letter index, person sheet) ---- */
+[hidden]{display:none !important;}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:6px;}
+.device-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.device-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:var(--r999);cursor:pointer;}
+.device-toggle button.on{background:var(--accent);color:var(--accentInk);}
+.phone-wrap{display:flex;justify-content:center;padding:26px 10px 60px;background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);min-height:calc(100vh - 58px);}
+.phone{width:390px;max-width:100%;background:#13130F;border-radius:46px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{background:var(--bg2);border-radius:34px;overflow:hidden;height:844px;max-height:82vh;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 auto;height:32px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:12px;font-weight:700;color:var(--ink);}
+.p-topbar{flex:0 0 auto;padding:2px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-topbar h2{margin:0 0 8px;font-size:15px;}
+.p-search{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r10);padding:8px 10px;margin-bottom:8px;}
+.p-search input{border:none;background:transparent;font:inherit;font-size:13px;color:var(--ink);width:100%;min-height:24px;}
+.p-entseg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+.p-entseg button{flex:0 0 auto;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);font-size:11.5px;font-weight:600;font-family:var(--fontSans);white-space:nowrap;}
+.p-entseg button.on{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+.p-body{flex:1;display:flex;min-height:0;}
+.p-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.p-letter-head{position:sticky;top:0;background:var(--bg2);color:var(--inkMute);font-size:11px;font-weight:800;letter-spacing:.06em;padding:7px 14px;z-index:2;border-bottom:1px solid var(--hairline);}
+.p-row{display:flex;align-items:center;gap:10px;padding:11px 14px;min-height:44px;border-bottom:1px solid var(--hairline);cursor:pointer;background:var(--surface);}
+.p-row:active{background:var(--surface2);}
+.p-row .av{width:32px;height:32px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;font-family:var(--fontMono);flex:0 0 auto;}
+.p-row .body{flex:1;min-width:0;}
+.p-row .name{font-size:13.5px;font-weight:700;}
+.p-row .sub{font-size:11px;color:var(--inkMute);margin-top:1px;}
+.p-row .flags{display:flex;gap:4px;flex:0 0 auto;}
+.p-idx{flex:0 0 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 0;overflow-y:auto;}
+.p-idx button{border:0;background:transparent;color:var(--info);font-size:9px;font-weight:800;font-family:var(--fontSans);padding:1px 4px;cursor:pointer;line-height:1.35;}
+.p-empty{padding:30px 14px;text-align:center;color:var(--inkMute);font-size:12.5px;}
+.p-sheet-scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:60;}
+.p-sheet-scrim.open{opacity:1;pointer-events:auto;}
+.p-sheet{position:absolute;left:0;right:0;bottom:0;max-height:82%;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);transform:translateY(100%);transition:transform .18s ease;z-index:70;display:flex;flex-direction:column;}
+.p-sheet.open{transform:translateY(0);}
+.p-sheet-grip{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 2px;flex:0 0 auto;}
+.p-sheet-head{display:flex;align-items:center;gap:10px;padding:6px 16px 10px;flex:0 0 auto;}
+.p-sheet-head .av{width:36px;height:36px;border-radius:99px;background:var(--accentSoft);color:var(--accentText);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;font-family:var(--fontMono);}
+.p-sheet-head h4{font-size:14.5px;margin:0;flex:1;}
+.p-sheet-close{width:44px;height:44px;border-radius:99px;background:var(--surface2);border:1px solid var(--hairline2);cursor:pointer;color:var(--inkDim);}
+.p-sheet-body{overflow-y:auto;padding:4px 16px 24px;-webkit-overflow-scrolling:touch;}
+.p-needs-fab{position:absolute;right:14px;bottom:14px;min-height:44px;padding:0 16px;border-radius:999px;background:var(--warn);color:#fff;border:0;font-weight:700;font-size:12.5px;box-shadow:var(--shadowMd);cursor:pointer;z-index:40;display:flex;align-items:center;gap:6px;}
+.p-needs-fab .b{background:rgba(0,0,0,.22);border-radius:99px;padding:1px 7px;font-family:var(--fontMono);}
 </style>
 </head>
 <body>
@@ -162,9 +205,14 @@ table.people tbody tr.sel-row{background:var(--highlightSoft);}
     <h1>HR Overview — Concept B: People First</h1>
     <div class="sub">Track 3 · M1 read-only · reads <b>GET /api/hr/employees</b>, <b>/compliance/expiring</b>, <b>/incidents</b>, <b>/calloffs</b></div>
   </div>
+  <div class="device-toggle" id="deviceToggle" role="group" aria-label="Preview device">
+    <button class="on" data-d="desktop" type="button">Desktop</button>
+    <button data-d="mobile" type="button">Mobile</button>
+  </div>
   <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
 </div>
 
+<div id="desktopView">
 <div class="intro">
   <div class="card">
     <div class="eyebrow">The idea</div>
@@ -242,6 +290,35 @@ table.people tbody tr.sel-row{background:var(--highlightSoft);}
     <div class="rail-card">
       <h4>Doc-expiry fix, live</h4>
       <div class="fix-note" id="fixNote"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-topbar">
+        <h2>People</h2>
+        <div class="p-search"><span>🔍</span><input id="pSearch" type="text" placeholder="Search name…"></div>
+        <div class="p-entseg" id="pEntSeg">
+          <button class="on" data-entity="all" type="button">All entities</button>
+          <button data-entity="highest-craft" type="button">Highest Craft</button>
+          <button data-entity="circle-city" type="button">Circle City</button>
+        </div>
+      </div>
+      <div class="p-body">
+        <div class="p-list" id="pList"></div>
+        <div class="p-idx" id="pIdx"></div>
+      </div>
+      <button class="p-needs-fab" id="pNeedsFab" type="button">Needs a person <span class="b" id="pNeedsBadge">0</span></button>
+      <div class="p-sheet-scrim" id="pSheetScrim"></div>
+      <div class="p-sheet" id="pSheet" role="dialog" aria-modal="true" aria-label="Person detail">
+        <div class="p-sheet-grip"></div>
+        <div class="p-sheet-head" id="pSheetHead"></div>
+        <div class="p-sheet-body" id="pSheetBody"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -362,6 +439,8 @@ function render(){
 
   renderDetail();
   renderRail(rows);
+  window.__ROWS = rows;
+  renderPhone();
 }
 
 function renderDetail(){
@@ -418,6 +497,7 @@ function renderRail(rowsInScope){
   if(escalateCandidate){ const e=findEmp(escalateCandidate.person_id); needs.push({kind:'Escalate', who:e.display_name, what:`"${escalateCandidate.type.replace(/_/g,' ')}" flagged for write-up`, action:'Escalate'}); }
   if(approveCandidate){ const e=findEmp(approveCandidate.person_id); needs.push({kind:'Approve', who:e.display_name, what:`Call-off pending review: ${approveCandidate.type.replace(/_/g,' ')}`, action:'Approve'}); }
   if(revealCandidate){ needs.push({kind:'Reveal', who:revealCandidate.display_name, what:'SSN reveal requested — value never shown, every look is logged', action:'Reveal SSN'}); }
+  window.__NEEDS = needs;
   document.getElementById('needsList').innerHTML = needs.length ? needs.map(n=>`
     <div class="need-item">
       <div class="kind">${n.kind}</div>
@@ -454,7 +534,118 @@ document.getElementById('themeBtn').addEventListener('click', () => {
   document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
 });
 
+/* ---------------------------------------------------------------------
+   PHONE VIEW — searchable list with a sticky A-Z letter index and a
+   person detail sheet. Same filters/EMPLOYEES/docFlagFor/... the desktop
+   roster already computed; the phone search box and entity chips just
+   write into the same `filters` object and re-run render().
+--------------------------------------------------------------------- */
+function initialsOf(name){ return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function renderPhone(){
+  const rows = (window.__ROWS || []).slice().sort((a,b)=>a.display_name.localeCompare(b.display_name));
+  const needs = window.__NEEDS || [];
+  document.getElementById('pNeedsBadge').textContent = needs.length;
+  document.querySelectorAll('#pEntSeg button').forEach(b=>b.classList.toggle('on', b.dataset.entity===filters.entity));
+  const listEl = document.getElementById('pList');
+  if(!rows.length){ listEl.innerHTML = '<div class="p-empty">No people match these filters.</div>'; document.getElementById('pIdx').innerHTML=''; return; }
+  let html = '', lastLetter = '';
+  const letters = [];
+  rows.forEach(e => {
+    const letter = e.display_name[0].toUpperCase();
+    if(letter !== lastLetter){ html += `<div class="p-letter-head" id="pl-${letter}">${letter}</div>`; lastLetter = letter; letters.push(letter); }
+    const doc = docFlagFor(e.person_id);
+    html += `<div class="p-row" data-id="${e.person_id}">
+      <div class="av">${initialsOf(e.display_name)}</div>
+      <div class="body"><div class="name">${e.display_name}</div><div class="sub">${e.title.join(', ')} · ${e.location}</div></div>
+      <div class="flags"><span class="pill ${pillFor(doc.status)}" style="font-size:9px;padding:2px 6px 3px;">${doc.label}</span></div>
+    </div>`;
+  });
+  listEl.innerHTML = html;
+  document.getElementById('pIdx').innerHTML = letters.map(l=>`<button data-l="${l}" type="button">${l}</button>`).join('');
+  listEl.querySelectorAll('.p-row').forEach(row => row.addEventListener('click', () => openPersonSheet(row.dataset.id)));
+  document.querySelectorAll('#pIdx button').forEach(b => b.addEventListener('click', () => {
+    const target = document.getElementById('pl-'+b.dataset.l);
+    if(target) listEl.scrollTop = target.offsetTop - listEl.offsetTop;
+  }));
+}
+function openPersonSheet(id){
+  const e = findEmp(id);
+  const doc = docFlagFor(e.person_id);
+  const inc = lastFor(INCIDENTS, e.person_id);
+  const co = lastFor(CALLOFFS, e.person_id);
+  document.getElementById('pSheetHead').innerHTML = `<div class="av">${initialsOf(e.display_name)}</div><h4>${e.display_name}</h4><button class="p-sheet-close" id="pSheetCloseBtn" aria-label="Close">✕</button>`;
+  document.getElementById('pSheetBody').innerHTML = `
+    <div class="dgrid">
+      <div class="dfield"><div class="l">Role</div><div class="v">${e.title.join(', ')}</div></div>
+      <div class="dfield"><div class="l">Entity</div><div class="v">${e.entity_id}</div></div>
+      <div class="dfield"><div class="l">Store</div><div class="v">${e.location}</div></div>
+      <div class="dfield"><div class="l">Status</div><div class="v">${e.status.replace(/_/g,' ')}</div></div>
+      <div class="dfield"><div class="l">Doc status</div><div class="v">${doc.label}${doc.doc_type ? ' — '+doc.doc_type.replace(/_/g,' ')+' (renews '+doc.renewal_date+')' : ''}</div></div>
+      <div class="dfield"><div class="l">Last incident</div><div class="v">${inc ? inc.type.replace(/_/g,' ')+' ('+inc.status+', '+inc.created_at+')' : '—'}</div></div>
+      <div class="dfield"><div class="l">Last call-off</div><div class="v">${co ? co.type.replace(/_/g,' ')+' ('+co.status+', '+co.created_at+')' : '—'}</div></div>
+      <div class="dfield"><div class="l">Route</div><div class="v mono" style="font-size:11.5px;">GET /api/hr/employees/${e.person_id}</div></div>
+    </div>
+    <div class="hidden-note">Contact fields (email/phone) would appear here for hr/admin per the migration plan. SSN/DL/passport/address/emergency contact never appear on this route, for any role.</div>`;
+  document.getElementById('pSheetCloseBtn').addEventListener('click', closePersonSheet);
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function openNeedsSheet(){
+  const needs = window.__NEEDS || [];
+  document.getElementById('pSheetHead').innerHTML = `<h4>Needs a person</h4><button class="p-sheet-close" id="pSheetCloseBtn" aria-label="Close">✕</button>`;
+  document.getElementById('pSheetBody').innerHTML = needs.length ? needs.map(n=>`
+    <div class="need-item">
+      <div class="kind">${n.kind}</div>
+      <div class="who">${n.who}</div>
+      <div class="what">${n.what}</div>
+    </div>`).join('') + '<div class="small-note" style="margin-top:8px;">M1 is read-only — every action here is disabled and tagged M4.</div>'
+    : '<div class="small-note" style="padding:10px 0;">Nothing awaiting a manager for this entity.</div>';
+  document.getElementById('pSheetCloseBtn').addEventListener('click', closePersonSheet);
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function closePersonSheet(){
+  document.getElementById('pSheet').classList.remove('open');
+  document.getElementById('pSheetScrim').classList.remove('open');
+}
+document.getElementById('pSearch').addEventListener('input', (e)=>{ filters.q = e.target.value; render(); });
+document.getElementById('pEntSeg').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-entity]'); if(!btn) return;
+  filters.entity = btn.dataset.entity;
+  document.querySelectorAll('#entitySeg button').forEach(b=>b.classList.toggle('on', b.dataset.entity===filters.entity));
+  render();
+});
+document.getElementById('pNeedsFab').addEventListener('click', openNeedsSheet);
+document.getElementById('pSheetScrim').addEventListener('click', closePersonSheet);
+
+/* ---- device toggle ---- */
+function setDevice(mode){
+  document.getElementById('desktopView').hidden = mode !== 'desktop';
+  document.getElementById('phoneView').hidden = mode !== 'mobile';
+  document.querySelectorAll('#deviceToggle button').forEach(b=>b.classList.toggle('on', b.dataset.d===mode));
+  if (mode === 'mobile') renderPhone();
+}
+document.getElementById('deviceToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-d]'); if(!btn) return;
+  setDevice(btn.dataset.d);
+});
+
 render();
+
+/* ---- query params: ?device=desktop|mobile  ?open=1|0  ?theme=light|dark ---- */
+(function applyQueryParams(){
+  try{
+    const qp = new URLSearchParams(location.search);
+    const theme = qp.get('theme');
+    if(theme==='dark' || theme==='light'){
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('themeBtn').textContent = theme==='dark' ? 'Light mode' : 'Dark mode';
+    }
+    const device = qp.get('device');
+    if(device==='mobile' || device==='desktop') setDevice(device);
+    if(qp.get('open')==='1' && (window.__ROWS||[]).length) openPersonSheet(window.__ROWS[0].person_id);
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

@@ -534,5 +534,23 @@ function onRoleChange(){ refreshRoleChip(); }
 refreshRoleChip();
 
 </script>
+<script>
+(function(){
+  var qp = new URLSearchParams(location.search);
+  var device = qp.get('device');
+  if (device === 'desktop' || device === 'mobile') {
+    try { setDevice(device === 'mobile' ? 'phone' : 'desktop'); } catch(e){}
+  }
+  var theme = qp.get('theme');
+  if (theme === 'light' || theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', theme);
+    var tb = document.getElementById('themeBtn');
+    if (tb) tb.textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+  }
+  if (qp.get('open') === '1') {
+    try { document.getElementById('tileWizard').click(); } catch(e){}
+  }
+})();
+</script>
 </body>
 </html>

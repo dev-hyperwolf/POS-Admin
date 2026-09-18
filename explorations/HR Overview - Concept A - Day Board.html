@@ -169,6 +169,60 @@ code,.mono{font-family:var(--fontMono);}
   .stat-strip{grid-template-columns:1fr 1fr;}
   .panel{width:100vw;}
 }
+
+/* ---- device toggle + phone frame (swipeable priority-card deck) ---- */
+[hidden]{display:none !important;}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:6px;}
+.device-toggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid var(--railInk);border-radius:var(--r999);padding:2px;}
+.device-toggle button{appearance:none;border:0;background:transparent;color:var(--railInk);font:inherit;font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:var(--r999);cursor:pointer;}
+.device-toggle button.on{background:var(--accent);color:var(--accentInk);}
+.phone-wrap{display:flex;justify-content:center;padding:26px 10px 60px;background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);min-height:calc(100vh - 58px);}
+.phone{width:390px;max-width:100%;background:#13130F;border-radius:46px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{background:var(--bg2);border-radius:34px;overflow:hidden;height:844px;max-height:82vh;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 auto;height:32px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:12px;font-weight:700;color:var(--ink);}
+.p-topbar{flex:0 0 auto;padding:2px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-topbar h2{margin:0 0 8px;font-size:15px;}
+.p-entseg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+.p-entseg button{flex:0 0 auto;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);font-size:11.5px;font-weight:600;font-family:var(--fontSans);white-space:nowrap;}
+.p-entseg button.on{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+.p-canvas{flex:1;overflow-y:auto;padding:12px 14px 14px;-webkit-overflow-scrolling:touch;}
+.p-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.p-stat{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:8px 10px;}
+.p-stat .lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);}
+.p-stat .val{font-family:var(--fontMono);font-size:19px;font-weight:600;margin-top:2px;}
+.p-deck-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.p-deck-head h3{font-size:12px;margin:0;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.p-deck-head .cnt{font-family:var(--fontMono);font-size:11px;color:var(--inkMute);}
+.p-deck{position:relative;min-height:210px;touch-action:pan-y;}
+.p-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r14);padding:14px 15px;box-shadow:var(--shadowMd);cursor:pointer;}
+.p-card .rank{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.p-card .rank .n{font-family:var(--fontMono);font-size:13px;font-weight:800;background:var(--ink);color:var(--surface);border-radius:999px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;}
+.p-card .title{font-size:14.5px;font-weight:700;line-height:1.35;}
+.p-card .desc{margin-top:6px;font-size:12.5px;color:var(--ink2);line-height:1.55;}
+.p-card .meta{margin-top:10px;font-size:11px;color:var(--inkMute);font-family:var(--fontMono);}
+.p-card .tap{margin-top:12px;font-size:11px;color:var(--info);font-weight:600;}
+.p-deck-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;}
+.p-navbtn{width:44px;height:44px;border-radius:999px;border:1px solid var(--hairline3);background:var(--surface);font-size:16px;cursor:pointer;color:var(--ink);}
+.p-navbtn:disabled{opacity:.4;cursor:not-allowed;}
+.p-dots{display:flex;gap:6px;}
+.p-dots span{width:6px;height:6px;border-radius:99px;background:var(--hairline3);}
+.p-dots span.on{background:var(--info);width:16px;border-radius:4px;}
+.p-empty{padding:30px 10px;text-align:center;color:var(--inkMute);font-size:12.5px;}
+.p-needs-fab{position:absolute;right:14px;bottom:14px;min-height:44px;padding:0 16px;border-radius:999px;background:var(--warn);color:#fff;border:0;font-weight:700;font-size:12.5px;box-shadow:var(--shadowMd);cursor:pointer;z-index:40;display:flex;align-items:center;gap:6px;}
+.p-needs-fab .b{background:rgba(0,0,0,.22);border-radius:99px;padding:1px 7px;font-family:var(--fontMono);}
+.p-sheet-scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:60;}
+.p-sheet-scrim.open{opacity:1;pointer-events:auto;}
+.p-sheet{position:absolute;left:0;right:0;bottom:0;max-height:80%;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);transform:translateY(100%);transition:transform .18s ease;z-index:70;display:flex;flex-direction:column;}
+.p-sheet.open{transform:translateY(0);}
+.p-sheet-grip{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 2px;flex:0 0 auto;}
+.p-sheet-head{display:flex;align-items:center;padding:6px 16px 10px;flex:0 0 auto;}
+.p-sheet-head h4{font-size:14px;margin:0;flex:1;}
+.p-sheet-close{width:44px;height:44px;border-radius:99px;background:var(--surface2);border:1px solid var(--hairline2);cursor:pointer;color:var(--inkDim);}
+.p-sheet-body{overflow-y:auto;padding:4px 16px 24px;-webkit-overflow-scrolling:touch;}
+.p-need-card{border:1px solid var(--hairline2);border-left:3px solid var(--warn);border-radius:var(--r10);padding:11px 12px;margin-bottom:10px;background:var(--surface2);}
+.p-need-card .kind{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--warnText);}
+.p-need-card .who{font-size:13.5px;font-weight:700;margin-top:3px;}
+.p-need-card .what{font-size:12px;color:var(--inkDim);margin-top:3px;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -178,9 +232,14 @@ code,.mono{font-family:var(--fontMono);}
     <h1>HR Overview — Concept A: Day Board</h1>
     <div class="sub">Track 3 · M1 read-only · reads <b>GET /api/hr/employees</b>, <b>/compliance/expiring</b>, <b>/incidents</b>, <b>/calloffs</b></div>
   </div>
+  <div class="device-toggle" id="deviceToggle" role="group" aria-label="Preview device">
+    <button class="on" data-d="desktop" type="button">Desktop</button>
+    <button data-d="mobile" type="button">Mobile</button>
+  </div>
   <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
 </div>
 
+<div id="desktopView">
 <div class="intro">
   <div class="card">
     <div class="eyebrow">The idea</div>
@@ -234,6 +293,40 @@ code,.mono{font-family:var(--fontMono);}
   </div>
   <div class="panel-body" id="panelBody"></div>
   <div class="panel-foot" id="panelFoot"></div>
+</div>
+</div>
+
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-topbar">
+        <h2>Today's Board</h2>
+        <div class="p-entseg" id="pEntSeg">
+          <button class="on" data-entity="all" type="button">All entities</button>
+          <button data-entity="highest-craft" type="button">Highest Craft</button>
+          <button data-entity="circle-city" type="button">Circle City</button>
+        </div>
+      </div>
+      <div class="p-canvas">
+        <div class="p-stat-grid" id="pStatGrid"></div>
+        <div class="p-deck-head"><h3>Ranked, most urgent first</h3><span class="cnt" id="pDeckCnt"></span></div>
+        <div class="p-deck" id="pDeck"></div>
+        <div class="p-deck-nav" id="pDeckNav" hidden>
+          <button class="p-navbtn" id="pPrev" type="button" aria-label="Previous card">‹</button>
+          <div class="p-dots" id="pDots"></div>
+          <button class="p-navbtn" id="pNext" type="button" aria-label="Next card">›</button>
+        </div>
+      </div>
+      <button class="p-needs-fab" id="pNeedsFab" type="button">Needs a person <span class="b" id="pNeedsBadge">0</span></button>
+      <div class="p-sheet-scrim" id="pSheetScrim"></div>
+      <div class="p-sheet" id="pSheet" role="dialog" aria-modal="true" aria-label="Detail">
+        <div class="p-sheet-grip"></div>
+        <div class="p-sheet-head"><h4 id="pSheetTitle">Detail</h4><button class="p-sheet-close" id="pSheetClose" aria-label="Close">✕</button></div>
+        <div class="p-sheet-body" id="pSheetBody"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -355,6 +448,7 @@ function render(){
       <div class="sub">${s.sub}</div>
       <span class="route" style="display:inline-block;margin-top:8px;">${s.route}</span>
     </div>`).join('');
+  window.__STATS = stats;
 
   // ---- needs a person lane ----
   const escalateCandidate = INCIDENTS.find(i=>i.escalate_to_writeup && (entityFilter==='all'||findEmp(i.person_id).entity_id===entityFilter));
@@ -375,6 +469,7 @@ function render(){
       </div>
       <div class="small-note" style="margin-top:8px;">${n.route}</div>
     </div>`).join('') : `<div class="small-note">Nothing awaiting a manager for this entity.</div>`;
+  window.__NEEDS = needs;
 
   // ---- day board cards, urgency-ordered ----
   const cards = [];
@@ -432,6 +527,8 @@ function render(){
   } else {
     document.getElementById('fixNote').style.display='none';
   }
+
+  renderPhone();
 }
 
 function openPanel(c){
@@ -464,7 +561,123 @@ document.getElementById('themeBtn').addEventListener('click', () => {
   document.getElementById('themeBtn').textContent = next==='dark' ? 'Light mode' : 'Dark mode';
 });
 
+/* ---------------------------------------------------------------------
+   PHONE VIEW — swipeable priority-card deck. Same window.__CARDS /
+   window.__NEEDS / window.__STATS the desktop board just computed; no
+   separate data path. One card visible at a time, ranked most-urgent
+   first, swipe or tap the arrows to move through the deck, tap the card
+   to open the same detail a desktop click would show, in a bottom sheet.
+--------------------------------------------------------------------- */
+let pDeckIdx = 0;
+function renderPhone(){
+  const cards = window.__CARDS || [];
+  const needs = window.__NEEDS || [];
+  const stats = window.__STATS || [];
+  document.getElementById('pStatGrid').innerHTML = stats.map(s=>`
+    <div class="p-stat"><div class="lbl">${s.lbl}</div><div class="val">${s.val}</div></div>`).join('');
+  document.getElementById('pNeedsBadge').textContent = needs.length;
+  if (pDeckIdx >= cards.length) pDeckIdx = 0;
+  renderDeck(cards);
+  document.querySelectorAll('#pEntSeg button').forEach(b=>b.classList.toggle('on', b.dataset.entity===currentEntity));
+}
+function renderDeck(cards){
+  const deck = document.getElementById('pDeck');
+  const nav = document.getElementById('pDeckNav');
+  document.getElementById('pDeckCnt').textContent = cards.length ? `${pDeckIdx+1} of ${cards.length}` : '';
+  if (!cards.length){ deck.innerHTML = '<div class="p-empty">Nothing needs attention for this entity today.</div>'; nav.hidden = true; return; }
+  nav.hidden = false;
+  const c = cards[pDeckIdx];
+  deck.innerHTML = `
+    <div class="p-card" id="pCardEl">
+      <div class="rank"><span class="n">${pDeckIdx+1}</span><span class="pill ${c.pill.t}">${c.pill.l}</span></div>
+      <div class="title">${c.title}</div>
+      <div class="desc">${c.desc}</div>
+      <div class="meta">${c.meta.join(' · ')}</div>
+      <div class="tap">Tap for full detail →</div>
+    </div>`;
+  document.getElementById('pDots').innerHTML = cards.map((_,i)=>`<span class="${i===pDeckIdx?'on':''}"></span>`).join('');
+  document.getElementById('pPrev').disabled = pDeckIdx===0;
+  document.getElementById('pNext').disabled = pDeckIdx===cards.length-1;
+  const cardEl = document.getElementById('pCardEl');
+  cardEl.addEventListener('click', ()=> openPhoneSheet(c));
+  // swipe left/right to move through the deck
+  let sx=0, sy=0, dragging=false;
+  cardEl.addEventListener('touchstart', e=>{ const t=e.changedTouches[0]; sx=t.clientX; sy=t.clientY; dragging=true; }, {passive:true});
+  cardEl.addEventListener('touchend', e=>{
+    if(!dragging) return; dragging=false;
+    const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)){
+      if(dx<0 && pDeckIdx<cards.length-1) pDeckIdx++;
+      else if(dx>0 && pDeckIdx>0) pDeckIdx--;
+      renderDeck(cards);
+    }
+  }, {passive:true});
+}
+document.getElementById('pPrev').addEventListener('click', ()=>{ if(pDeckIdx>0){ pDeckIdx--; renderDeck(window.__CARDS||[]); } });
+document.getElementById('pNext').addEventListener('click', ()=>{ const cards=window.__CARDS||[]; if(pDeckIdx<cards.length-1){ pDeckIdx++; renderDeck(cards); } });
+document.getElementById('pEntSeg').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-entity]'); if(!btn) return;
+  currentEntity = btn.dataset.entity; pDeckIdx = 0;
+  document.querySelectorAll('#entitySeg button').forEach(b=>b.classList.toggle('on', b.dataset.entity===currentEntity));
+  render();
+});
+function openPhoneSheet(c){
+  document.getElementById('pSheetTitle').textContent = c.title;
+  document.getElementById('pSheetBody').innerHTML = Object.entries(c.detail).map(([k,v])=>`
+    <div class="pfield"><div class="l">${k}</div><div class="v ${k==='Route'?'mono':''}">${v}</div></div>`).join('') +
+    '<div class="small-note" style="margin-top:10px;">M1 is read-only — no action buttons because none exist yet.</div>';
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function openPhoneNeeds(){
+  const needs = window.__NEEDS || [];
+  document.getElementById('pSheetTitle').textContent = 'Needs a person';
+  document.getElementById('pSheetBody').innerHTML = needs.length ? needs.map(n=>`
+    <div class="p-need-card">
+      <div class="kind">${n.kind}</div>
+      <div class="who">${n.who}</div>
+      <div class="what">${n.what}</div>
+    </div>`).join('') + '<div class="small-note">M1 is read-only — every action here is disabled and tagged M4.</div>'
+    : '<div class="small-note" style="padding:10px 0;">Nothing awaiting a manager for this entity.</div>';
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function closePhoneSheet(){
+  document.getElementById('pSheet').classList.remove('open');
+  document.getElementById('pSheetScrim').classList.remove('open');
+}
+document.getElementById('pNeedsFab').addEventListener('click', openPhoneNeeds);
+document.getElementById('pSheetClose').addEventListener('click', closePhoneSheet);
+document.getElementById('pSheetScrim').addEventListener('click', closePhoneSheet);
+
+/* ---- device toggle ---- */
+function setDevice(mode){
+  document.getElementById('desktopView').hidden = mode !== 'desktop';
+  document.getElementById('phoneView').hidden = mode !== 'mobile';
+  document.querySelectorAll('#deviceToggle button').forEach(b=>b.classList.toggle('on', b.dataset.d===mode));
+  if (mode === 'mobile') renderPhone();
+}
+document.getElementById('deviceToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-d]'); if(!btn) return;
+  setDevice(btn.dataset.d);
+});
+
 render();
+
+/* ---- query params: ?device=desktop|mobile  ?open=1|0  ?theme=light|dark ---- */
+(function applyQueryParams(){
+  try{
+    const qp = new URLSearchParams(location.search);
+    const theme = qp.get('theme');
+    if(theme==='dark' || theme==='light'){
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('themeBtn').textContent = theme==='dark' ? 'Light mode' : 'Dark mode';
+    }
+    const device = qp.get('device');
+    if(device==='mobile' || device==='desktop') setDevice(device);
+    if(qp.get('open')==='1' && (window.__CARDS||[]).length) openPhoneSheet(window.__CARDS[0]);
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
