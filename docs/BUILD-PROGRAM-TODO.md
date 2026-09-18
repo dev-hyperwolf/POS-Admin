@@ -19,8 +19,8 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | # | Item | Notes |
 |---|---|---|
 | A1 | **HyperDrive iOS app locked out (URGENT)** — all TestFlight builds expired 2026-09-17, ~39 drivers | Devs upload 1.0.6 build 3 (same version = fast beta review); check the Xcode Cloud tab for a Start Build button; then assign to both tester groups. Permanent fix = unlisted App Store release (B9). |
-| A2 | Owner questions, one at a time, four options. **ANSWERED 2026-09-17: routing 8/8, driver assignment 6/6, Metrc 6/6, loyalty 5/5, swap recovery 3/3 (2 technical picks by PM), scoreboard 4/4 (3 mechanical picks by PM)** — D17–D37 in memory. STILL OPEN: logistics wiring 5, cart 8, purchase limits 6, rewards UX 3, SMS provider 6, Shop at Home 6, Alpine config route 1 | 35 open |
-| A3 | Concept picks — eight review rounds live at `/explorations/review/` | rule builder, HR Overview, LP Triage, Nav Rail, Reports, Tax Rates, Regions, Cash Drawer. Unblocks every Phase-1 screen build. |
+| A2 | Owner questions: **ALL POLICY QUESTIONS ANSWERED 2026-09-17** (routing 8, driver assignment 6, Metrc 6, loyalty 5, swap 3, scoreboard 4, logistics wiring 3, cart 8, purchase limits 6 incl. medical, pickup 5, Shop at Home 5, SMS 2, Alpine route 1) — D17–D56 in memory. Open: NONE except design picks (A3/A4) | done |
+| A3 | Concept picks — nine review rounds (rule builder, HR Overview, LP Triage, Nav Rail, Reports, Tax Rates, Regions, Cash Drawer, + tap targets). **DEFERRED by JT 2026-09-17: he will review on his computer (wants the mobile frames); re-ask when he is at his desk.** Live at `/explorations/review/`; local concept files under `explorations/` | waiting on JT |
 | A4 | Tap-target sizes — **DECIDED 2026-09-17: include Register, but NO change until JT approves before/after designs.** PM owes before/after mockups (POS incl. Register, Driver, back-office; desktop + phone). | Design only until approved. |
 | A5 | Customer Account: pick variant A/B/C; remove the design-review switcher from the live page | Switcher already hidden on phones. |
 | A6 | Real tax rates per store (five numbers); medical exemption; where rates live today | `wm-demo/docs/TAX.md` |
@@ -29,7 +29,7 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | A9 | From whoever hosts production: read-only MongoDB user for `hw-sync`; who controls `hyperwolf.com` DNS | Production servers are NOT in the company AWS account. |
 | A10 | Mobile apps: driver-app source repo, TestFlight/Play internal access, test accounts, push console | `MOBILE-APP-AUDIT-GROUNDWORK` |
 | A11 | Render env still optional: `HW_BACKUP_S3_*`, `HW_AIRTABLE_KEY`, `HW_CONNECTEAM_API_KEY_*`, `HW_DISCORD_WEBHOOK_*`, `HW_LINK_SIGNING_KEY`, `HW_PII_KEY` | `WM_DEMO_ADMIN_TOKEN` set 2026-09-17. |
-| A12 | Codex: worktrees CREATED by PM 2026-09-17 (`/Users/jt/codex-work/{wm-demo,POS-Admin}` on `codex/handoff`, deps installed). Codex has NOT started; JT must re-prompt it in the ChatGPT app (message in chat). Queue 04–09 | waiting on JT |
+| A12 | Codex: queue 04–09 DONE and MERGED to main 2026-09-17 (04 blocked legitimately: forms generator lacks HEIC + empty-files checks → lead follow-up). Queue 10–14 being written; JT re-prompts Codex when ready | next prompt to JT |
 | A13 | Storefront redesign files: where are they? Weedmaps client id rotation call; relaunch the other session's dev server on 8787; GraphHopper plan/credits check | carried from the morning packet |
 | A14 | Counsel to confirm the 24-hour Metrc window for in-store sales | Delivery manifests must be in Metrc before departure (4 CCR §15049.3/§15418). |
 
@@ -71,6 +71,10 @@ B20 AWS access/dev-template security review, B21 dispatch + restock review.
 | B31 | Plans landed 2026-09-17 evening (all committed): CART-AND-CHECKOUT (swap: approve with changes), PURCHASE-LIMITS (+ dev list 1.9), METRC-API-CONDUCT (wm-demo), ALPINE-CONFIG-READ-OPTIONS, REWARDS-REDEMPTION-UX-AUDIT (ledger built but unwired), SMS-PROVIDER, SHOP-AT-HOME | done |
 | B32 | Sale lines RE-REVIEW PASSED → COMMITTED wm-demo 58ed35d + contracts 0.5.3 (POS-Admin 0835bc8); index boot-tested; buttons handed to JT 2026-09-17 evening; reports_probe fixture updated; RP-17/18/19/20/58 = UTC-midnight day-boundary flake in the fixture (fix: compute days in store-local tz) | refuting |
 | B33 | IAM template THIRD review FAILED (rds/kms tag self-forging; SecretTargetAttachment blocker) → fourth fix running → fourth review. Earlier: third fix DONE (Denies inside the boundary, sts removed, ceiling trimmed to 8 services, 6,049/6,144 chars; template 178 KB → must be uploaded to S3, not inline) → third review running | reviewing |
+| B34 | Plans landed (committed): PICKUP-FLOW-UX-REVIEW + PICKUP-FLOW-DEMO-AUDIT, PURCHASE-LIMITS-DAY-EDGE-CASES, MEDICAL-PURCHASE-LIMIT-RESEARCH, SMS-PROVIDER-SHORTLIST, ALPINE-CONFIG-READ-OPTIONS | done |
+| B35 | Alpine read-only config probe job (Render, redacted report, admin routes) | building |
+| B36 | Forms generator: add HEIC to `ATTACHMENT_CONTENT_TYPES` and a non-empty `files` check (from Codex 04 blocker), then re-queue brief 04 | queue |
+| B37 | IAM template FIFTH fix (structural: conditioned Allows) running → fifth review; AWS MCP connector session INVALIDATED 2026-09-17 evening — JT must reconnect | fixing |
 | B26 | Metrc recon: rerun creates duplicate exception rows; per-store wall-clock cap on package pulls | queue (with B15) |
 
 ## C. Landed today (2026-09-17) — detail in the master plan §9
