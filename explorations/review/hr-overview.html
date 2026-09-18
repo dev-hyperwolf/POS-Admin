@@ -20,11 +20,22 @@ input,select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px
 .status{padding:6px 12px;font-size:11px;color:var(--ink3);border-top:1px solid var(--line)}
 @media(max-width:900px){body{grid-template-columns:1fr;grid-template-rows:auto 1fr 40vh}aside{border-left:0;border-top:1px solid var(--line)}}
 .pin{padding:10px 12px;border-bottom:1px solid var(--line);display:grid;gap:6px;background:var(--soft)}.pin label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}.pin .r{display:flex;gap:6px}.pin .r input{flex:1}.pin .r button{white-space:nowrap}.note .x{border:0;background:transparent;color:var(--ink3);cursor:pointer;font-size:11px;padding:0}
+.lookfor{padding:10px 12px;border-bottom:1px solid var(--line);background:var(--bg)}.lookfor summary{cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)}.lookfor ul{margin:8px 0 0;padding-left:18px;color:var(--ink2);font-size:12.5px;line-height:1.55}.lookfor li{margin-bottom:4px}
+.tabwrap{display:inline-flex;align-items:center;gap:2px}
+.phonelink{font-size:12px;text-decoration:none;padding:5px 7px;border-radius:6px;border:1px solid var(--line);color:var(--ink2);background:transparent}
+.phonelink:hover{background:var(--soft)}
 </style>
 <header><h1>HR Overview Review</h1><span class="blurb">Four concepts for HR's landing screen. How to surface documents, incidents, and people — as an urgency board, a roster, a compliance wall, or a manager's inbox?</span><div class="tabs" id="tabs"></div></header>
 <main><iframe id="frame" title="concept"></iframe></main>
 <aside>
   <div class="pin" id="pin" hidden><label for="pinv">Team PIN</label><div class="r"><input id="pinv" type="password" placeholder="ask JT for the PIN" autocomplete="off"><button class="btn" id="pinok">Enter</button></div></div>
+  <details class="lookfor" open><summary>What to look for</summary><ul>
+    <li>Switch entities (All / Highest Craft / Circle City) on every concept — do the stat strip, board, and role/PII explainer all update together, with no stale numbers left over from the previous filter?</li>
+    <li>Hover or focus the <code>hr:read</code> scope chip on each concept — does it say plainly that SSN, DL, passport, home address, and emergency contact never leave the server on this route, for any role?</li>
+    <li>Find the doc-expiry false-positive callout (Marcus Webb / the flagged record) on each concept — does it show the old Table-A status next to the corrected computed status, not just assert the fix happened?</li>
+    <li>Every action in "Needs a person" (Escalate / Approve / Reveal SSN) should render disabled with an <code>M4</code> tag, never a working button — M1 is read-only.</li>
+    <li>Use the 📱 link on each tab (or the Desktop/Mobile toggle inside the concept) to open its phone layout — Day Board, People First, Compliance Wall, and Manager Inbox should each read as a genuinely different mobile pattern (a swipeable priority-card deck, a searchable A-Z list with a person sheet, a grouped checklist with progress rings, a threaded-by-person inbox with swipe actions) — not four shrunk copies of the same desktop page.</li>
+  </ul></details>
   <div class="who"><label for="who">Your name</label><input id="who" placeholder="e.g. Priya"></div>
   <div class="new">
     <div class="row"><select id="concept"></select><input id="section" placeholder="Section (e.g. skips panel)"></div>
@@ -42,7 +53,7 @@ input,select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px
   const $=s=>document.querySelector(s); const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let cur=0, verdict='', ok=false, notes=[], timer=null;
   const tabs=$('#tabs'), sel=$('#concept');
-  TABS.forEach((t,i)=>{const b=document.createElement('button');b.className='tab';b.textContent=String.fromCharCode(65+i)+' · '+t.name;b.setAttribute('aria-selected',i===0);b.onclick=()=>show(i);tabs.appendChild(b);const o=document.createElement('option');o.value=i;o.textContent=String.fromCharCode(65+i)+' · '+t.name;sel.appendChild(o);});
+  TABS.forEach((t,i)=>{const wrap=document.createElement('span');wrap.className='tabwrap';const b=document.createElement('button');b.className='tab';b.textContent=String.fromCharCode(65+i)+' · '+t.name;b.setAttribute('aria-selected',i===0);b.onclick=()=>show(i);const p=document.createElement('a');p.className='phonelink';p.href='../'+encodeURIComponent(t.file)+'?device=mobile&open=1';p.target='_blank';p.rel='noopener';p.title='Open '+t.name+' — phone view';p.textContent='📱';wrap.appendChild(b);wrap.appendChild(p);tabs.appendChild(wrap);const o=document.createElement('option');o.value=i;o.textContent=String.fromCharCode(65+i)+' · '+t.name;sel.appendChild(o);});
   function show(i){cur=i;[...tabs.children].forEach((b,j)=>b.setAttribute('aria-selected',j===i));$('#frame').src='../'+encodeURIComponent(TABS[i].file);sel.value=i;}
   show(0);
   const ls={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};

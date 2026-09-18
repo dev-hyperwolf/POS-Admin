@@ -124,13 +124,71 @@ font-family:var(--fontSans);font-size:11.8px;font-weight:600;padding:7px 12px;bo
 .reject-box{display:none;margin-top:10px;background:var(--badSoft);border:1px solid var(--bad);border-radius:9px;padding:9px 10px;}
 .reject-box.show{display:block;}
 .reject-box textarea{width:100%;min-height:56px;font-family:var(--fontSans);font-size:12px;border:1px solid var(--hairline3);border-radius:7px;padding:6px 8px;resize:vertical;}
+
+/* ---- device toggle + phone frame (chat-style review, approve/edit) ---- */
+[hidden]{display:none !important;}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:6px;}
+.device-toggle{display:inline-flex;background:var(--surface3);border:1px solid var(--hairline2);border-radius:999px;padding:2px;gap:2px;}
+.device-toggle button{border:none;background:transparent;padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--inkDim);cursor:pointer;font-family:var(--fontSans);white-space:nowrap;}
+.device-toggle button.active{background:var(--ink);color:var(--bg);}
+.phone-wrap{display:flex;justify-content:center;padding:26px 10px 60px;background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);min-height:calc(100vh - 60px);}
+.phone{width:390px;max-width:100%;background:#13130F;border-radius:46px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{background:var(--bg2);border-radius:34px;overflow:hidden;height:844px;max-height:82vh;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 auto;height:32px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:12px;font-weight:700;color:var(--ink);}
+.p-topbar{flex:0 0 auto;padding:2px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-topbar h2{margin:0 0 8px;font-size:15px;}
+.p-ruleseg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+.p-ruleseg button{flex:0 0 auto;min-height:32px;max-width:210px;padding:0 12px;border-radius:999px;border:1px solid var(--hairline2);background:var(--surface2);color:var(--inkDim);font-size:11px;font-weight:600;font-family:var(--fontSans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.p-ruleseg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.p-chatcanvas{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch;}
+.p-msg{display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;}
+.p-msg.mine{flex-direction:row-reverse;}
+.p-avatar{width:26px;height:26px;border-radius:99px;background:var(--infoSoft);color:var(--info);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:0 0 auto;}
+.p-msg.mine .p-avatar{background:var(--accentSoft);color:var(--accentText);}
+.p-bubble{max-width:78%;padding:9px 12px;border-radius:14px;font-size:12.5px;line-height:1.55;background:var(--surface);border:1px solid var(--hairline2);color:var(--ink2);}
+.p-msg.mine .p-bubble{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme=dark] .p-msg.mine .p-bubble{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.p-bubble .lbl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);margin-bottom:4px;display:block;}
+.p-msg.mine .p-bubble .lbl{color:rgba(255,255,255,.65);}
+.p-bubble .cond-row{background:var(--surface2);border:1px solid var(--hairline2);border-radius:8px;padding:6px 8px;margin-top:4px;font-size:11.3px;font-family:var(--fontMono);}
+.p-bubble .then-line{background:var(--accentSoft);border:1px solid var(--accentBorder);border-radius:8px;padding:6px 8px;margin-top:6px;font-size:11.5px;}
+.p-bubble .edit-btn{margin-top:8px;min-height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--hairline3);background:var(--surface2);color:var(--ink);font-size:11.5px;font-weight:600;cursor:pointer;}
+.p-sys{text-align:center;font-size:10.5px;color:var(--inkMute);margin:12px 0;line-height:1.5;}
+.p-sys.bad{color:var(--bad);}
+.p-sys.ok{color:var(--good);}
+.p-sys b{font-weight:700;}
+.p-composer{flex:0 0 auto;border-top:1px solid var(--hairline2);background:var(--surface);padding:10px 12px calc(10px + env(safe-area-inset-bottom,8px));}
+.p-quickrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;}
+.p-quickrow button{flex:0 0 auto;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--hairline3);background:var(--surface2);color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;}
+.p-quickrow button.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+[data-theme=dark] .p-quickrow button.primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.p-quickrow button.danger{color:var(--bad);border-color:var(--bad);}
+.p-quickrow button:disabled{opacity:.45;cursor:not-allowed;}
+.p-reply{display:none;gap:8px;align-items:flex-end;}
+.p-reply.show{display:flex;}
+.p-reply textarea{flex:1;min-height:44px;max-height:100px;border-radius:14px;border:1px solid var(--hairline3);padding:10px 12px;font-family:var(--fontSans);font-size:12.5px;resize:none;background:var(--field,var(--surface2));color:var(--ink);}
+.p-reply button{min-height:44px;padding:0 16px;border-radius:14px;border:0;background:var(--bad);color:#fff;font-weight:700;font-size:12.5px;cursor:pointer;}
+.p-sheet-scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:60;}
+.p-sheet-scrim.open{opacity:1;pointer-events:auto;}
+.p-sheet{position:absolute;left:0;right:0;bottom:0;max-height:70%;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);transform:translateY(100%);transition:transform .18s ease;z-index:70;display:flex;flex-direction:column;}
+.p-sheet.open{transform:translateY(0);}
+.p-sheet-grip{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 2px;flex:0 0 auto;}
+.p-sheet-head{display:flex;align-items:center;padding:6px 16px 10px;flex:0 0 auto;}
+.p-sheet-head h4{font-size:14px;margin:0;flex:1;}
+.p-sheet-close{width:44px;height:44px;border-radius:99px;background:var(--surface2);border:1px solid var(--hairline2);cursor:pointer;color:var(--inkDim);}
+.p-sheet-body{overflow-y:auto;padding:4px 16px 24px;-webkit-overflow-scrolling:touch;}
 </style>
 </head>
 <body>
+<div id="desktopView">
 <div class="doc-head">
   <div>
     <h1>Promo Rules — Concept D: Agent Draft Review</h1>
     <div class="sub">Team 1d · <b>hw.rule.v1</b> · plan §2.5 · the screen IS the approval record</div>
+  </div>
+  <div class="device-toggle" id="deviceToggle" role="group" aria-label="Preview device">
+    <button class="active" data-d="desktop" type="button">Desktop</button>
+    <button data-d="mobile" type="button">Mobile</button>
   </div>
   <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">◐</button>
 </div>
@@ -145,6 +203,33 @@ font-family:var(--fontSans);font-size:11.8px;font-weight:600;padding:7px 12px;bo
   <div class="switcher" id="switcher"></div>
 
   <div class="cols" id="mainCols"></div>
+</div>
+</div>
+
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-topbar">
+        <h2>Draft Review</h2>
+        <div class="p-ruleseg" id="pRuleSeg"></div>
+      </div>
+      <div class="p-chatcanvas" id="pChat"></div>
+      <div class="p-composer">
+        <div class="p-quickrow" id="pQuickRow"></div>
+        <div class="p-reply" id="pReplyRow">
+          <textarea id="pReplyText" placeholder="Reason for rejection…"></textarea>
+          <button id="pReplySend" type="button">Send</button>
+        </div>
+      </div>
+      <div class="p-sheet-scrim" id="pSheetScrim"></div>
+      <div class="p-sheet" id="pSheet" role="dialog" aria-modal="true" aria-label="Edit rule">
+        <div class="p-sheet-grip"></div>
+        <div class="p-sheet-head"><h4>Edit rule</h4><button class="p-sheet-close" id="pSheetClose" aria-label="Close">✕</button></div>
+        <div class="p-sheet-body" id="pSheetBody"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -225,6 +310,8 @@ const SHARED_HISTORY = [
 ];
 
 let selectedId = RULES[0].id;
+let pReplyOpen = false;
+let pEditing = false;
 
 function renderSwitcher(){
   document.getElementById('switcher').innerHTML = RULES.map(r=>`
@@ -318,6 +405,7 @@ function render(){
     </div>`;
 
   document.getElementById('mainCols').innerHTML = left + center + right;
+  if (typeof renderPhone === 'function') renderPhone();
 }
 
 function toggleEdit(){
@@ -334,6 +422,109 @@ function confirmReject(){
 }
 
 render();
+
+/* ---------------------------------------------------------------------
+   PHONE VIEW — a chat-style review thread built from the same RULES /
+   SHARED_HISTORY the desktop three-column layout reads. The agent's
+   prompt, its interpretation, and the generated rule render as message
+   bubbles; the audit trail becomes system lines; approve/reject/edit are
+   quick-reply actions along the bottom, exactly like a messaging app.
+--------------------------------------------------------------------- */
+function pRule(){ return RULES.find(r=>r.id===selectedId); }
+function renderPhone(){
+  const r = pRule();
+  document.getElementById('pRuleSeg').innerHTML = RULES.map(x=>`<button data-id="${x.id}" class="${x.id===selectedId?'on':''}">${x.name}</button>`).join('');
+  document.querySelectorAll('#pRuleSeg button').forEach(b=>b.addEventListener('click', ()=>{ selectedId=b.dataset.id; pReplyOpen=false; pEditing=false; render(); }));
+
+  const isAgent = r.source === 'agent';
+  const canAct = !isAgent && r.status !== 'ended';
+  const condLines = [];
+  if (r.rule.if.all.length) condLines.push('<b>ALL</b> of: ' + r.rule.if.all.map(condLine).join(' and '));
+  if (r.rule.if.any.length) condLines.push('<b>ANY</b> of: ' + r.rule.if.any.map(condLine).join(' or '));
+  if (r.rule.if.not.length) condLines.push('<b>NONE</b> of: ' + r.rule.if.not.map(condLine).join(' or '));
+
+  let chat = '';
+  if (r.prompt) {
+    chat += `<div class="p-msg"><div class="p-avatar">AI</div><div class="p-bubble"><span class="lbl">promo-copilot · prompt</span>“${r.prompt}”</div></div>`;
+  } else {
+    chat += `<div class="p-sys">No agent prompt — <b>${r.rule.meta.author}</b> authored this directly in the rule builder.</div>`;
+  }
+  chat += `<div class="p-msg"><div class="p-avatar">${isAgent?'AI':'👤'}</div><div class="p-bubble"><span class="lbl">interpretation</span>${r.interp}</div></div>`;
+  chat += `<div class="p-msg"><div class="p-avatar">${isAgent?'AI':'👤'}</div><div class="p-bubble">
+      <span class="lbl">${r.name} · v${r.rule.meta.version}</span>
+      ${condLines.map(c=>`<div class="cond-row">${c}</div>`).join('') || '<div class="cond-row" style="opacity:.6;">unconditional</div>'}
+      <div class="then-line"><b>then</b>: ${r.rule.then.kind} = ${JSON.stringify(r.rule.then.value)} on ${r.rule.then.applies_to}${r.rule.then.cap_cents!=null?` · cap ${r.rule.then.cap_cents}¢`:''}${r.rule.then.max_per_order!=null?` · max ${r.rule.then.max_per_order}/order`:''}</div>
+      ${pEditing ? '<div class="small-note" style="margin-top:6px;color:var(--warnText);">Editing… fields become inputs in the real build. Saving stamps a new version with a human author of record.</div>' : ''}
+      <br><button class="edit-btn" id="pEditBtn" type="button">${pEditing ? 'Done editing' : 'Edit'}</button>
+    </div></div>`;
+  chat += `<div class="p-sys">Live preview: <b>${r.preview.batches} batches · ${r.preview.lines} lines</b> of the sample cart<br>POST /api/promos/rules/${r.rule.id}/preview</div>`;
+  const hist = [...r.history, ...SHARED_HISTORY];
+  hist.forEach(h => { chat += `<div class="p-sys ${h.cls}"><b>${h.who}</b> — ${h.when}<br>${h.what}</div>`; });
+
+  const chatEl = document.getElementById('pChat');
+  chatEl.innerHTML = chat;
+  const eb = document.getElementById('pEditBtn'); if (eb) eb.addEventListener('click', ()=>{ pEditing = !pEditing; renderPhone(); });
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  const quick = document.getElementById('pQuickRow');
+  const actionLabel = r.status === 'active' ? 'Pause' : 'Activate';
+  quick.innerHTML = `
+    <button class="primary" id="pActBtn" type="button" ${canAct?'':'disabled'}>${actionLabel}${isAgent?' (needs a person)':''}</button>
+    <button id="pEditQuick" type="button">Edit</button>
+    <button class="danger" id="pRejectBtn" type="button">Reject</button>`;
+  document.getElementById('pActBtn').addEventListener('click', ()=>{
+    if (!canAct) return;
+    r.status = r.status==='active' ? 'paused' : 'active';
+    r.history.unshift({who:'admin@hyperwolf.com', when: new Date().toISOString().slice(0,16).replace('T',' '), what:(r.status==='active'?'Activated':'Paused')+' from the phone review thread', cls:'ok'});
+    render();
+  });
+  document.getElementById('pEditQuick').addEventListener('click', ()=>{ pEditing = !pEditing; renderPhone(); });
+  document.getElementById('pRejectBtn').addEventListener('click', ()=>{ pReplyOpen = true; renderPhone(); document.getElementById('pReplyText').focus(); });
+  document.getElementById('pReplyRow').classList.toggle('show', pReplyOpen);
+}
+document.getElementById('pReplySend').addEventListener('click', ()=>{
+  const r = pRule();
+  const reason = document.getElementById('pReplyText').value.trim() || '(no reason given)';
+  r.history.unshift({who:'admin@hyperwolf.com', when: new Date().toISOString().slice(0,16).replace('T',' '), what:`Rejected — reason: ${reason}`, cls:'bad'});
+  document.getElementById('pReplyText').value = '';
+  pReplyOpen = false;
+  render();
+});
+document.getElementById('pSheetClose').addEventListener('click', ()=>{
+  document.getElementById('pSheet').classList.remove('open');
+  document.getElementById('pSheetScrim').classList.remove('open');
+});
+document.getElementById('pSheetScrim').addEventListener('click', ()=>{
+  document.getElementById('pSheet').classList.remove('open');
+  document.getElementById('pSheetScrim').classList.remove('open');
+});
+
+/* ---- theme toggle (mirrors toggleTheme(), keeps the icon-only button in sync) ---- */
+function syncThemeBtn(){} // no-op: this concept's theme button has no text state to sync
+
+/* ---- device toggle ---- */
+function setDevice(mode){
+  document.getElementById('desktopView').hidden = mode !== 'desktop';
+  document.getElementById('phoneView').hidden = mode !== 'mobile';
+  document.querySelectorAll('#deviceToggle button').forEach(b=>b.classList.toggle('active', b.dataset.d===mode));
+  if (mode === 'mobile') renderPhone();
+}
+document.getElementById('deviceToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-d]'); if(!btn) return;
+  setDevice(btn.dataset.d);
+});
+
+/* ---- query params: ?device=desktop|mobile  ?open=1|0  ?theme=light|dark ---- */
+(function applyQueryParams(){
+  try{
+    const qp = new URLSearchParams(location.search);
+    const theme = qp.get('theme');
+    if(theme==='dark' || theme==='light') document.documentElement.setAttribute('data-theme', theme);
+    const device = qp.get('device');
+    if(device==='mobile' || device==='desktop') setDevice(device);
+    if(qp.get('open')==='1'){ pReplyOpen = true; renderPhone(); }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

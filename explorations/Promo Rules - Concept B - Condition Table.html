@@ -457,6 +457,120 @@ document.getElementById('themeBtn').addEventListener('click', () => {
   html.setAttribute('data-theme', next);
   document.getElementById('themeBtn').textContent = next === 'light' ? 'Dark mode' : 'Light mode';
 });
+
+/* ---------------------------------------------------------------------
+   PHONE VIEW — a card list with inline filters. Same `rules`/BATCHES/
+   evalGroup()/evalCondition() the desktop table already computes; the
+   status chips and the B1/B2/B3 toggles just narrow what's shown, they
+   never re-derive the evaluation.
+--------------------------------------------------------------------- */
+function renderPhone(){
+  document.getElementById('pBatchFilter').innerHTML = BATCHES.map(b=>`<button data-b="${b.id}" class="${pBatchOn[b.id]?'on':''}" type="button">${b.id}</button>`).join('');
+  document.querySelectorAll('#pStatusFilter button').forEach(b=>b.classList.toggle('on', b.dataset.s===pStatusFilter));
+  const visibleBatches = BATCHES.filter(b=>pBatchOn[b.id]);
+  const filtered = rules.filter(r => pStatusFilter==='all' || r.status===pStatusFilter);
+  const canvas = document.getElementById('pCanvas');
+  if(!filtered.length){ canvas.innerHTML = '<div class="small-note" style="text-align:center;padding:30px 0;">No rules match this filter.</div>'; return; }
+  canvas.innerHTML = filtered.map(rule => {
+    const rows = []; flatten(rule.if, [], rows);
+    const rowsHtml = rows.slice(0,4).map(r => `
+      <div class="p-cond-mini">
+        <span class="f">${r.cond.field} ${r.cond.op} ${Array.isArray(r.cond.value)?'['+r.cond.value.join(',')+']':r.cond.value}</span>
+        <span class="dots">${visibleBatches.map(b=>{ const v=evalCondition(r.cond,b); return `<span class="dot ${v===true?'pass':v===false?'fail':'ctx'}">${v===true?'✓':v===false?'✕':'–'}</span>`; }).join('')}</span>
+      </div>`).join('');
+    const sourceTag = rule.meta.source === 'agent' ? `<span class="pill pill-agent pill-sm">drafted by agent</span>` : '';
+    return `<div class="p-rule-card" data-id="${rule.id}">
+      <div class="rname">${rule.name}</div>
+      <div class="rmeta"><span class="${pillClass(rule.status)} pill-sm">${rule.status}</span>${sourceTag}</div>
+      ${rowsHtml}${rows.length>4?`<div class="small-note" style="margin-top:6px;">+${rows.length-4} more condition${rows.length-4===1?'':'s'}</div>`:''}
+      <div class="p-tap">Tap for then / scope / window / JSON →</div>
+    </div>`;
+  }).join('');
+  canvas.querySelectorAll('.p-rule-card').forEach(card => card.addEventListener('click', ()=> openRuleSheet(rules.find(r=>r.id===card.dataset.id))));
+}
+function openRuleSheet(rule){
+  document.getElementById('pSheetTitle').textContent = rule.name;
+  document.getElementById('pSheetBody').innerHTML = `
+    <div class="rmeta" style="margin-bottom:10px;">${activateControl(rule)}</div>
+    <div class="tcw-card" style="margin-bottom:10px;">
+      <div class="tl">Then</div>
+      <div class="kv"><span class="k">kind</span><span class="v">${rule.then.kind}</span></div>
+      <div class="kv"><span class="k">value</span><span class="v">${rule.then.kind==='percent'?rule.then.value+'%':(rule.then.kind==='amount'||rule.then.kind==='price')?money(rule.then.value):rule.then.value}</span></div>
+      <div class="kv"><span class="k">applies_to</span><span class="v">${rule.then.applies_to}</span></div>
+      <div class="kv"><span class="k">cap_cents</span><span class="v">${rule.then.cap_cents ?? 'null'}</span></div>
+      <div class="kv"><span class="k">max_per_order</span><span class="v">${rule.then.max_per_order ?? 'null'}</span></div>
+    </div>
+    <div class="tcw-card" style="margin-bottom:10px;">
+      <div class="tl">Scope</div>
+      <div class="kv"><span class="k">store_ids</span><span class="v">${rule.scope.store_ids.length?rule.scope.store_ids.join(', '):'all stores'}</span></div>
+      <div class="kv"><span class="k">channels</span><span class="v">${rule.scope.channels.length?rule.scope.channels.join(', '):'all channels'}</span></div>
+      <div class="kv"><span class="k">stackable</span><span class="v">${rule.stackable}</span></div>
+      <div class="kv"><span class="k">priority</span><span class="v">${rule.priority}</span></div>
+    </div>
+    <div class="tcw-card" style="margin-bottom:10px;">
+      <div class="tl">Window</div>
+      <div class="kv"><span class="k">starts_at</span><span class="v">${fmtDate(rule.window.starts_at)}</span></div>
+      <div class="kv"><span class="k">ends_at</span><span class="v">${fmtDate(rule.window.ends_at)}</span></div>
+    </div>
+    <div class="preview-box" style="margin-bottom:10px;">
+      <span class="pv-num">${rule.preview.batches}</span> batches · <span class="pv-num">${rule.preview.lines}</span> lines match
+      <div class="pv-bind">POST /api/promos/rules/${rule.id}/preview</div>
+    </div>
+    <button class="btn sm" id="pToggleJson" type="button">View JSON</button>
+    <pre class="jsonview" id="pJsonView" style="margin-top:8px;">${JSON.stringify(stripRule(rule),null,2)}</pre>`;
+  document.getElementById('pSheetBody').querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+    rule.status = b.getAttribute('data-act')==='activate' ? 'active' : 'paused';
+    renderRule(rule);
+    openRuleSheet(rule);
+  }));
+  document.getElementById('pToggleJson').addEventListener('click', (e)=>{
+    document.getElementById('pJsonView').classList.toggle('open');
+    e.target.textContent = e.target.textContent==='View JSON' ? 'Hide JSON' : 'View JSON';
+  });
+  document.getElementById('pSheet').classList.add('open');
+  document.getElementById('pSheetScrim').classList.add('open');
+}
+function closeRuleSheet(){
+  document.getElementById('pSheet').classList.remove('open');
+  document.getElementById('pSheetScrim').classList.remove('open');
+}
+document.getElementById('pStatusFilter').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-s]'); if(!btn) return;
+  pStatusFilter = btn.dataset.s; renderPhone();
+});
+document.getElementById('pBatchFilter').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-b]'); if(!btn) return;
+  pBatchOn[btn.dataset.b] = !pBatchOn[btn.dataset.b]; renderPhone();
+});
+document.getElementById('pSheetClose').addEventListener('click', closeRuleSheet);
+document.getElementById('pSheetScrim').addEventListener('click', closeRuleSheet);
+
+/* ---- device toggle ---- */
+function setDevice(mode){
+  document.getElementById('desktopView').hidden = mode !== 'desktop';
+  document.getElementById('phoneView').hidden = mode !== 'mobile';
+  document.querySelectorAll('#deviceToggle button').forEach(b=>b.classList.toggle('on', b.dataset.d===mode));
+  if (mode === 'mobile') renderPhone();
+}
+document.getElementById('deviceToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-d]'); if(!btn) return;
+  setDevice(btn.dataset.d);
+});
+
+/* ---- query params: ?device=desktop|mobile  ?open=1|0  ?theme=light|dark ---- */
+(function applyQueryParams(){
+  try{
+    const qp = new URLSearchParams(location.search);
+    const theme = qp.get('theme');
+    if(theme==='dark' || theme==='light'){
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('themeBtn').textContent = theme==='dark' ? 'Light mode' : 'Dark mode';
+    }
+    const device = qp.get('device');
+    if(device==='mobile' || device==='desktop') setDevice(device);
+    if(qp.get('open')==='1' && rules.length) openRuleSheet(rules[0]);
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

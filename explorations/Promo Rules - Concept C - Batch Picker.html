@@ -133,13 +133,63 @@ border:1px dashed var(--hairline3);border-radius:var(--r12);padding:14px 16px;fl
 .footer-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;}
 .footer-note{font-size:11px;color:var(--warnText);font-family:var(--fontMono);}
 .badge-shape{font-size:10px;color:var(--inkFaint);font-family:var(--fontMono);}
+
+/* ---- device toggle + phone frame (picker sheets, stacked) ---- */
+[hidden]{display:none !important;}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:6px;}
+.device-toggle{display:inline-flex;background:var(--surface3);border:1px solid var(--hairline2);border-radius:999px;padding:2px;gap:2px;}
+.device-toggle button{border:none;background:transparent;padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--inkDim);cursor:pointer;font-family:var(--fontSans);white-space:nowrap;}
+.device-toggle button.active{background:var(--ink);color:var(--bg);}
+.phone-wrap{display:flex;justify-content:center;padding:26px 10px 60px;background:repeating-linear-gradient(135deg, var(--surface3) 0 14px, var(--bg2) 14px 28px);min-height:calc(100vh - 60px);}
+.phone{width:390px;max-width:100%;background:#13130F;border-radius:46px;padding:12px;box-shadow:var(--shadowLg);}
+.phone-screen{background:var(--bg2);border-radius:34px;overflow:hidden;height:844px;max-height:82vh;position:relative;display:flex;flex-direction:column;}
+.p-status{flex:0 0 auto;height:32px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 6px;font-size:12px;font-weight:700;color:var(--ink);}
+.p-topbar{flex:0 0 auto;padding:2px 14px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.p-topbar h2{margin:0 0 4px;font-size:15px;}
+.p-topbar .sub{font-size:10.5px;color:var(--inkMute);}
+.p-canvas{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch;}
+.p-existing{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--hairline);}
+.p-existing .c{flex:0 0 190px;border:1px solid var(--hairline2);border-radius:var(--r10);padding:9px 10px;background:var(--surface);}
+.p-existing .c .n{font-size:11.5px;font-weight:600;margin-bottom:6px;line-height:1.3;}
+.p-batch-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--hairline);min-height:44px;}
+.p-batch-row input[type=checkbox]{width:20px;height:20px;flex:0 0 auto;}
+.p-batch-row .body{flex:1;font-size:12.5px;}
+.p-batch-row .body b{font-family:var(--fontMono);}
+.p-batch-row .meta{font-size:11px;color:var(--inkMute);margin-top:1px;}
+.p-continue-bar{flex:0 0 auto;padding:10px 14px calc(10px + env(safe-area-inset-bottom,10px));border-top:1px solid var(--hairline2);background:var(--surface);}
+.p-continue-bar button{width:100%;min-height:44px;border-radius:var(--r10);font-weight:700;font-size:13px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--surface);}
+[data-theme=dark] .p-continue-bar button{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.p-stack{position:absolute;inset:0;z-index:65;pointer-events:none;}
+.p-stack.open{pointer-events:auto;}
+.p-stack-scrim{position:absolute;inset:0;background:rgba(0,0,0,.42);opacity:0;transition:opacity .18s ease;pointer-events:none;}
+.p-stack.open .p-stack-scrim{opacity:1;pointer-events:auto;}
+.p-peek{position:absolute;left:20px;right:20px;bottom:80%;background:var(--surface2);border:1px solid var(--hairline2);border-bottom:0;border-radius:14px 14px 0 0;padding:8px 14px;font-size:10.5px;font-weight:700;color:var(--inkMute);z-index:64;cursor:pointer;transform:translateY(10px);opacity:0;transition:transform .18s ease,opacity .18s ease;}
+.p-stack.open .p-peek:not([hidden]){transform:translateY(0);opacity:1;}
+.p-sheet-layer{position:absolute;left:0;right:0;bottom:0;height:80%;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:var(--shadowLg);transform:translateY(100%);transition:transform .2s ease;display:flex;flex-direction:column;z-index:66;}
+.p-stack.open .p-sheet-layer.top{transform:translateY(0);}
+.p-sheet-grip{width:36px;height:4px;border-radius:99px;background:var(--hairline3);margin:9px auto 2px;flex:0 0 auto;}
+.p-sheet-head{display:flex;align-items:center;gap:8px;padding:6px 16px 10px;flex:0 0 auto;}
+.p-sheet-head h4{font-size:13.5px;margin:0;flex:1;}
+.p-sheet-head .step{font-size:10px;color:var(--inkMute);font-family:var(--fontMono);}
+.p-sheet-back{width:36px;height:36px;border-radius:99px;background:var(--surface2);border:1px solid var(--hairline2);cursor:pointer;color:var(--inkDim);font-size:15px;}
+.p-sheet-body{overflow-y:auto;padding:4px 16px 14px;flex:1;-webkit-overflow-scrolling:touch;}
+.p-sheet-foot{flex:0 0 auto;padding:10px 16px calc(10px + env(safe-area-inset-bottom,8px));border-top:1px solid var(--hairline2);}
+.p-sheet-foot button{width:100%;min-height:44px;border-radius:var(--r10);font-weight:700;font-size:13px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--surface);}
+[data-theme=dark] .p-sheet-foot button{background:var(--accent);color:var(--accentInk);border-color:var(--accent);}
+.p-sheet-body .field select,.p-sheet-body .field input{min-height:44px;font-size:13px;}
+.p-sheet-layer:not(.top){pointer-events:none;}
 </style>
 </head>
 <body>
+<div id="desktopView">
 <div class="doc-head">
   <div>
     <h1>Promo Rules — Concept C: Batch-First Picker</h1>
     <div class="sub">Team 1d · <b>hw.rule.v1</b> · plan §2.5 · pick batches → derive the rule</div>
+  </div>
+  <div class="device-toggle" id="deviceToggle" role="group" aria-label="Preview device">
+    <button class="active" data-d="desktop" type="button">Desktop</button>
+    <button data-d="mobile" type="button">Mobile</button>
   </div>
   <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">◐</button>
 </div>
@@ -249,6 +299,40 @@ border:1px dashed var(--hairline3);border-radius:var(--r12);padding:14px 16px;fl
     <span class="badge-shape">meta.source: ui · meta.author: admin@hyperwolf.com</span>
   </div>
 </div>
+</div>
+
+<div class="phone-wrap" id="phoneView" hidden>
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="p-status"><span>9:41</span><span>●●●●  📶  🔋</span></div>
+      <div class="p-topbar">
+        <h2>Batch Picker</h2>
+        <div class="sub">Start from inventory, not from a form</div>
+      </div>
+      <div class="p-canvas">
+        <div class="p-existing" id="pExisting"></div>
+        <div id="pBatchList"></div>
+      </div>
+      <div class="p-continue-bar">
+        <button id="pContinueBtn" type="button">Continue with 2 batches →</button>
+      </div>
+      <div class="p-stack" id="pStack">
+        <div class="p-stack-scrim" id="pStackScrim"></div>
+        <div class="p-peek" id="pPeek" hidden></div>
+        <div class="p-sheet-layer top" id="pSheetSingle">
+          <div class="p-sheet-grip"></div>
+          <div class="p-sheet-head">
+            <button class="p-sheet-back" id="pSheetBack">←</button>
+            <h4 id="pSheetTitle">Derived conditions</h4>
+            <span class="step" id="pSheetStep">1 of 4</span>
+          </div>
+          <div class="p-sheet-body" id="pSheetBodySingle"></div>
+          <div class="p-sheet-foot"><button id="pSheetNext" type="button">Next: Reward →</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 function toggleTheme(){
@@ -327,6 +411,7 @@ let sortKey='age_days', sortDir=-1;
 let selected = new Set(['BATCH-1187','BATCH-0734']); // pre-selected: the two aged, high-THC batches
 let thcThresh = 31;   // gte
 let ageThresh = 95;   // packaged_at older_than_days
+let pStack = [];
 
 function renderBatches(){
   const rows = [...BATCHES].sort((a,b)=> (a[sortKey]>b[sortKey]?1:-1)*sortDir);
@@ -435,13 +520,185 @@ function buildJson(matched){
   document.getElementById('newRuleJsonPre').textContent = JSON.stringify(currentRuleObj(matched), null, 2);
 }
 
-function renderAll(){ renderBatches(); renderDerived(); }
+function renderAll(){ renderBatches(); renderDerived(); renderPhone(); }
 document.querySelectorAll('.chan, .store, #thenKind, #thenValue, #appliesTo, #priority, #startsAt, #endsAt, #capCents, #maxPerOrder')
   .forEach(el=> el.addEventListener('change', ()=> buildJson(matchesAt(thcThresh,ageThresh))));
 
 renderExisting();
 syncFromSelection();
 renderAll();
+
+/* ---------------------------------------------------------------------
+   PHONE VIEW — the same four steps (pick batches → derive → reward/scope
+   → preview) as stacked bottom sheets instead of scrolling sections: each
+   "Next" pushes a new sheet on top, peeking the one behind it; the header
+   back arrow pops it. Every field writes into the SAME desktop inputs
+   (#thenKind, #startsAt, .chan, ...) so buildJson()/currentRuleObj() stay
+   the single source of truth — the phone never re-derives its own rule.
+--------------------------------------------------------------------- */
+function renderPhoneExisting(){
+  document.getElementById('pExisting').innerHTML = EXISTING_RULES.map(r=>`
+    <div class="c"><div class="n">${r.name}</div><div class="rmeta"><span class="chip ${r.status}">${r.status}</span><span class="chip src-${r.source}">${r.source==='agent'?'agent-drafted':'ui-authored'}</span></div></div>`).join('');
+}
+function renderPhoneBatchList(){
+  document.getElementById('pBatchList').innerHTML = BATCHES.map(b=>`
+    <div class="p-batch-row"><input type="checkbox" data-no="${b.batch_no}" ${selected.has(b.batch_no)?'checked':''}>
+      <div class="body"><b>${b.batch_no}</b> · ${b.category} · ${b.thc_pct.toFixed(1)}% THC<div class="meta">packaged ${b.age_days}d ago · received ${b.received_days}d ago · ${b.on_hand} on-hand</div></div>
+    </div>`).join('');
+  document.querySelectorAll('#pBatchList input[type=checkbox]').forEach(cb=>cb.addEventListener('change', ()=> toggleSel(cb.dataset.no)));
+}
+function renderConditionsBody(){
+  const atThresh = matchesAt(thcThresh, ageThresh);
+  const extra = atThresh.filter(b=>!selected.has(b.batch_no));
+  document.getElementById('pSheetBodySingle').innerHTML = `
+    <div class="cond-chip"><div class="label"><b>batch.thc_pct &nbsp;gte</b><small>number · loosen to widen</small></div>
+      <div class="stepper"><button data-adj="thc" data-d="-1">−</button><span class="val">${thcThresh.toFixed(0)}%</span><button data-adj="thc" data-d="1">+</button></div></div>
+    <div class="cond-chip"><div class="label"><b>batch.packaged_at &nbsp;older_than_days</b><small>date · loosen to widen</small></div>
+      <div class="stepper"><button data-adj="age" data-d="-5">−</button><span class="val">${ageThresh}d</span><button data-adj="age" data-d="5">+</button></div></div>
+    <div class="cond-chip"><div class="label"><b>product.category_id &nbsp;in</b><small>fixed by picker context</small></div><div class="stepper"><span class="val">[flower]</span></div></div>
+    <div class="catch-box" style="margin-top:12px;">${extra.length===0
+      ? `<b>What else would this catch:</b> nothing beyond your ${selected.size} selected batch${selected.size===1?'':'es'}.`
+      : `<b>What else would this catch:</b> also ${extra.map(b=>`${b.batch_no} (${b.thc_pct.toFixed(1)}%, ${b.age_days}d, ${b.on_hand} on-hand)`).join(', ')}.`}</div>`;
+  document.querySelectorAll('#pSheetBodySingle [data-adj]').forEach(b=>b.addEventListener('click', ()=>{
+    adjust(b.dataset.adj, Number(b.dataset.d));
+    renderConditionsBody();
+    if (pStack.includes('preview')) renderPreviewBody();
+  }));
+}
+function renderRewardBody(){
+  const kind = document.getElementById('thenKind').value;
+  const val = document.getElementById('thenValue').value;
+  const appliesTo = document.getElementById('appliesTo').value;
+  const priority = document.getElementById('priority').value;
+  document.getElementById('pSheetBodySingle').innerHTML = `
+    <div class="field"><label>then.kind</label><select id="pThenKind">
+      ${['percent','amount','price','points','bogo','gift'].map(k=>`<option value="${k}" ${k===kind?'selected':''}>${k}</option>`).join('')}
+    </select></div>
+    <div class="field"><label>then.value</label><input id="pThenValue" type="number" value="${val}" min="0"></div>
+    <div class="field"><label>applies_to</label><select id="pAppliesTo">
+      <option value="matched_lines" ${appliesTo==='matched_lines'?'selected':''}>matched_lines</option>
+      <option value="cart" ${appliesTo==='cart'?'selected':''}>cart</option></select></div>
+    <div class="field"><label>priority</label><input id="pPriority" type="number" value="${priority}"></div>`;
+  const sync = () => {
+    document.getElementById('thenKind').value = document.getElementById('pThenKind').value;
+    document.getElementById('thenValue').value = document.getElementById('pThenValue').value;
+    document.getElementById('appliesTo').value = document.getElementById('pAppliesTo').value;
+    document.getElementById('priority').value = document.getElementById('pPriority').value;
+    buildJson(matchesAt(thcThresh,ageThresh));
+    if (pStack.includes('preview')) renderPreviewBody();
+  };
+  ['pThenKind','pThenValue','pAppliesTo','pPriority'].forEach(id=>document.getElementById(id).addEventListener('change', sync));
+}
+function renderScopeBody(){
+  const starts = document.getElementById('startsAt').value;
+  const ends = document.getElementById('endsAt').value;
+  const cap = document.getElementById('capCents').value;
+  const maxpo = document.getElementById('maxPerOrder').value;
+  const chans = ['in_store','pickup','delivery'];
+  const stores = [['store_wh','West Hollywood'],['store_le','Lake Elsinore'],['store_cr','Corona']];
+  const chanOn = v => [...document.querySelectorAll('.chan:checked')].some(x=>x.value===v);
+  const storeOn = v => [...document.querySelectorAll('.store:checked')].some(x=>x.value===v);
+  document.getElementById('pSheetBodySingle').innerHTML = `
+    <div class="field"><label>window.starts_at</label><input id="pStartsAt" type="date" value="${starts}"></div>
+    <div class="field"><label>window.ends_at</label><input id="pEndsAt" type="date" value="${ends}" placeholder="null = no end"></div>
+    <div class="field"><label>cap_cents</label><input id="pCapCents" type="number" value="${cap}" placeholder="null"></div>
+    <div class="field"><label>max_per_order</label><input id="pMaxPerOrder" type="number" value="${maxpo}" placeholder="null"></div>
+    <div class="field"><label>scope.channels</label><div class="check-row">${chans.map(c=>`<label><input type="checkbox" class="pchan" value="${c}" ${chanOn(c)?'checked':''}> ${c}</label>`).join('')}</div></div>
+    <div class="field"><label>scope.store_ids</label><div class="check-row">${stores.map(([v,l])=>`<label><input type="checkbox" class="pstore" value="${v}" ${storeOn(v)?'checked':''}> ${l}</label>`).join('')}</div></div>`;
+  const sync = () => {
+    document.getElementById('startsAt').value = document.getElementById('pStartsAt').value;
+    document.getElementById('endsAt').value = document.getElementById('pEndsAt').value;
+    document.getElementById('capCents').value = document.getElementById('pCapCents').value;
+    document.getElementById('maxPerOrder').value = document.getElementById('pMaxPerOrder').value;
+    document.querySelectorAll('.chan').forEach(c=>{ c.checked = [...document.querySelectorAll('.pchan:checked')].some(x=>x.value===c.value); });
+    document.querySelectorAll('.store').forEach(c=>{ c.checked = [...document.querySelectorAll('.pstore:checked')].some(x=>x.value===c.value); });
+    buildJson(matchesAt(thcThresh,ageThresh));
+    if (pStack.includes('preview')) renderPreviewBody();
+  };
+  document.querySelectorAll('#pSheetBodySingle input').forEach(el=>el.addEventListener('change', sync));
+}
+function renderPreviewBody(){
+  const matched = matchesAt(thcThresh, ageThresh);
+  const lines = matched.reduce((s,b)=> s + (b.on_hand>20?2:1), 0);
+  document.getElementById('pSheetBodySingle').innerHTML = `
+    <div class="preview-panel" style="display:block;">
+      <div class="num">${matched.length} batch${matched.length===1?'':'es'} · ${lines} line${lines===1?'':'s'}</div>
+      <div class="lbl">of the sample cart — static in this mockup</div>
+      <div class="route">POST /api/promos/rules/{id}/preview</div>
+    </div>
+    <button class="btn sm" id="pViewJsonBtn" type="button" style="margin-top:10px;">View JSON</button>
+    <div class="jsonbox" id="pJsonBox" style="margin-top:8px;"><pre id="pJsonPre"></pre></div>`;
+  document.getElementById('pJsonPre').textContent = JSON.stringify(currentRuleObj(matched), null, 2);
+  document.getElementById('pViewJsonBtn').addEventListener('click', ()=> document.getElementById('pJsonBox').classList.toggle('show'));
+}
+const STEP_META = {
+  conditions: {title:'Derived conditions', step:'1 of 4', next:'Next: Reward →'},
+  reward:     {title:'Reward',             step:'2 of 4', next:'Next: Scope →'},
+  scope:      {title:'Then / scope / window', step:'3 of 4', next:'Next: Preview →'},
+  preview:    {title:'Live preview',       step:'4 of 4', next:'Save as draft'},
+};
+const STEP_ORDER = ['conditions','reward','scope','preview'];
+function renderStackTop(){
+  const stackEl = document.getElementById('pStack');
+  stackEl.classList.toggle('open', pStack.length>0);
+  if (!pStack.length) return;
+  const key = pStack[pStack.length-1];
+  const meta = STEP_META[key];
+  document.getElementById('pSheetTitle').textContent = meta.title;
+  document.getElementById('pSheetStep').textContent = meta.step;
+  document.getElementById('pSheetNext').textContent = meta.next;
+  document.getElementById('pSheetBack').textContent = pStack.length>1 ? '←' : '✕';
+  const peek = document.getElementById('pPeek');
+  if (pStack.length>1){ peek.hidden = false; peek.textContent = '‹ ' + STEP_META[pStack[pStack.length-2]].title; }
+  else { peek.hidden = true; }
+  if (key==='conditions') renderConditionsBody();
+  else if (key==='reward') renderRewardBody();
+  else if (key==='scope') renderScopeBody();
+  else if (key==='preview') renderPreviewBody();
+}
+function pushSheet(key){ pStack.push(key); renderStackTop(); }
+function popSheet(){ pStack.pop(); renderStackTop(); }
+function closeStack(){ pStack = []; renderStackTop(); }
+function renderPhone(){
+  renderPhoneExisting();
+  renderPhoneBatchList();
+  document.getElementById('pContinueBtn').textContent = `Continue with ${selected.size} batch${selected.size===1?'':'es'} →`;
+  if (pStack.length) renderStackTop();
+}
+document.getElementById('pContinueBtn').addEventListener('click', ()=>{ pStack = ['conditions']; renderStackTop(); });
+document.getElementById('pSheetBack').addEventListener('click', ()=>{ if (pStack.length>1) popSheet(); else closeStack(); });
+document.getElementById('pPeek').addEventListener('click', popSheet);
+document.getElementById('pStackScrim').addEventListener('click', closeStack);
+document.getElementById('pSheetNext').addEventListener('click', ()=>{
+  const key = pStack[pStack.length-1];
+  const idx = STEP_ORDER.indexOf(key);
+  if (idx < STEP_ORDER.length-1) pushSheet(STEP_ORDER[idx+1]);
+  else closeStack(); // "Save as draft" on the last step — mockup only, matches the desktop button
+});
+
+/* ---- device toggle ---- */
+function setDevice(mode){
+  document.getElementById('desktopView').hidden = mode !== 'desktop';
+  document.getElementById('phoneView').hidden = mode !== 'mobile';
+  document.querySelectorAll('#deviceToggle button').forEach(b=>b.classList.toggle('active', b.dataset.d===mode));
+  if (mode === 'mobile') renderPhone();
+}
+document.getElementById('deviceToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-d]'); if(!btn) return;
+  setDevice(btn.dataset.d);
+});
+
+/* ---- query params: ?device=desktop|mobile  ?open=1|0  ?theme=light|dark ---- */
+(function applyQueryParams(){
+  try{
+    const qp = new URLSearchParams(location.search);
+    const theme = qp.get('theme');
+    if(theme==='dark' || theme==='light') document.documentElement.setAttribute('data-theme', theme);
+    const device = qp.get('device');
+    if(device==='mobile' || device==='desktop') setDevice(device);
+    if(qp.get('open')==='1'){ pStack=['conditions']; renderStackTop(); }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
