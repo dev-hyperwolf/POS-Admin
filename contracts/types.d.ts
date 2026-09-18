@@ -1,4 +1,6 @@
-// @hyper-tech/contracts — hand-written declarations for index.js (kept in step by test/contracts.test.mjs).
+// @hyper-tech/contracts — hand-written declarations for index.js (schema sync 2026-09-17, 0.5.2).
+// Numeric bounds, integer-only values, formats, and cross-field rules require runtime validation.
+// TypeScript structural types do not enforce additionalProperties:false on existing objects.
 export type Platform = 'hyperwolf' | 'hemp' | 'stilo';
 export type PersonKind = 'customer' | 'staff' | 'driver' | 'tenant' | 'service';
 export type Role = 'viewer' | 'associate' | 'manager' | 'admin' | 'superadmin';
@@ -94,11 +96,11 @@ export interface OrderLine { product_id: string; name: string; brand?: string | 
 export interface Order { id: string; platform: Platform; store_id: string; status: OrderStatus; txn_type: TxnType; ref_order_id?: string | null; customer_id?: string | null; associate_id?: string | null; created_at: string; completed_at?: string | null; subtotal: Money; discount: Money; tax?: Money | null; total: Money; lines?: OrderLine[]; external_ids?: ExternalId[] }
 export interface Location { id: string; kind: LocationKind; name: string; address?: string | null; store_id?: string | null; region_id?: string | null; parent_id?: string | null; active?: boolean; capacity?: number | null }
 /** One Metrc package a batch is split across. The batch is the unit of control; the tag is compliance. */
-export interface MetrcPackage { tag: string; quantity?: number | null; packaged_at?: string | null }
-export interface Batch { id: string; product_id: string; sku?: string | null; batch_no: string; /** deprecated 0.4.3: first tag; write metrc_packages */ metrc_tag?: string | null; metrc_packages?: MetrcPackage[]; packaged_at?: string | null; expires_at?: string | null; received_at: string; thc_pct?: number | null; unit_cost?: Money | null; quantity: number; location_id?: string | null; external_ids?: ExternalId[] }
+export interface BatchMetrcPackage { tag: string; quantity?: number | null; packaged_at?: string | null }
+export interface Batch { id: string; product_id: string; sku?: string | null; batch_no: string; /** deprecated 0.4.3: first tag; write metrc_packages */ metrc_tag?: string | null; metrc_packages?: BatchMetrcPackage[]; packaged_at?: string | null; expires_at?: string | null; received_at: string; thc_pct?: number | null; unit_cost?: Money | null; quantity?: number; location_id?: string | null; external_ids?: ExternalId[] }
 export interface Movement { id: string; at: string; reason: MovementReason; product_id: string; batch_id: string; quantity: number; from_location_id?: string | null; to_location_id: string; tag_ids?: string[]; actor_id?: string | null; ref?: string | null; note?: string | null }
 export interface ReceivedItem { id: string; received_at: string; kind: ArrivalKind; product_id: string; batch_id: string; quantity: number; location_id?: string | null; included_in?: string[]; reason?: PlanReason | null; premium?: boolean }
-export interface PlanLine { product_id: string; batch_id: string; from_location_id?: string | null; to_location_id: string; sold: number; need: number; cap: number; give: number; reasons: PlanReason[]; mixed_batch?: boolean; note?: string | null; picked_by?: string | null; picked_at?: string | null; packed_by?: string | null; packed_at?: string | null; verified_by?: string | null; verified_at?: string | null; overridden_by?: string | null }
+export interface PlanLine { product_id: string; batch_id: string; from_location_id?: string | null; to_location_id: string; sold: number; need: number; cap: number; give: number; reasons: Array<PlanReason>; mixed_batch?: boolean; note?: string | null; batch_no?: string | null; thc_pct?: number | null; packaged_at?: string | null; received_at?: string | null; expires_at?: string | null; picked_by?: string | null; picked_at?: string | null; packed_by?: string | null; packed_at?: string | null; verified_by?: string | null; verified_at?: string | null; overridden_by?: string | null; }
 export interface ShellLocationBinding { shell_id: string; store_id?: string | null; side: LocationSide; location_id: string; updated_at?: string | null; updated_by?: string | null }
 export type TaxJurisdictionKind = 'state' | 'county' | 'city' | 'district';
 export type TaxKind = 'excise' | 'sales' | 'local_cannabis' | 'other';
@@ -107,12 +109,12 @@ export type TaxAppliesTo = 'cannabis' | 'non_cannabis' | 'all';
 export type TaxMemberType = 'recreational' | 'medical' | 'all';
 export interface TaxRate { id: string; store_id?: string | null; jurisdiction_kind: TaxJurisdictionKind; jurisdiction_name: string; kind: TaxKind; basis: TaxBasis; rate_bps: number; applies_to: TaxAppliesTo; member_type: TaxMemberType; effective_from: string; effective_to?: string | null; note?: string | null; created_by?: string | null; updated_by?: string | null; updated_at?: string | null }
 export interface TaxLine { rate_id: string; kind: TaxKind; jurisdiction: string; rate_bps: number; basis: TaxBasis; tax_cents: number }
-export interface TaxBreakdown { lines: { line_idx: number; taxable_cents: number; taxes: TaxLine[] }[]; totals: Record<string, number>; total_tax_cents: number }
+export interface TaxBreakdown { lines: { line_idx: number; taxable_cents: number; taxes: TaxLine[] }[]; totals: Record<string, unknown>; total_tax_cents: number }
 export interface Plan { id: string; kind: 'build' | 'refill' | 'restock' | 'handoff'; business_day: string; generated_at: string; channel: ChannelKind; store_id?: string | null; lines: PlanLine[]; skipped?: PlanLine[]; warnings?: string[]; inputs?: Record<string, unknown> | null; planned_by?: string | null; engine_version?: string | null; approved_by?: string | null; approved_at?: string | null }
-export interface Standing { person: Person; metric: Metric; value: number; rank: number; tied?: boolean; earned?: Money | null; progress?: number | null }
+export interface Standing { person: Person; metric: Metric; value: number; rank: number | null; tied?: boolean; earned?: Money | null; progress?: number | null }
 export interface Contest { id: string; name: string; kind: ContestKind; status: ContestStatus; metric: Metric; audience: Classification[]; store_ids: string[]; starts_at?: string | null; ends_at?: string | null; prize?: Money | null }
 export interface PointsEntry { id: string; person_id: string; kind: PointsKind; amount: Money; at: string; contest_id?: string | null; note?: string | null }
-export interface VerificationSession { id: string; session_number?: number | null; status: VerificationStatus; channel: VerificationChannel; person_id?: string | null; reasons?: string[]; created_at: string; completed_at?: string | null; external_ids?: ExternalId[] }
+export interface VerificationSession { id: string; session_number?: number | null; status: VerificationStatus; channel: VerificationChannel; person_id?: string | null; reasons?: VerificationReason[]; created_at: string; completed_at?: string | null; external_ids?: ExternalId[] }
 export interface Task { id: string; order_id?: string | null; fleet_id?: string | null; status: TaskStatus; assignment_mode: TaskAssignmentMode; region_id?: string | null; created_at: string; total?: Money | null }
 export interface Fleet { id: string; person_id: string; status: FleetStatus; verification_status: 'pending' | 'verified'; on_duty?: boolean; region_id?: string | null }
 export interface Promotion { id: string; platform: Platform; name: string; codes?: string[]; status: PromotionStatus; rule_types: RuleType[]; starts_at?: string | null; ends_at?: string | null; usage_limit?: number | null; stackable?: boolean; rule?: PromotionRule | null }
@@ -141,10 +143,41 @@ export interface CloserReport { source_ref: AirtableSourceRef; entity_id: string
 export interface LossLedgerEntry { source_ref: AirtableSourceRef; entity_id: string; person_id: string; store_id?: string | null; closer_report_id?: string | null; shift_date: string; final_loss: Money; amount_recovered: Money; net_loss: Money; reason_code?: CloserReportDiscrepancyType | null; disposition?: LpDisposition | null; window?: { lifetime?: Money | null; mtd?: Money | null; ytd?: Money | null } | null; high_risk?: boolean | null; recorded_at?: string | null }
 export interface ContractError { error: { code: ErrorCode; message: string; details?: unknown } }
 export interface ContractEvent<T = Record<string, unknown>> { event_id: string; type: EventType; contract: string; at: string; source: string; data: T }
+
+// 0.5.0/0.5.1 — 2026-09-17: drawers, regions (nullable store scope), signature.
+export type RegisterSessionStatus = 'open' | 'closing' | 'closed' | 'voided';
+export type CashDropReason = 'drop' | 'paid_out' | 'paid_in' | 'float_adjust';
+export type CashCountKind = 'opening' | 'mid' | 'closing';
+export type VerificationReason = 'LIVENESS_LOW' | 'LIVENESS_FAILED_3X' | 'FACE_MATCH_LOW' | 'DOC_QUALITY_LOW' | 'BARCODE_OCR_MISMATCH' | 'NAME_MISMATCH_EXPECTED' | 'DUPLICATE_PERSON' | 'IP_HOSTING' | 'IP_VPN' | 'AGE_ESTIMATE_UNDER_MARGIN' | 'OUT_OF_STATE' | 'DOC_NEAR_EXPIRY' | 'ENGINE_UNAVAILABLE_MANUAL' | 'DOC_EXPIRED' | 'UNDER_AGE' | 'FACE_BLOCKLIST_HIT' | 'DOCUMENT_BLOCKLIST_HIT' | 'USER_BLOCKLIST_HIT' | 'IP_TOR' | 'INJECTION_DETECTED' | 'CHALLENGE_NONCE_MISMATCH' | 'LIVENESS_ATTEMPTS_EXHAUSTED_HARD' | 'MED_REC_JURISDICTION_UNCONFIGURED' | 'BARCODE_NOT_DETECTED' | 'DOC_PORTRAIT_NOT_FOUND' | 'ENGINE_MEDIA_UNAVAILABLE' | 'ENGINE_NO_EVIDENCE' | 'MED_REC_DOB_MISMATCH' | 'MED_REC_EXPIRED' | 'MED_REC_INVALID_LICENSE' | 'MED_REC_MISSING' | 'MED_REC_NAME_MISMATCH' | 'MED_REC_OUT_OF_STATE' | 'MED_REC_UNREADABLE' | 'MRZ_LOW_CONFIDENCE' | 'MRZ_NOT_FOUND' | 'OVI_SHIFT_NOT_SEEN' | 'SCREEN_REPLAY_SUSPECTED';
+// Numeric-cents keys or named rolls; quantities and supported faces are checked server-side.
+export type CashDenominationKey = `${bigint}` | 'roll_dollar' | 'roll_quarter' | 'roll_dime' | 'roll_nickel' | 'roll_penny';
+// `${bigint}` cannot exclude negative strings or capture every leading-zero digit string.
+export interface RegisterSession { id: string; store_id: string; register_id: string; opened_by: string; opened_at: string; opening_float_cents: number; expected_cash_cents?: number | null; counted_cash_cents?: number | null; variance_cents?: number | null; needs_review?: boolean; status: RegisterSessionStatus; closed_by?: string | null; closed_at?: string | null; voided_by?: string | null; voided_at?: string | null; void_reason?: string | null; notes?: string | null; drops?: Array<CashDrop>; counts?: Array<CashCount>; }
+export interface CashDrop { id: string; session_id: string; amount_cents: number; reason: CashDropReason; by: string; at: string; bag_ref?: string | null; }
+// CashCount is a server result: clients must never supply total_cents on a write.
+export interface CashCount { id: string; session_id: string; kind: CashCountKind; denominations: Partial<Record<CashDenominationKey, number>>; total_cents: number; by: string; at: string; }
+export interface RegionHours { mon?: string | null; tue?: string | null; wed?: string | null; thu?: string | null; fri?: string | null; sat?: string | null; sun?: string | null; }
+export interface Region { id: string; name: string; kml?: string | null; opening_hours?: RegionHours | null; closing_hours?: RegionHours | null; timezone?: string | null; parent_region_id?: string | null; blaze_region_id?: string | null; active?: boolean | null; store_id?: string | null; updated_by?: string | null; updated_at?: string | null; }
+export interface WriteupSignature { signature_png_b64: string; acknowledged: true; typed_name: string; }
+
+// 0.5.2 — 2026-09-17: Metrc read models; BatchMetrcPackage above keeps the 0.4.3 inline shape.
+export type MetrcResolutionPath = 'sale_hook' | 'backfill_job' | 'manual_correction';
+export type MetrcVarianceKind = 'package_balance' | 'ledger_missing_in_metrc' | 'metrc_missing_in_ledger' | 'uom_mismatch' | 'duplicate_submit';
+export type MetrcExceptionState = 'open' | 'acknowledged' | 'resolved';
+export interface MetrcPackage { tag: string; licence_number: string; item_name: string; item_category?: string | null; quantity: number; unit_of_measure: string; packaged_date?: string | null; is_active: boolean; is_finished?: boolean | null; production_batch_number?: string | null; location_name?: string | null; batch_id?: string | null; last_modified?: string | null; }
+export interface MetrcLedgerLine { id: string; licence_number: string; business_day: string; order_id?: string | null; order_line_idx?: number | null; store_id?: string | null; product_id: string; unit_id?: string | null; batch_id: string; package_tag: string; quantity: number; unit_of_measure?: string | null; resolution_path: MetrcResolutionPath; supersedes?: string | null; superseded_by?: string | null; content_hash: string; recorded_at: string; }
+export interface MetrcReconVariance { id: string; licence_number: string; business_day: string; package_tag?: string | null; batch_id?: string | null; kind: MetrcVarianceKind; severity: Severity; local_quantity?: number | null; metrc_quantity?: number | null; delta?: number | null; detail?: string | null; detected_at: string; status: MetrcExceptionState; acknowledged_by?: string | null; acknowledged_at?: string | null; resolved_by?: string | null; resolved_at?: string | null; resolution_note?: string | null; }
+
+// Schema-name aliases retain the existing ContractError/ContractEvent public names.
+export type Error = ContractError;
+export type Event = ContractEvent<Record<string, unknown>>;
+
 export interface Validation { ok: boolean; errors: string[] }
 
 export const VERSION: string;
 export const HEADER: string;
+export const HTTP_STATUS: Record<ErrorCode, number>;
+export const ROLE_MAP: Record<string, Role>;
 export const ENUMS: Record<string, { values: string[]; source: string }>;
 export const SCHEMAS: Record<string, unknown>;
 export function enumValues(name: string): string[];
