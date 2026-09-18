@@ -1,9 +1,31 @@
 # Hyperwolf codebase audit — status
 
-Updated 2026-09-09 (late). Phases 1, 2, 3 and 4 (Hyperwolf Docs) are complete. **The Hyper-Tech repos are
+Updated 2026-09-09 (late). Phases 1, 2, 3 and 4 (Hyperwolf Docs) are complete. Build program refresh appended 2026-09-17, covering the master plan through its evening entry. **The Hyper-Tech repos are
 read-only for this work by the owner's decision**: findings go to the developer team as
 `codebase-audit/TEAM-TODO.md`, and nothing under `/Users/jt/hyper-tech` has been modified.
 Both repos were pushed on 2026-09-10 (owner's word, Verify session's push); both auto-deploy on push.
+
+## Build program (2026-09-16/17) — status
+
+Historical snapshot through the **2026-09-17 evening** entry in [the master plan §9](BUILD-PROGRAM-MASTER-PLAN-2026-09-16.md#9-progress-log-appended-as-work-lands). These are the plan's recorded results, not new verification or a claim that everything is deployed. Earlier sections below retain their original dates. In particular, their contract 0.3.0 and “Floor Restock not done” statements predate the results here.
+
+| Piece | Where | Proof / recorded state |
+|---|---|---|
+| Team 0 — authentication and security gate | wm-demo authz, route policy, sessions; shared client | Foundation grew from 46 to 58 checks; initial re-review PASS-WITH-NOTES. Sessions: 35 checks, client `2fdbf7e`. The early wm-demo commit `9b9c149` followed 6005 battery checks, all 15 program suites 1476/0, release review PASS on nine attacks, and security-gate probe **512 pass / 0 fail / 5 skip**. Shared-login-bucket, partial legacy-flag and public-mode session-gate failures were fixed. (§9:258,265,267) |
+| Track 1 — batch promotions | Contract shape, engine and rule-builder concepts | Shape `58d8cea`, **contracts 0.5.0**; engine 268→289 checks with store-scoped writes fixed (403/404); legacy export 81 checks with unsupported features explicit; four concepts `fb28332`. Group-node counting / unbounded then.value JS fixes and Python mirror were in progress in the shape entry; price/bogo/gift/points pricing and bulk resolution remain in progress in the later Track 1 entry. (§9:259,262) |
+| Track 2 — console and Floor Restock | Common components, Concept A screen, batch identity | `583e5bf` (27 tests), `92f6aba` (21 tests); client PASS-WITH-NOTES, server duplicate-line and store-scope fixes dispatched. PlanLine batch identity landed as `d9cb26b`; change-list items 20–25 as `c5e9815`. Manage shelf pars omitted because no par table exists. (§9:260,263) |
+| Track 3 — HR/LP migration | Migration plan, contracts, HR read layer and concepts | Plan / decision sheet `77a7a1b`; HR/LP contracts with `58d8cea`; HR Overview concepts `15f87ed`; HR data layer `2bea2be`, static PASS-WITH-NOTES, entity filtering and 503/502 hygiene. (§9:261,264) |
+| Track 4 — operations and runtime | Backups, infrastructure, export, TypeScript | Plan `76ebd8f`, backup / restore drill 32 checks. Wave 2 records in-process backup scheduling, AWS CDK 5 stacks / 51 assertions, container image, PostgreSQL export 125 tables, and TypeScript promotions port 48/48 goldens with session-split parity. (§9:266,269) |
+| Wave 2 — module builds | Cash drawers, tax, regions, reports, jobs and outbound; HR/LP/forms | 12 Blaze-parity reports, 7 signed-link purposes, 20 forms ported (batches 1–3), LP triage/decisions and loss ledger, write-up ladder / AI drafts / human approve-and-send, timesheet attendance ladder. Airtable write and Connecteam read adapters; form dispatch, encrypted PII/reveal audit, attachments and validators; operator/admin split and undrained-body 501 fixed. Route coverage 144/166; 6 failed refuter verdicts fixed and re-refuted. Tax remains off behind WM_TAX_TABLE pending real rates. (§9:269) |
+| Wave 3 — recorded results | Close-outs, route policy, forms, signing, TypeScript ports | Close-out routes / guards (lp 110); **strict route policy now DEFAULT**; warning validators / coin rolls; signing route fixed for claim-before-write, ID enumeration and token leak; TS register 54 goldens, TS tax 44 goldens (overlap race fixed by per-slot advisory lock); timesheet Tier-2 messaging 103; over-posting allowlists 14 routes. Tax-prefix swallowing taxonomy writes fixed but unpushed. (§9:273) |
+| Track 5 — requested work | Gap-closure plan, database-provider research, hw-sync | Requested plans plus legacy MongoDB→PostgreSQL map/backfill/sync and inventory; the entry does not establish completion. No production database contacted; read-only Mongo user is an owner/dev-team item. (§9:274) |
+| Track 6 — experience | Mobile audit, nav concepts, mobile-app audit groundwork | Dispatched, not marked complete: responsive standard, nav categories/accordions concepts and review, iOS/Android audit groundwork. Every new page must show desktop and phone in four concepts; mobile app source is an owner/dev-team ask. (§9:275) |
+
+**Not done yet in this snapshot:** Wave 3 Airtable write-backs for ten forms failed record-id IDOR review and are being fixed; per-register cash attribution / persisted sale tax breakdown is under refute (§9:273). The early follow-up list also names preview store scoping, actor-label cap, background flag over reconciliation, and nostack/cycle3 credentials (§9:267); do not assume these closed from silence. Earlier coverage of 10/153, batch 1's 25 money/PII writes, and Wave 2's 144/166 are dated milestones, superseded by the later strict-default result, not current coverage claims (§9:265,267,269,273). The recorded, **uncommitted** battery-floor change is **3692 → 3750**; the webhook-SSRF probe remains held out by another session's edit (§9:271, §8).
+
+**Realtime / AWS next:** the evening entry calls kit WS/SSE primitives “building,” then plans Python `/api/rt/sse` and client polling fallback after the Wave 3 commit, AWS WebSockets / Valkey / location fan-out, and a VROOM+OSRM worker on pg-boss. It records the owner’s ~30 s failover request and Aurora PostgreSQL I/O-Optimized writer + reader / RDS Proxy option beside RDS, Valkey stack, and account-isolation document. It does not establish deployment (§9:276).
+
+**Owner items recorded, still open in this source:** Render / TypeScript admin configuration, real per-store tax rates and current tax configuration, off-box backup bucket/key, and winning concept choices (§9:270). Those entries are historical; this refresh does not reopen already-decided questions or override the living to-do list.
 
 ## Modules on the contract — status (2026-09-09, night)
 
